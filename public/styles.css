@@ -311,7 +311,7 @@ a {
 }
 
 .service-card:hover .service-icon {
-    transform: scale(1.1) rotate(5deg);
+    transform: none;
 }
 
 .service-icon svg {
@@ -1388,7 +1388,7 @@ select:focus {
 .service-card:hover,
 .country-card:hover,
 .tool-card:hover {
-    transform: translateY(-8px) scale(1.02);
+    transform: translateY(-4px);
 }
 
 @media (max-width: 1024px) {
@@ -1652,18 +1652,19 @@ select:focus {
 }
 
 ::-webkit-scrollbar {
-    width: 8px;
+    width: 0px;
+    display: none;
 }
 
 ::-webkit-scrollbar-track {
-    background: var(--primary);
+    background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-    background: var(--border);
-    border-radius: 4px;
+    background: transparent;
 }
 
-::-webkit-scrollbar-thumb:hover {
-    background: var(--text-muted);
+* {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
 }

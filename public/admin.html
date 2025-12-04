@@ -511,6 +511,20 @@
                             <p>کانفیگ ساخته شده</p>
                         </div>
                     </div>
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fas fa-database"></i></div>
+                        <div class="stat-info">
+                            <h3 id="stat-kv"><i class="fas fa-spinner fa-spin"></i></h3>
+                            <p>وضعیت KV</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fab fa-telegram"></i></div>
+                        <div class="stat-info">
+                            <h3 id="stat-bot"><i class="fas fa-spinner fa-spin"></i></h3>
+                            <p>وضعیت Bot Token</p>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="admin-tabs">
@@ -773,11 +787,28 @@
                 if (data.success) {
                     document.getElementById('stat-users').textContent = data.stats.totalUsers;
                     document.getElementById('stat-vip').textContent = data.stats.vipUsers;
-                    document.getElementById('stat-countries').textContent = data.stats.totalCountries;
+                    document.getElementById('stat-countries').textContent = data.stats.totalCountries || 0;
                     document.getElementById('stat-configs').textContent = data.stats.totalConfigs;
+                    
+                    const kvStatus = document.getElementById('stat-kv');
+                    const botStatus = document.getElementById('stat-bot');
+                    
+                    if (data.stats.kvConnected) {
+                        kvStatus.innerHTML = '<i class="fas fa-check-circle" style="color: var(--success);"></i>';
+                    } else {
+                        kvStatus.innerHTML = '<i class="fas fa-times-circle" style="color: var(--danger);"></i>';
+                    }
+                    
+                    if (data.stats.botTokenConfigured) {
+                        botStatus.innerHTML = '<i class="fas fa-check-circle" style="color: var(--success);"></i>';
+                    } else {
+                        botStatus.innerHTML = '<i class="fas fa-times-circle" style="color: var(--danger);"></i>';
+                    }
                 }
             } catch (error) {
                 console.error('Error loading stats:', error);
+                document.getElementById('stat-kv').innerHTML = '<i class="fas fa-exclamation-circle" style="color: var(--warning);"></i>';
+                document.getElementById('stat-bot').innerHTML = '<i class="fas fa-exclamation-circle" style="color: var(--warning);"></i>';
             }
         }
 

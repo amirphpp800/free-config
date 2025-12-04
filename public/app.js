@@ -187,6 +187,7 @@ async function loadOperators() {
         const response = await fetch('/api/config/operators');
         const operators = await response.json();
         const select = document.getElementById('wg-operator');
+        select.innerHTML = '';
         operators.forEach(op => {
             const option = document.createElement('option');
             option.value = op.id;
@@ -203,6 +204,7 @@ async function loadDnsOptions() {
         const response = await fetch('/api/config/dns-options');
         const dnsOptions = await response.json();
         const select = document.getElementById('wg-dns');
+        select.innerHTML = '';
         dnsOptions.forEach(dns => {
             const option = document.createElement('option');
             option.value = dns.ip;
@@ -324,6 +326,12 @@ async function generateConfig(countryCode, type) {
             const ipVersion = document.getElementById('wg-ip-version').value;
             const operator = document.getElementById('wg-operator').value;
             const dns = document.getElementById('wg-dns').value;
+            
+            if (!operator || !dns) {
+                showToast('لطفا DNS و اپراتور را انتخاب کنید', 'error');
+                hideLoading();
+                return;
+            }
             
             response = await fetch('/api/config/generate-wireguard', {
                 method: 'POST',

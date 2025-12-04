@@ -1,3 +1,4 @@
+
 export async function onRequestGet(context) {
     const { request, env, data } = context;
     const url = new URL(request.url);
@@ -30,8 +31,17 @@ export async function onRequestGet(context) {
                 });
             }
             
+            case 'countries': {
+                const countries = await env.KV.get('countries:list', 'json') || [];
+                return Response.json({ 
+                    success: true, 
+                    countries
+                });
+            }
+            
             case 'stats': {
                 const usersList = await env.KV.get('users:list', 'json') || [];
+                const countries = await env.KV.get('countries:list', 'json') || [];
                 let totalConfigs = 0;
                 let vipCount = 0;
                 let adminCount = 0;
@@ -45,13 +55,26 @@ export async function onRequestGet(context) {
                     }
                 }
                 
+                let kvConnected = false;
+                try {
+                    await env.KV.get('health-check');
+                    kvConnected = true;
+                } catch (e) {
+                    kvConnected = false;
+                }
+                
+                const botTokenConfigured = !!env.BOT_TOKEN;
+                
                 return Response.json({
                     success: true,
                     stats: {
                         totalUsers: usersList.length,
                         vipUsers: vipCount,
                         adminUsers: adminCount,
-                        totalConfigs
+                        totalConfigs,
+                        totalCountries: countries.length,
+                        kvConnected,
+                        botTokenConfigured
                     }
                 });
             }
@@ -95,6 +118,60 @@ export async function onRequestPost(context) {
         const body = await request.json();
         
         switch (path) {
+            case 'country/add': {
+                const { code, fa, en } = body;
+                
+                if (!code || !fa || !en) {
+                    return Response.json({ 
+                        success: false, 
+                        error: 'تمام فیلدها الزامی است' 
+                    }, { status: 400 });
+                }
+                
+                const countries = await env.KV.get('countries:list', 'json') || [];
+                
+                if (countries.find(c => c.code === code.toUpperCase())) {
+                    return Response.json({ 
+                        success: false, 
+                        error: 'این کشور قبلاً اضافه شده است' 
+                    }, { status: 400 });
+                }
+                
+                countries.push({
+                    code: code.toUpperCase(),
+                    fa,
+                    en
+                });
+                
+                await env.KV.put('countries:list', JSON.stringify(countries));
+                
+                return Response.json({ 
+                    success: true, 
+                    message: 'کشور اضافه شد'
+                });
+            }
+            
+            case 'country/delete': {
+                const { code } = body;
+                
+                if (!code) {
+                    return Response.json({ 
+                        success: false, 
+                        error: 'کد کشور الزامی است' 
+                    }, { status: 400 });
+                }
+                
+                const countries = await env.KV.get('countries:list', 'json') || [];
+                const newCountries = countries.filter(c => c.code !== code.toUpperCase());
+                
+                await env.KV.put('countries:list', JSON.stringify(newCountries));
+                
+                return Response.json({ 
+                    success: true, 
+                    message: 'کشور حذف شد'
+                });
+            }
+            
             case 'user/update': {
                 const { telegramId, isVip, isAdmin } = body;
                 

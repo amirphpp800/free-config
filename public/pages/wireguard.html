@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="stylesheet" href="/public/styles.css">
+    <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
     <div class="app">
@@ -24,14 +24,14 @@
                             <span>ابزارهای امنیتی</span>
                         </div>
                     </a>
-                    
+
                     <nav class="main-nav">
                         <a href="/" class="nav-link"><i class="fas fa-home"></i> خانه</a>
-                        <a href="/dns.html" class="nav-link"><i class="fas fa-globe"></i> DNS</a>
-                        <a href="/wireguard.html" class="nav-link active"><i class="fas fa-network-wired"></i> WireGuard</a>
-                        <a href="/tools.html" class="nav-link"><i class="fas fa-toolbox"></i> ابزارها</a>
+                        <a href="/dns" class="nav-link"><i class="fas fa-globe"></i> DNS</a>
+                        <a href="/wireguard" class="nav-link active"><i class="fas fa-network-wired"></i> WireGuard</a>
+                        <a href="/tools" class="nav-link"><i class="fas fa-toolbox"></i> ابزارها</a>
                     </nav>
-                    
+
                     <div class="header-actions">
                         <a href="https://t.me/ROOTLeaker" target="_blank" class="btn btn-telegram">
                             <i class="fab fa-telegram"></i>
@@ -113,16 +113,14 @@
                         </div>
 
                         <div class="option-group">
-                            <label>اپراتور</label>
-                            <select id="wg-operator">
-                                <option value="">بدون اپراتور</option>
+                            <label>اپراتور *</label>
+                            <select id="wg-operator" required>
                             </select>
                         </div>
 
                         <div class="option-group">
-                            <label>DNS</label>
-                            <select id="wg-dns">
-                                <option value="">تصادفی</option>
+                            <label>DNS *</label>
+                            <select id="wg-dns" required>
                             </select>
                         </div>
                     </div>
@@ -457,6 +455,12 @@
                 const operator = document.getElementById('wg-operator').value;
                 const dns = document.getElementById('wg-dns').value;
 
+                if (!operator || !dns) {
+                    showToast('لطفا اپراتور و DNS را انتخاب کنید', 'error');
+                    hideLoading();
+                    return;
+                }
+
                 const response = await fetch('/api/config/generate-wireguard', {
                     method: 'POST',
                     headers: {
@@ -486,7 +490,7 @@
 
         function showResult(data) {
             document.getElementById('result-title').innerHTML = `<i class="fas fa-network-wired" style="color: var(--secondary);"></i> WireGuard ${data.country}`;
-            
+
             let badges = `
                 <div class="badge"><i class="fas fa-flag"></i> ${data.country}</div>
                 <div class="badge"><i class="fas fa-server"></i> DNS: ${data.dns}</div>
