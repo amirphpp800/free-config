@@ -6,6 +6,11 @@ let currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
 let pendingTelegramId = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
+    // ابتدا اطلاعات ذخیره شده را بارگذاری می‌کنیم
+    if (currentUser) {
+        updateAuthUI(true);
+    }
+    
     await checkAuth();
     await loadCountries();
     await loadOperators();
@@ -17,6 +22,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function checkAuth() {
     if (!authToken) {
+        localStorage.removeItem('currentUser');
+        currentUser = null;
         updateAuthUI(false);
         return;
     }
@@ -26,19 +33,31 @@ async function checkAuth() {
             headers: { 'Authorization': `Bearer ${authToken}` }
         });
         
-        const data = await response.json();
-        
-        if (data.success) {
-            currentUser = data.user;
-            updateAuthUI(true);
-        } else {
-            localStorage.removeItem('authToken');
-            authToken = null;
-            updateAuthUI(false);
+        if (response.ok) {
+            const data = await response.json();
+            
+            if (data.success && data.user) {
+                currentUser = data.user;
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                updateAuthUI(true);
+                return;
+            }
         }
+        
+        // اگر توکن نامعتبر بود
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('currentUser');
+        authToken = null;
+        currentUser = null;
+        updateAuthUI(false);
     } catch (error) {
         console.error('Auth check error:', error);
-        updateAuthUI(false);
+        // در صورت خطای شبکه، از اطلاعات ذخیره شده استفاده می‌کنیم
+        if (currentUser) {
+            updateAuthUI(true);
+        } else {
+            updateAuthUI(false);
+        }
     }
 }
 
@@ -165,6 +184,7 @@ async function logout() {
     }
     
     localStorage.removeItem('authToken');
+    localStorage.removeItem('currentUser');
     authToken = null;
     currentUser = null;
     updateAuthUI(false);
