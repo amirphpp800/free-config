@@ -415,14 +415,13 @@ async function handleGenerateConfig(request, env) {
     let dnsServers = [];
 
     if (dnsType === 'ipv4') {
-        if (!location.dns.ipv4 || location.dns.ipv4.length === 0) {
+        if (!location.dns || !location.dns.ipv4 || location.dns.ipv4.length === 0) {
             return errorResponse('این کشور آدرس IPv4 ندارد');
         }
         
-        const ipv4Address = location.dns.ipv4[0];
-        dnsServers.push(ipv4Address);
+        dnsServers.push(location.dns.ipv4[0]);
         
-        location.dns.ipv4.shift();
+        location.dns.ipv4 = location.dns.ipv4.slice(1);
         
         const countryIndex = countries.findIndex(c => c.id === locationId);
         if (countryIndex !== -1) {
@@ -430,14 +429,14 @@ async function handleGenerateConfig(request, env) {
             await env.DB.put('countries:list', JSON.stringify(countries));
         }
     } else if (dnsType === 'ipv6') {
-        if (!location.dns.ipv6 || location.dns.ipv6.length < 2) {
+        if (!location.dns || !location.dns.ipv6 || location.dns.ipv6.length < 2) {
             return errorResponse('این کشور آدرس IPv6 کافی ندارد');
         }
         
         dnsServers.push(location.dns.ipv6[0]);
         dnsServers.push(location.dns.ipv6[1]);
         
-        location.dns.ipv6.splice(0, 2);
+        location.dns.ipv6 = location.dns.ipv6.slice(2);
         
         const countryIndex = countries.findIndex(c => c.id === locationId);
         if (countryIndex !== -1) {
@@ -508,13 +507,13 @@ async function handleGenerateDns(request, env) {
     let dns = [];
 
     if (dnsType === 'ipv4') {
-        if (!location.dns.ipv4 || location.dns.ipv4.length === 0) {
+        if (!location.dns || !location.dns.ipv4 || location.dns.ipv4.length === 0) {
             return errorResponse('این کشور آدرس IPv4 ندارد');
         }
         
         dns.push(location.dns.ipv4[0]);
         
-        location.dns.ipv4.shift();
+        location.dns.ipv4 = location.dns.ipv4.slice(1);
         
         const countryIndex = countries.findIndex(c => c.id === locationId);
         if (countryIndex !== -1) {
@@ -522,14 +521,14 @@ async function handleGenerateDns(request, env) {
             await env.DB.put('countries:list', JSON.stringify(countries));
         }
     } else if (dnsType === 'ipv6') {
-        if (!location.dns.ipv6 || location.dns.ipv6.length < 2) {
+        if (!location.dns || !location.dns.ipv6 || location.dns.ipv6.length < 2) {
             return errorResponse('این کشور آدرس IPv6 کافی ندارد');
         }
         
         dns.push(location.dns.ipv6[0]);
         dns.push(location.dns.ipv6[1]);
         
-        location.dns.ipv6.splice(0, 2);
+        location.dns.ipv6 = location.dns.ipv6.slice(2);
         
         const countryIndex = countries.findIndex(c => c.id === locationId);
         if (countryIndex !== -1) {
