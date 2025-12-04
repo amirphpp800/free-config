@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
@@ -9,6 +8,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>سرویس گیمینگ</title>
     <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/lipis/flag-icons@7.2.3/css/flag-icons.min.css">
     <link rel="stylesheet" href="/assets/css/theme.css">
 </head>
 <body>
@@ -49,11 +49,15 @@
             <div class="service-tabs">
                 <button class="tab-btn active" data-tab="wireguard">
                     <img src="/images/wireguard.webp" alt="WireGuard" class="tab-icon">
-                    <span>کانفیگ WireGuard</span>
+                    <span>WireGuard</span>
                 </button>
                 <button class="tab-btn" data-tab="dns">
                     <img src="/images/dns.webp" alt="DNS" class="tab-icon">
-                    <span>سرورهای DNS</span>
+                    <span>DNS</span>
+                </button>
+                <button class="tab-btn" data-tab="profile">
+                    <span style="font-size: 20px;">👤</span>
+                    <span>پروفایل</span>
                 </button>
                 <button class="tab-btn" data-tab="tools">
                     <img src="/images/tool.webp" alt="ابزارک" class="tab-icon">
@@ -73,49 +77,6 @@
 
                 <div id="wireguard-locations" class="locations-grid"></div>
 
-                <div class="config-section">
-                    <h3 class="section-subtitle">تنظیمات</h3>
-                    
-                    <div class="input-group">
-                        <label class="input-label">انتخاب DNS اصلی</label>
-                        <select id="wireguard-dns-select" class="input-field">
-                            <option value="1.1.1.1">1.1.1.1 (Cloudflare)</option>
-                            <option value="1.0.0.1">1.0.0.1 (Cloudflare)</option>
-                            <option value="8.8.8.8">8.8.8.8 (Google)</option>
-                            <option value="8.8.4.4">8.8.4.4 (Google)</option>
-                            <option value="9.9.9.9">9.9.9.9 (Quad9)</option>
-                            <option value="10.202.10.10">10.202.10.10 (Shecan)</option>
-                            <option value="78.157.42.100">78.157.42.100 (403)</option>
-                            <option value="208.67.222.222">208.67.222.222 (OpenDNS)</option>
-                            <option value="208.67.220.220">208.67.220.220 (OpenDNS)</option>
-                            <option value="185.55.226.26">185.55.226.26 (DNS.SB)</option>
-                            <option value="185.55.225.25">185.55.225.25 (DNS.SB)</option>
-                            <option value="185.51.200.2">185.51.200.2 (FreeDNS)</option>
-                        </select>
-                    </div>
-
-                    <div class="input-group">
-                        <label class="input-label">انتخاب اپراتور</label>
-                        <select id="wireguard-operator-select" class="input-field">
-                            <option value="irancell">ایرانسل</option>
-                            <option value="mci">همراه اول</option>
-                            <option value="tci">مخابرات</option>
-                            <option value="rightel">رایتل</option>
-                            <option value="shatel">شاتل موبایل</option>
-                        </select>
-                    </div>
-                    
-                    <div class="segmented-control">
-                        <button class="segment-btn active" data-type="both">IPv4 + IPv6</button>
-                        <button class="segment-btn" data-type="ipv4">فقط IPv4</button>
-                        <button class="segment-btn" data-type="ipv6">فقط IPv6</button>
-                    </div>
-
-                    <button id="generate-wireguard-btn" class="btn btn-primary btn-full">
-                        دریافت کانفیگ WireGuard
-                    </button>
-                </div>
-
                 <div id="wireguard-output" class="config-section hidden">
                     <h3 class="section-subtitle">کانفیگ دریافتی</h3>
                     <pre id="wireguard-config" class="config-output"></pre>
@@ -124,7 +85,7 @@
                             📋 کپی
                         </button>
                         <button id="download-wireguard-btn" class="btn btn-primary">
-                            ⬇️ دانلود
+                            ⬇️دانلود
                         </button>
                     </div>
                 </div>
@@ -138,20 +99,6 @@
 
                 <div id="dns-locations" class="locations-grid"></div>
 
-                <div class="config-section">
-                    <h3 class="section-subtitle">نوع DNS</h3>
-                    
-                    <div class="segmented-control">
-                        <button class="segment-btn-dns active" data-type="both">IPv4 + IPv6</button>
-                        <button class="segment-btn-dns" data-type="ipv4">فقط IPv4</button>
-                        <button class="segment-btn-dns" data-type="ipv6">فقط IPv6</button>
-                    </div>
-
-                    <button id="generate-dns-btn" class="btn btn-primary btn-full">
-                        دریافت DNS
-                    </button>
-                </div>
-
                 <div id="dns-output" class="config-section hidden">
                     <h3 class="section-subtitle">سرورهای DNS</h3>
                     <pre id="dns-servers" class="config-output"></pre>
@@ -163,6 +110,35 @@
                 </div>
             </div>
 
+            <div id="profile-tab" class="tab-content">
+                <h2 class="section-title">
+                    <span style="font-size: 28px;">👤</span>
+                    <span>پروفایل و تاریخچه</span>
+                </h2>
+
+                <div class="profile-info">
+                    <div class="profile-card">
+                        <div class="profile-avatar">👤</div>
+                        <div class="profile-details">
+                            <div id="profile-name" class="profile-name">کاربر</div>
+                            <div id="profile-id" class="profile-id">شناسه: ...</div>
+                            <div id="profile-limits" class="profile-limits">محدودیت روزانه: ...</div>
+                            <div id="profile-admin-badge" class="admin-badge hidden">ادمین</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="history-section">
+                    <h3 class="section-subtitle">تاریخچه دریافت‌ها</h3>
+                    <div id="history-list" class="history-list">
+                        <div class="empty-state">
+                            <div class="empty-icon">📭</div>
+                            <p>هیچ تاریخچه‌ای موجود نیست</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div id="tools-tab" class="tab-content">
                 <h2 class="section-title">
                     <img src="/images/tool.webp" alt="ابزارک" class="section-icon">
@@ -170,13 +146,6 @@
                 </h2>
 
                 <div class="tools-grid">
-                    <div class="tool-card">
-                        <div class="tool-icon">🔍</div>
-                        <h3 class="tool-title">تست اتصال</h3>
-                        <p class="tool-description">بررسی وضعیت اتصال به سرورها</p>
-                        <button class="btn btn-secondary btn-full">شروع تست</button>
-                    </div>
-
                     <div class="tool-card">
                         <div class="tool-icon">📊</div>
                         <h3 class="tool-title">آمار مصرف</h3>
@@ -191,20 +160,6 @@
                                 <span id="dns-usage" class="stat-value">0/3</span>
                             </div>
                         </div>
-                    </div>
-
-                    <div class="tool-card">
-                        <div class="tool-icon">📱</div>
-                        <h3 class="tool-title">راهنمای نصب</h3>
-                        <p class="tool-description">آموزش نصب و تنظیم کانفیگ</p>
-                        <button class="btn btn-secondary btn-full" onclick="app.showInstallGuide()">مشاهده راهنما</button>
-                    </div>
-
-                    <div class="tool-card">
-                        <div class="tool-icon">🛡️</div>
-                        <h3 class="tool-title">تست امنیت</h3>
-                        <p class="tool-description">بررسی امنیت اتصال شما</p>
-                        <button class="btn btn-secondary btn-full">شروع بررسی</button>
                     </div>
                 </div>
             </div>
@@ -256,7 +211,7 @@
 
                 <div class="admin-section">
                     <h3 class="section-subtitle">افزودن کشور جدید</h3>
-                    
+
                     <div class="input-group">
                         <label class="input-label">شناسه کشور (مثال: ir)</label>
                         <input type="text" id="admin-country-id" class="input-field" placeholder="ir">
@@ -268,34 +223,20 @@
                     </div>
 
                     <div class="input-group">
-                        <label class="input-label">نام شهر</label>
-                        <input type="text" id="admin-city-name" class="input-field" placeholder="تهران">
-                    </div>
-
-                    <div class="input-group">
                         <label class="input-label">آدرس پرچم (URL)</label>
                         <input type="text" id="admin-flag-url" class="input-field" placeholder="https://...">
                     </div>
 
                     <div class="input-group">
-                        <label class="input-label">DNS IPv4 (با کاما جدا کنید)</label>
-                        <input type="text" id="admin-dns-ipv4" class="input-field" placeholder="1.1.1.1, 8.8.8.8">
+                        <label class="input-label">DNS IPv4 (هر خط یک آدرس)</label>
+                        <textarea id="admin-dns-ipv4" class="input-field" rows="3" placeholder="1.1.1.1"></textarea>
                     </div>
 
                     <div class="input-group">
-                        <label class="input-label">DNS IPv6 (با کاما جدا کنید)</label>
-                        <input type="text" id="admin-dns-ipv6" class="input-field" placeholder="2606:4700:4700::1111">
+                        <label class="input-label">DNS IPv6 (هر خط یک آدرس)</label>
+                        <textarea id="admin-dns-ipv6" class="input-field" rows="3" placeholder="2606:4700:4700::1111"></textarea>
                     </div>
 
-                    <div class="input-group">
-                        <label class="input-label">Endpoint WireGuard</label>
-                        <input type="text" id="admin-endpoint" class="input-field" placeholder="ir-teh.vpn.example.com:51820">
-                    </div>
-
-                    <div class="input-group">
-                        <label class="input-label">تاخیر شبکه</label>
-                        <input type="text" id="admin-latency" class="input-field" placeholder="~20ms">
-                    </div>
 
                     <button id="add-country-btn" class="btn btn-primary btn-full">افزودن کشور</button>
                 </div>
@@ -307,7 +248,7 @@
 
                 <div class="admin-section">
                     <h3 class="section-subtitle">مدیریت اعلانات</h3>
-                    
+
                     <div class="announcement-templates" style="margin-bottom: 16px;">
                         <label class="input-label">تمپلیت آماده</label>
                         <select id="announcement-template" class="input-field">
@@ -366,13 +307,13 @@
                 <div class="modal-handle"></div>
                 <h3 class="modal-title">ورود با تلگرام</h3>
             </div>
-            
+
             <div class="modal-body">
                 <div id="login-step-1">
                     <p style="color: var(--text-secondary); margin-bottom: 24px; text-align: center;">
                         شناسه عددی تلگرام خود را وارد کنید تا کد تایید برای شما ارسال شود.
                     </p>
-                    
+
                     <div class="input-group">
                         <label class="input-label" for="telegram-id">شناسه تلگرام</label>
                         <input 
@@ -385,7 +326,7 @@
                             autocomplete="off"
                         >
                     </div>
-                    
+
                     <div class="telegram-guide">
                         <div class="guide-icon">💡</div>
                         <div class="guide-content">
@@ -403,27 +344,27 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <div id="login-step-2" class="hidden">
                     <p style="color: var(--text-secondary); margin-bottom: 16px; text-align: center;">
                         کد 6 رقمی ارسال شده به تلگرام را وارد کنید
                     </p>
-                    
+
                     <div class="verification-code">
-                        <input type="text" class="code-input" maxlength="1" inputmode="numeric" pattern="[0-9]">
-                        <input type="text" class="code-input" maxlength="1" inputmode="numeric" pattern="[0-9]">
-                        <input type="text" class="code-input" maxlength="1" inputmode="numeric" pattern="[0-9]">
-                        <input type="text" class="code-input" maxlength="1" inputmode="numeric" pattern="[0-9]">
-                        <input type="text" class="code-input" maxlength="1" inputmode="numeric" pattern="[0-9]">
-                        <input type="text" class="code-input" maxlength="1" inputmode="numeric" pattern="[0-9]">
+                        <input type="text" class="code-input" maxlength="1" inputmode="numeric" pattern="[0-9]" data-index="0">
+                        <input type="text" class="code-input" maxlength="1" inputmode="numeric" pattern="[0-9]" data-index="1">
+                        <input type="text" class="code-input" maxlength="1" inputmode="numeric" pattern="[0-9]" data-index="2">
+                        <input type="text" class="code-input" maxlength="1" inputmode="numeric" pattern="[0-9]" data-index="3">
+                        <input type="text" class="code-input" maxlength="1" inputmode="numeric" pattern="[0-9]" data-index="4">
+                        <input type="text" class="code-input" maxlength="1" inputmode="numeric" pattern="[0-9]" data-index="5">
                     </div>
-                    
+
                     <button id="back-to-step-1" class="btn btn-ghost btn-full" style="margin-bottom: 16px;">
                         ← بازگشت
                     </button>
                 </div>
             </div>
-            
+
             <div class="modal-footer">
                 <button id="send-code-btn" class="btn btn-primary btn-full">
                     ارسال کد تایید
@@ -438,6 +379,95 @@
     <div id="toast" class="toast">
         <span id="toast-icon" class="toast-icon">✓</span>
         <span id="toast-message" class="toast-message"></span>
+    </div>
+
+    <div id="ip-version-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-handle"></div>
+                <h3 class="modal-title">انتخاب نوع آدرس</h3>
+            </div>
+
+            <div class="modal-body">
+                <p style="color: var(--text-secondary); margin-bottom: 24px; text-align: center;">
+                    لطفا نوع آدرس مورد نظر خود را انتخاب کنید:
+                </p>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                    <button id="select-ipv4-btn" class="ip-version-card">
+                        <div class="ip-version-icon">📡</div>
+                        <div class="ip-version-title">IPv4</div>
+                        <div class="ip-version-desc">آدرس نسخه 4</div>
+                    </button>
+                    <button id="select-ipv6-btn" class="ip-version-card">
+                        <div class="ip-version-icon">🌐</div>
+                        <div class="ip-version-title">IPv6</div>
+                        <div class="ip-version-desc">آدرس نسخه 6</div>
+                    </button>
+                </div>
+                <button id="cancel-ip-version-btn" class="btn btn-ghost btn-full">
+                    انصراف
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="admin-login-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-handle"></div>
+                <h3 class="modal-title">ورود به پنل مدیریت</h3>
+            </div>
+
+            <div class="modal-body">
+                <div id="admin-login-step-1">
+                    <p style="color: var(--text-secondary); margin-bottom: 24px; text-align: center;">
+                        شناسه عددی تلگرام مدیر را وارد کنید تا کد تایید برای شما ارسال شود.
+                    </p>
+
+                    <div class="input-group">
+                        <label class="input-label" for="admin-telegram-id">شناسه تلگرام مدیر</label>
+                        <input 
+                            type="text" 
+                            id="admin-telegram-id" 
+                            class="input-field" 
+                            placeholder="7240662021"
+                            pattern="[0-9]*"
+                            inputmode="numeric"
+                            autocomplete="off"
+                        >
+                    </div>
+                </div>
+
+                <div id="admin-login-step-2" class="hidden">
+                    <p style="color: var(--text-secondary); margin-bottom: 16px; text-align: center;">
+                        کد 6 رقمی ارسال شده به تلگرام را وارد کنید
+                    </p>
+
+                    <div class="verification-code">
+                        <input type="text" class="admin-code-input" maxlength="1" inputmode="numeric" pattern="[0-9]" data-index="0">
+                        <input type="text" class="admin-code-input" maxlength="1" inputmode="numeric" pattern="[0-9]" data-index="1">
+                        <input type="text" class="admin-code-input" maxlength="1" inputmode="numeric" pattern="[0-9]" data-index="2">
+                        <input type="text" class="admin-code-input" maxlength="1" inputmode="numeric" pattern="[0-9]" data-index="3">
+                        <input type="text" class="admin-code-input" maxlength="1" inputmode="numeric" pattern="[0-9]" data-index="4">
+                        <input type="text" class="admin-code-input" maxlength="1" inputmode="numeric" pattern="[0-9]" data-index="5">
+                    </div>
+
+                    <button id="admin-back-to-step-1" class="btn btn-ghost btn-full" style="margin-bottom: 16px;">
+                        ← بازگشت
+                    </button>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button id="admin-send-code-btn" class="btn btn-primary btn-full">
+                    ارسال کد تایید
+                </button>
+                <button id="admin-verify-code-btn" class="btn btn-primary btn-full hidden">
+                    تایید کد
+                </button>
+            </div>
+        </div>
     </div>
 
     <script type="module" src="/assets/js/app.js"></script>

@@ -38,6 +38,12 @@ class App {
         this.logoutBtn = document.getElementById('logout-btn');
         this.loginBtn = document.getElementById('login-btn');
 
+        this.ipVersionModal = document.getElementById('ip-version-modal');
+        this.selectIpv4Btn = document.getElementById('select-ipv4-btn');
+        this.selectIpv6Btn = document.getElementById('select-ipv6-btn');
+        this.cancelIpVersionBtn = document.getElementById('cancel-ip-version-btn');
+        this.currentServiceType = null;
+
         this.loginModal = document.getElementById('login-modal');
         this.loginStep1 = document.getElementById('login-step-1');
         this.loginStep2 = document.getElementById('login-step-2');
@@ -47,11 +53,27 @@ class App {
         this.codeInputs = document.querySelectorAll('.code-input');
         this.backToStep1Btn = document.getElementById('back-to-step-1');
 
+        this.adminLoginModal = document.getElementById('admin-login-modal');
+        this.adminLoginStep1 = document.getElementById('admin-login-step-1');
+        this.adminLoginStep2 = document.getElementById('admin-login-step-2');
+        this.adminTelegramIdInput = document.getElementById('admin-telegram-id');
+        this.adminSendCodeBtn = document.getElementById('admin-send-code-btn');
+        this.adminVerifyCodeBtn = document.getElementById('admin-verify-code-btn');
+        this.adminCodeInputs = document.querySelectorAll('.admin-code-input');
+        this.adminBackToStep1Btn = document.getElementById('admin-back-to-step-1');
+
         this.tabBtns = document.querySelectorAll('.tab-btn');
         this.wireguardTab = document.getElementById('wireguard-tab');
         this.dnsTab = document.getElementById('dns-tab');
+        this.profileTab = document.getElementById('profile-tab');
         this.toolsTab = document.getElementById('tools-tab');
         this.announcementsTab = document.getElementById('announcements-tab');
+
+        this.profileName = document.getElementById('profile-name');
+        this.profileId = document.getElementById('profile-id');
+        this.profileLimits = document.getElementById('profile-limits');
+        this.profileAdminBadge = document.getElementById('profile-admin-badge');
+        this.historyList = document.getElementById('history-list');
 
         this.wireguardLocations = document.getElementById('wireguard-locations');
         this.dnsLocations = document.getElementById('dns-locations');
@@ -115,17 +137,45 @@ class App {
         this.codeInputs.forEach((input, index) => {
             input.addEventListener('input', (e) => {
                 const value = e.target.value;
+                
+                // Remove non-numeric characters
+                if (!/^\d*$/.test(value)) {
+                    e.target.value = value.replace(/\D/g, '');
+                    return;
+                }
+                
+                // Move to next input
                 if (value.length === 1 && index < this.codeInputs.length - 1) {
                     this.codeInputs[index + 1].focus();
+                    this.codeInputs[index + 1].select();
                 }
+                
+                // Auto-verify when complete
                 if (this.isCodeComplete()) {
                     this.handleVerifyCode();
                 }
             });
 
             input.addEventListener('keydown', (e) => {
-                if (e.key === 'Backspace' && !e.target.value && index > 0) {
+                // Move to previous input on backspace
+                if (e.key === 'Backspace') {
+                    if (!e.target.value && index > 0) {
+                        this.codeInputs[index - 1].focus();
+                        this.codeInputs[index - 1].select();
+                    }
+                }
+                
+                // Move to next/previous with arrow keys
+                if (e.key === 'ArrowRight' && index < this.codeInputs.length - 1) {
+                    e.preventDefault();
+                    this.codeInputs[index + 1].focus();
+                    this.codeInputs[index + 1].select();
+                }
+                
+                if (e.key === 'ArrowLeft' && index > 0) {
+                    e.preventDefault();
                     this.codeInputs[index - 1].focus();
+                    this.codeInputs[index - 1].select();
                 }
             });
 
@@ -133,14 +183,104 @@ class App {
                 e.preventDefault();
                 const paste = (e.clipboardData || window.clipboardData).getData('text');
                 const digits = paste.replace(/\D/g, '').slice(0, 6);
+                
                 digits.split('').forEach((digit, i) => {
                     if (this.codeInputs[i]) {
                         this.codeInputs[i].value = digit;
                     }
                 });
+                
+                // Focus on the last filled input or the first empty one
+                const nextIndex = Math.min(digits.length, this.codeInputs.length - 1);
+                this.codeInputs[nextIndex].focus();
+                
                 if (digits.length === 6) {
                     this.handleVerifyCode();
                 }
+            });
+            
+            // Select all on focus for easier editing
+            input.addEventListener('focus', (e) => {
+                e.target.select();
+            });
+        });
+
+        // Admin code inputs
+        this.adminLoginModal?.addEventListener('click', (e) => {
+            if (e.target === this.adminLoginModal) {
+                this.closeAdminLoginModal();
+            }
+        });
+
+        this.adminSendCodeBtn?.addEventListener('click', () => this.handleAdminSendCode());
+        this.adminVerifyCodeBtn?.addEventListener('click', () => this.handleAdminVerifyCode());
+        this.adminBackToStep1Btn?.addEventListener('click', () => this.showAdminLoginStep(1));
+
+        this.adminTelegramIdInput?.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') this.handleAdminSendCode();
+        });
+
+        this.adminCodeInputs.forEach((input, index) => {
+            input.addEventListener('input', (e) => {
+                const value = e.target.value;
+                
+                if (!/^\d*$/.test(value)) {
+                    e.target.value = value.replace(/\D/g, '');
+                    return;
+                }
+                
+                if (value.length === 1 && index < this.adminCodeInputs.length - 1) {
+                    this.adminCodeInputs[index + 1].focus();
+                    this.adminCodeInputs[index + 1].select();
+                }
+                
+                if (this.isAdminCodeComplete()) {
+                    this.handleAdminVerifyCode();
+                }
+            });
+
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Backspace') {
+                    if (!e.target.value && index > 0) {
+                        this.adminCodeInputs[index - 1].focus();
+                        this.adminCodeInputs[index - 1].select();
+                    }
+                }
+                
+                if (e.key === 'ArrowRight' && index < this.adminCodeInputs.length - 1) {
+                    e.preventDefault();
+                    this.adminCodeInputs[index + 1].focus();
+                    this.adminCodeInputs[index + 1].select();
+                }
+                
+                if (e.key === 'ArrowLeft' && index > 0) {
+                    e.preventDefault();
+                    this.adminCodeInputs[index - 1].focus();
+                    this.adminCodeInputs[index - 1].select();
+                }
+            });
+
+            input.addEventListener('paste', (e) => {
+                e.preventDefault();
+                const paste = (e.clipboardData || window.clipboardData).getData('text');
+                const digits = paste.replace(/\D/g, '').slice(0, 6);
+                
+                digits.split('').forEach((digit, i) => {
+                    if (this.adminCodeInputs[i]) {
+                        this.adminCodeInputs[i].value = digit;
+                    }
+                });
+                
+                const nextIndex = Math.min(digits.length, this.adminCodeInputs.length - 1);
+                this.adminCodeInputs[nextIndex].focus();
+                
+                if (digits.length === 6) {
+                    this.handleAdminVerifyCode();
+                }
+            });
+            
+            input.addEventListener('focus', (e) => {
+                e.target.select();
             });
         });
 
@@ -151,24 +291,15 @@ class App {
             });
         });
 
-        this.wireguardSegments.forEach(btn => {
-            btn.addEventListener('click', () => {
-                this.wireguardSegments.forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                this.wireguardDnsType = btn.dataset.type;
-            });
+        this.ipVersionModal?.addEventListener('click', (e) => {
+            if (e.target === this.ipVersionModal) {
+                this.closeIpVersionModal();
+            }
         });
 
-        this.dnsSegments.forEach(btn => {
-            btn.addEventListener('click', () => {
-                this.dnsSegments.forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                this.dnsDnsType = btn.dataset.type;
-            });
-        });
-
-        this.generateWireguardBtn?.addEventListener('click', () => this.generateWireguard());
-        this.generateDnsBtn?.addEventListener('click', () => this.generateDns());
+        this.selectIpv4Btn?.addEventListener('click', () => this.handleIpVersionSelect('ipv4'));
+        this.selectIpv6Btn?.addEventListener('click', () => this.handleIpVersionSelect('ipv6'));
+        this.cancelIpVersionBtn?.addEventListener('click', () => this.closeIpVersionModal());
         this.copyWireguardBtn?.addEventListener('click', () => this.copyWireguard());
         this.downloadWireguardBtn?.addEventListener('click', () => this.downloadWireguard());
         this.copyDnsBtn?.addEventListener('click', () => this.copyDns());
@@ -186,6 +317,7 @@ class App {
 
         this.wireguardTab?.classList.remove('active');
         this.dnsTab?.classList.remove('active');
+        this.profileTab?.classList.remove('active');
         this.toolsTab?.classList.remove('active');
         this.announcementsTab?.classList.remove('active');
 
@@ -193,6 +325,9 @@ class App {
             this.wireguardTab?.classList.add('active');
         } else if (tab === 'dns') {
             this.dnsTab?.classList.add('active');
+        } else if (tab === 'profile') {
+            this.profileTab?.classList.add('active');
+            this.loadProfile();
         } else if (tab === 'tools') {
             this.toolsTab?.classList.add('active');
             this.updateToolsStats();
@@ -276,8 +411,162 @@ class App {
     updateLimitsDisplay() {
         if (!this.userLimitsEl || !this.userLimits) return;
 
-        const { wireguardRemaining, dnsRemaining } = this.userLimits;
-        this.userLimitsEl.textContent = `WireGuard: ${wireguardRemaining}/3 | DNS: ${dnsRemaining}/3`;
+        const { wireguardRemaining, dnsRemaining, isAdmin } = this.userLimits;
+        
+        if (isAdmin) {
+            this.userLimitsEl.textContent = `WireGuard: نامحدود | DNS: نامحدود`;
+        } else {
+            this.userLimitsEl.textContent = `WireGuard: ${wireguardRemaining}/3 | DNS: ${dnsRemaining}/3`;
+        }
+    }
+
+    async loadProfile() {
+        const token = auth.getToken();
+        const user = auth.getUser();
+        
+        if (!token || !user) return;
+
+        if (this.profileName && user.telegramId) {
+            this.profileName.textContent = `کاربر ${user.telegramId}`;
+        }
+        if (this.profileId && user.telegramId) {
+            this.profileId.textContent = `شناسه: ${user.telegramId}`;
+        }
+
+        await this.loadUserLimits();
+        
+        if (this.userLimits) {
+            const { wireguardRemaining, dnsRemaining, isAdmin } = this.userLimits;
+            
+            if (isAdmin) {
+                this.profileLimits.textContent = `محدودیت روزانه: نامحدود`;
+                this.profileAdminBadge?.classList.remove('hidden');
+            } else {
+                this.profileLimits.textContent = `محدودیت روزانه: WireGuard ${wireguardRemaining}/3 | DNS ${dnsRemaining}/3`;
+                this.profileAdminBadge?.classList.add('hidden');
+            }
+        }
+
+        await this.loadHistory();
+    }
+
+    async loadHistory() {
+        const token = auth.getToken();
+        if (!token) return;
+
+        try {
+            const response = await fetch('/api/user/history', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            const data = await response.json();
+            
+            if (response.ok && data.history) {
+                this.renderHistory(data.history);
+            }
+        } catch (error) {
+            console.error('Error loading history:', error);
+        }
+    }
+
+    renderHistory(history) {
+        if (!this.historyList) return;
+
+        if (history.length === 0) {
+            this.historyList.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">📭</div>
+                    <p>هیچ تاریخچه‌ای موجود نیست</p>
+                </div>
+            `;
+            return;
+        }
+
+        const html = history.map(item => {
+            const date = new Date(item.createdAt);
+            const dateStr = date.toLocaleDateString('fa-IR') + ' ' + date.toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' });
+            
+            const typeIcon = item.type === 'wireguard' ? '🔐' : '🌐';
+            const typeLabel = item.type === 'wireguard' ? 'WireGuard' : 'DNS';
+            const typeClass = item.type;
+
+            let detailsHtml = '';
+            let configHtml = '';
+            let actionsHtml = '';
+
+            if (item.data) {
+                detailsHtml = `
+                    <div class="history-item-details">
+                        <span class="history-detail-tag">${item.data.locationName || item.data.locationId}</span>
+                        <span class="history-detail-tag">${item.data.dnsType === 'ipv4' ? 'IPv4' : item.data.dnsType === 'ipv6' ? 'IPv6' : 'IPv4 + IPv6'}</span>
+                    </div>
+                `;
+
+                if (item.type === 'wireguard' && item.data.config) {
+                    configHtml = `<div class="history-item-config">${item.data.config}</div>`;
+                    actionsHtml = `
+                        <div class="history-item-actions">
+                            <button class="btn btn-secondary" onclick="app.copyHistoryItem('${item.id}', 'config')">📋 کپی</button>
+                            <button class="btn btn-primary" onclick="app.downloadHistoryItem('${item.id}')">⬇️ دانلود</button>
+                        </div>
+                    `;
+                } else if (item.type === 'dns' && item.data.dns) {
+                    configHtml = `<div class="history-item-config">${item.data.dns.join('\\n')}</div>`;
+                    actionsHtml = `
+                        <div class="history-item-actions">
+                            <button class="btn btn-secondary" onclick="app.copyHistoryItem('${item.id}', 'dns')">📋 کپی</button>
+                        </div>
+                    `;
+                }
+            }
+
+            return `
+                <div class="history-item" data-id="${item.id}">
+                    <div class="history-item-header">
+                        <span class="history-item-type ${typeClass}">${typeIcon} ${typeLabel}</span>
+                        <span class="history-item-date">${dateStr}</span>
+                    </div>
+                    ${detailsHtml}
+                    ${configHtml}
+                    ${actionsHtml}
+                </div>
+            `;
+        }).join('');
+
+        this.historyList.innerHTML = html;
+        
+        this.userHistory = history;
+    }
+
+    copyHistoryItem(itemId, type) {
+        const item = this.userHistory?.find(h => h.id === itemId);
+        if (!item) return;
+
+        let textToCopy = '';
+        if (type === 'config' && item.data.config) {
+            textToCopy = item.data.config;
+        } else if (type === 'dns' && item.data.dns) {
+            textToCopy = item.data.dns.join('\\n');
+        }
+
+        if (textToCopy) {
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                this.showToast('success', 'کپی شد');
+            }).catch(() => {
+                this.showToast('error', 'خطا در کپی کردن');
+            });
+        }
+    }
+
+    downloadHistoryItem(itemId) {
+        const item = this.userHistory?.find(h => h.id === itemId);
+        if (!item || !item.data.config) return;
+
+        const filename = `wireguard-${item.data.locationId || 'config'}.conf`;
+        configGenerator.downloadConfig(item.data.config, filename);
+        this.showToast('success', 'دانلود شد');
     }
 
     async loadCountries() {
@@ -307,16 +596,15 @@ class App {
         const html = this.countries.map(loc => `
             <div class="location-card" data-id="${loc.id}">
                 <div class="location-header">
-                    <img src="${loc.flagUrl}" alt="${loc.name}" class="location-flag">
+                    <span class="fi fi-${loc.id.toLowerCase()}" style="font-size: 48px; margin-left: 12px;"></span>
                     <div>
                         <div class="location-name">${loc.name}</div>
-                        <div class="location-city">${loc.city}</div>
+                        <div class="location-city">${loc.nameEn || loc.id.toUpperCase()}</div>
                     </div>
                 </div>
                 <div class="location-details">
                     <span class="location-tag ipv4">IPv4</span>
                     <span class="location-tag ipv6">IPv6</span>
-                    <span class="location-tag">${loc.latency}</span>
                 </div>
             </div>
         `).join('');
@@ -343,6 +631,9 @@ class App {
         this.wireguardLocations?.querySelectorAll('.location-card').forEach(card => {
             card.classList.toggle('selected', card.dataset.id === locationId);
         });
+
+        this.currentServiceType = 'wireguard';
+        this.openIpVersionModal(locationId);
     }
 
     selectDnsLocation(locationId) {
@@ -351,9 +642,85 @@ class App {
         this.dnsLocations?.querySelectorAll('.location-card').forEach(card => {
             card.classList.toggle('selected', card.dataset.id === locationId);
         });
+
+        this.currentServiceType = 'dns';
+        this.openIpVersionModal(locationId);
     }
 
-    async generateWireguard() {
+    openIpVersionModal(locationId) {
+        const location = this.countries.find(c => c.id === locationId);
+        if (!location) return;
+
+        const hasIpv4 = location.dns.ipv4 && location.dns.ipv4.length > 0;
+        const hasIpv6 = location.dns.ipv6 && location.dns.ipv6.length > 0;
+
+        if (!hasIpv4 && !hasIpv6) {
+            this.showToast('error', 'این کشور آدرس DNS ندارد');
+            return;
+        }
+
+        this.selectIpv4Btn.disabled = !hasIpv4;
+        this.selectIpv6Btn.disabled = !hasIpv6;
+
+        const ipv4Title = this.selectIpv4Btn.querySelector('.ip-version-title');
+        const ipv6Title = this.selectIpv6Btn.querySelector('.ip-version-title');
+
+        if (hasIpv4) {
+            ipv4Title.textContent = 'IPv4';
+        } else {
+            ipv4Title.textContent = '';
+        }
+
+        if (hasIpv6) {
+            ipv6Title.textContent = 'IPv6';
+        } else {
+            ipv6Title.textContent = '';
+        }
+
+        this.ipVersionModal?.classList.add('active');
+    }
+
+    closeIpVersionModal() {
+        this.ipVersionModal?.classList.remove('active');
+        this.currentServiceType = null;
+    }
+
+    async handleIpVersionSelect(ipVersion) {
+        const location = this.countries.find(c => 
+            c.id === (this.currentServiceType === 'wireguard' ? this.selectedWireguardLocation : this.selectedDnsLocation)
+        );
+
+        if (!location) return;
+
+        const hasIpv4 = location.dns.ipv4 && location.dns.ipv4.length > 0;
+        const hasIpv6 = location.dns.ipv6 && location.dns.ipv6.length > 0;
+
+        if (ipVersion === 'ipv4' && !hasIpv4) {
+            if (hasIpv6 && confirm('این کشور آدرس IPv4 ندارد. آیا می‌خواهید از IPv6 استفاده کنید؟')) {
+                ipVersion = 'ipv6';
+            } else {
+                this.closeIpVersionModal();
+                return;
+            }
+        } else if (ipVersion === 'ipv6' && !hasIpv6) {
+            if (hasIpv4 && confirm('این کشور آدرس IPv6 ندارد. آیا می‌خواهید از IPv4 استفاده کنید؟')) {
+                ipVersion = 'ipv4';
+            } else {
+                this.closeIpVersionModal();
+                return;
+            }
+        }
+
+        this.closeIpVersionModal();
+
+        if (this.currentServiceType === 'wireguard') {
+            await this.generateWireguard(ipVersion);
+        } else if (this.currentServiceType === 'dns') {
+            await this.generateDns(ipVersion);
+        }
+    }
+
+    async generateWireguard(dnsType) {
         if (!this.selectedWireguardLocation) {
             this.showToast('warning', 'لطفا یک کشور انتخاب کنید');
             return;
@@ -367,9 +734,6 @@ class App {
         const token = auth.getToken();
         if (!token) return;
 
-        const selectedDns = this.wireguardDnsSelect?.value || '1.1.1.1';
-        const selectedOperator = this.wireguardOperatorSelect?.value || 'irancell';
-
         try {
             const response = await fetch('/api/config/generate', {
                 method: 'POST',
@@ -379,9 +743,7 @@ class App {
                 },
                 body: JSON.stringify({
                     locationId: this.selectedWireguardLocation,
-                    dnsType: this.wireguardDnsType,
-                    primaryDns: selectedDns,
-                    operator: selectedOperator
+                    dnsType: dnsType
                 })
             });
 
@@ -408,7 +770,7 @@ class App {
         }
     }
 
-    async generateDns() {
+    async generateDns(dnsType) {
         if (!this.selectedDnsLocation) {
             this.showToast('warning', 'لطفا یک کشور انتخاب کنید');
             return;
@@ -431,7 +793,7 @@ class App {
                 },
                 body: JSON.stringify({
                     locationId: this.selectedDnsLocation,
-                    dnsType: this.dnsDnsType
+                    dnsType: dnsType
                 })
             });
 
@@ -444,7 +806,11 @@ class App {
             this.generatedDns = data.dns;
 
             if (this.dnsServers) {
-                this.dnsServers.textContent = data.dns.join('\n');
+                let displayText = data.dns.join('\n');
+                if (data.caption) {
+                    displayText += '\n\n' + data.caption;
+                }
+                this.dnsServers.textContent = displayText;
             }
 
             this.dnsOutput?.classList.remove('hidden');
@@ -493,61 +859,11 @@ class App {
         const adminToken = localStorage.getItem('admin_token');
         
         if (adminToken && await this.verifyAdminToken(adminToken)) {
-            this.openAdminPanel();
+            window.location.href = '/admin.html';
             return;
         }
         
-        const adminId = '7240662021';
-        const telegramId = prompt('لطفا شناسه تلگرام ادمین را وارد کنید:');
-        
-        if (telegramId !== adminId) {
-            this.showToast('error', 'شما دسترسی ادمین ندارید');
-            return;
-        }
-        
-        try {
-            const response = await fetch('/api/admin/auth/request', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ telegramId })
-            });
-
-            const data = await response.json();
-            
-            if (!response.ok) {
-                throw new Error(data.error || 'خطا در ارسال کد');
-            }
-
-            const code = prompt('کد 6 رقمی ارسال شده به تلگرام را وارد کنید:');
-            
-            if (!code || code.length !== 6) {
-                this.showToast('error', 'کد نامعتبر است');
-                return;
-            }
-
-            const verifyResponse = await fetch('/api/admin/auth/verify', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ telegramId, code })
-            });
-
-            const verifyData = await verifyResponse.json();
-            
-            if (!verifyResponse.ok) {
-                throw new Error(verifyData.error || 'کد اشتباه است');
-            }
-
-            localStorage.setItem('admin_token', verifyData.token);
-            this.showToast('success', 'ورود به پنل مدیریت موفق');
-            this.openAdminPanel();
-
-        } catch (error) {
-            this.showToast('error', error.message);
-        }
+        this.openAdminLoginModal();
     }
 
     async verifyAdminToken(token) {
@@ -1124,6 +1440,131 @@ class App {
             if (kvMessage) {
                 kvMessage.textContent = 'خطا در دریافت اطلاعات';
             }
+        }
+    }
+
+    openAdminLoginModal() {
+        this.adminLoginModal?.classList.add('active');
+        this.showAdminLoginStep(1);
+        setTimeout(() => this.adminTelegramIdInput?.focus(), 300);
+    }
+
+    closeAdminLoginModal() {
+        this.adminLoginModal?.classList.remove('active');
+        this.resetAdminLoginForm();
+    }
+
+    showAdminLoginStep(step) {
+        if (step === 1) {
+            this.adminLoginStep1?.classList.remove('hidden');
+            this.adminLoginStep2?.classList.add('hidden');
+            this.adminSendCodeBtn?.classList.remove('hidden');
+            this.adminVerifyCodeBtn?.classList.add('hidden');
+        } else {
+            this.adminLoginStep1?.classList.add('hidden');
+            this.adminLoginStep2?.classList.remove('hidden');
+            this.adminSendCodeBtn?.classList.add('hidden');
+            this.adminVerifyCodeBtn?.classList.add('hidden');
+            this.adminCodeInputs[0]?.focus();
+        }
+    }
+
+    resetAdminLoginForm() {
+        if (this.adminTelegramIdInput) this.adminTelegramIdInput.value = '';
+        this.adminCodeInputs.forEach(input => input.value = '');
+        this.showAdminLoginStep(1);
+    }
+
+    isAdminCodeComplete() {
+        return Array.from(this.adminCodeInputs).every(input => input.value.length === 1);
+    }
+
+    getAdminVerificationCode() {
+        return Array.from(this.adminCodeInputs).map(input => input.value).join('');
+    }
+
+    async handleAdminSendCode() {
+        const telegramId = this.adminTelegramIdInput?.value.trim();
+        const adminId = '7240662021';
+
+        if (!telegramId) {
+            this.showToast('error', 'لطفا شناسه تلگرام را وارد کنید');
+            return;
+        }
+
+        if (telegramId !== adminId) {
+            this.showToast('error', 'شما دسترسی ادمین ندارید');
+            return;
+        }
+
+        this.adminSendCodeBtn.disabled = true;
+        this.adminSendCodeBtn.innerHTML = '<div class="loading-spinner"></div>';
+
+        try {
+            const response = await fetch('/api/admin/auth/request', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ telegramId })
+            });
+
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.error || 'خطا در ارسال کد');
+            }
+
+            this.showToast('success', 'کد تایید به تلگرام شما ارسال شد');
+            this.showAdminLoginStep(2);
+        } catch (error) {
+            this.showToast('error', error.message);
+        } finally {
+            this.adminSendCodeBtn.disabled = false;
+            this.adminSendCodeBtn.textContent = 'ارسال کد تایید';
+        }
+    }
+
+    async handleAdminVerifyCode() {
+        const telegramId = this.adminTelegramIdInput?.value.trim();
+        const code = this.getAdminVerificationCode();
+
+        if (code.length !== 6) {
+            return;
+        }
+
+        this.adminVerifyCodeBtn.disabled = true;
+        this.adminVerifyCodeBtn.innerHTML = '<div class="loading-spinner"></div>';
+
+        try {
+            const response = await fetch('/api/admin/auth/verify', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ telegramId, code })
+            });
+
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.error || 'کد اشتباه است');
+            }
+
+            localStorage.setItem('admin_token', data.token);
+            this.showToast('success', 'ورود به پنل مدیریت موفق');
+            this.closeAdminLoginModal();
+            setTimeout(() => {
+                window.location.href = '/admin.html';
+            }, 1000);
+
+        } catch (error) {
+            this.showToast('error', error.message);
+            this.adminCodeInputs.forEach(input => input.value = '');
+            this.adminCodeInputs[0]?.focus();
+        } finally {
+            this.adminVerifyCodeBtn.disabled = false;
+            this.adminVerifyCodeBtn.textContent = 'تایید کد';
         }
     }
 

@@ -1,0 +1,211 @@
+
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#000000">
+    <title>پنل مدیریت - سرویس گیمینگ</title>
+    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/lipis/flag-icons@7.2.3/css/flag-icons.min.css">
+    <link rel="stylesheet" href="/assets/css/theme.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <img src="/images/logo.jpg" alt="Logo" class="header-logo">
+            <h1 class="header-title">پنل مدیریت</h1>
+            <p class="header-subtitle">مدیریت کشورها و اعلانات</p>
+        </header>
+
+        <section id="admin-panel" class="admin-panel">
+            <div class="admin-header">
+                <h2 class="section-title">
+                    <span>⚙️</span>
+                    <span>پنل مدیریت</span>
+                </h2>
+                <div style="display: flex; gap: 12px;">
+                    <a href="/" class="btn btn-ghost">بازگشت به صفحه اصلی</a>
+                    <button id="logout-btn" class="btn btn-ghost">خروج</button>
+                </div>
+            </div>
+
+            <div class="admin-content">
+                <div class="admin-section">
+                    <h3 class="section-subtitle">وضعیت سیستم</h3>
+                    <div class="system-status">
+                        <div class="status-item">
+                            <div class="status-header">
+                                <span class="status-label">📦 پایگاه داده KV</span>
+                                <span id="kv-status-badge" class="status-badge status-loading">در حال بررسی...</span>
+                            </div>
+                            <p id="kv-status-message" class="status-message">در حال اتصال...</p>
+                        </div>
+                        <div class="status-item">
+                            <div class="status-header">
+                                <span class="status-label">🤖 توکن ربات تلگرام</span>
+                                <span id="bot-status-badge" class="status-badge status-loading">در حال بررسی...</span>
+                            </div>
+                            <p id="bot-status-message" class="status-message">در حال اتصال...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="admin-section">
+                    <h3 class="section-subtitle">افزودن کشور جدید</h3>
+                    
+                    <div class="input-group">
+                        <label class="input-label">کد ISO کشور (مثال: IR)</label>
+                        <input type="text" id="admin-country-id" class="input-field" placeholder="IR" maxlength="2">
+                        <small style="color: var(--text-tertiary); font-size: var(--font-size-xs); margin-top: 4px; display: block;">
+                            کد دو حرفی کشور - پرچم به صورت خودکار تشخیص داده می‌شود
+                        </small>
+                    </div>
+
+                    <div class="input-group">
+                        <label class="input-label">نام کشور (فارسی)</label>
+                        <input type="text" id="admin-country-name" class="input-field" placeholder="ایران">
+                    </div>
+
+                    <div class="input-group">
+                        <label class="input-label">نام کشور (انگلیسی)</label>
+                        <input type="text" id="admin-country-name-en" class="input-field" placeholder="Iran">
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div class="input-group">
+                            <label class="input-label">آدرس‌های DNS IPv4</label>
+                            <small style="color: var(--text-tertiary); font-size: var(--font-size-xs); display: block; margin-bottom: 8px;">
+                                هر خط یک آدرس - آدرس‌های تکراری خودکار حذف می‌شوند
+                            </small>
+                            <textarea id="admin-dns-ipv4" class="input-field" rows="6" placeholder="1.1.1.1&#10;8.8.8.8&#10;9.9.9.9"></textarea>
+                        </div>
+
+                        <div class="input-group">
+                            <label class="input-label">آدرس‌های DNS IPv6</label>
+                            <small style="color: var(--text-tertiary); font-size: var(--text-size-xs); display: block; margin-bottom: 8px;">
+                                هر خط یک آدرس - آدرس‌های تکراری خودکار حذف می‌شوند
+                            </small>
+                            <textarea id="admin-dns-ipv6" class="input-field" rows="6" placeholder="2606:4700:4700::1111&#10;2001:4860:4860::8888"></textarea>
+                        </div>
+                    </div>
+
+                    <button id="add-country-btn" class="btn btn-primary btn-full">افزودن کشور</button>
+                </div>
+
+                <div class="admin-section">
+                    <h3 class="section-subtitle">کشورهای موجود</h3>
+                    <div id="countries-list" class="countries-list"></div>
+                </div>
+
+                <div class="admin-section">
+                    <h3 class="section-subtitle">مدیریت اعلانات</h3>
+                    
+                    <div class="announcement-templates" style="margin-bottom: 16px;">
+                        <label class="input-label">تمپلیت آماده</label>
+                        <select id="announcement-template" class="input-field">
+                            <option value="">انتخاب تمپلیت...</option>
+                            <option value="maintenance">🔧 اعلان تعمیرات سرور</option>
+                            <option value="update">🆕 به‌روزرسانی سرویس</option>
+                            <option value="new_feature">✨ ویژگی جدید</option>
+                            <option value="warning">⚠️ هشدار مهم</option>
+                            <option value="info">ℹ️ اطلاعیه عمومی</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group">
+                        <label class="input-label">عنوان اعلان</label>
+                        <input type="text" id="announcement-title" class="input-field" placeholder="عنوان اعلان...">
+                    </div>
+
+                    <div class="input-group">
+                        <label class="input-label">متن اعلان</label>
+                        <textarea id="announcement-message" class="input-field" rows="5" placeholder="متن اعلان خود را اینجا بنویسید..."></textarea>
+                    </div>
+
+                    <div class="input-group">
+                        <label class="input-label">نوع اعلان</label>
+                        <select id="announcement-type" class="input-field">
+                            <option value="info">اطلاعیه</option>
+                            <option value="warning">هشدار</option>
+                            <option value="success">خبر خوش</option>
+                            <option value="error">مهم</option>
+                        </select>
+                    </div>
+
+                    <button id="publish-announcement-btn" class="btn btn-primary btn-full">انتشار اعلان</button>
+
+                    <div style="margin-top: 24px;">
+                        <h4 class="section-subtitle">اعلانات منتشر شده</h4>
+                        <div id="admin-announcements-list" class="announcements-list"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <div id="edit-country-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>ویرایش کشور</h3>
+                    <button class="btn btn-ghost" onclick="adminPanel.closeEditModal()">✕</button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="edit-country-id">
+                    
+                    <div class="input-group">
+                        <label class="input-label">کد ISO کشور</label>
+                        <input type="text" id="edit-iso-code" class="input-field" placeholder="IR" maxlength="2">
+                    </div>
+
+                    <div class="input-group">
+                        <label class="input-label">نام کشور (فارسی)</label>
+                        <input type="text" id="edit-country-name" class="input-field" placeholder="ایران">
+                    </div>
+
+                    <div class="input-group">
+                        <label class="input-label">نام کشور (انگلیسی)</label>
+                        <input type="text" id="edit-country-name-en" class="input-field" placeholder="Iran">
+                    </div>
+
+                    <h4 class="section-subtitle" style="margin-top: 24px;">آدرس‌های IPv4</h4>
+                    <div id="edit-ipv4-list" class="dns-addresses-list"></div>
+                    <div class="input-group">
+                        <label class="input-label">افزودن آدرس IPv4 جدید</label>
+                        <div style="display: flex; gap: 8px;">
+                            <input type="text" id="new-ipv4-address" class="input-field" placeholder="1.1.1.1">
+                            <button class="btn btn-primary" onclick="adminPanel.addDnsAddress('ipv4')">افزودن</button>
+                        </div>
+                    </div>
+
+                    <h4 class="section-subtitle" style="margin-top: 24px;">آدرس‌های IPv6</h4>
+                    <div id="edit-ipv6-list" class="dns-addresses-list"></div>
+                    <div class="input-group">
+                        <label class="input-label">افزودن آدرس IPv6 جدید</label>
+                        <div style="display: flex; gap: 8px;">
+                            <input type="text" id="new-ipv6-address" class="input-field" placeholder="2606:4700:4700::1111">
+                            <button class="btn btn-primary" onclick="adminPanel.addDnsAddress('ipv6')">افزودن</button>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 12px; margin-top: 24px;">
+                        <button class="btn btn-primary" onclick="adminPanel.saveCountryEdit()">ذخیره تغییرات</button>
+                        <button class="btn btn-ghost" onclick="adminPanel.removeDuplicates()">حذف آدرس‌های تکراری</button>
+                        <button class="btn btn-ghost" onclick="adminPanel.closeEditModal()">انصراف</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer class="footer">
+            <p>سرویس گیمینگ &copy; 2024</p>
+        </footer>
+    </div>
+
+    <div id="toast" class="toast">
+        <span id="toast-icon" class="toast-icon">✓</span>
+        <span id="toast-message" class="toast-message"></span>
+    </div>
+
+    <script type="module" src="/assets/js/admin.js"></script>
+</body>
+</html>

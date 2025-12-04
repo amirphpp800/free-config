@@ -86,6 +86,48 @@ async function incrementLimit(env, telegramId, type) {
     return limits;
 }
 
+function isAdmin(telegramId, env) {
+    return telegramId === env.ADMIN_ID;
+}
+
+async function saveToHistory(env, telegramId, type, data) {
+    const historyKey = `history:${telegramId}`;
+    let history = [];
+    
+    const existingData = await env.DB.get(historyKey);
+    if (existingData) {
+        history = JSON.parse(existingData);
+    }
+    
+    const entry = {
+        id: crypto.randomUUID(),
+        type,
+        data,
+        createdAt: Date.now()
+    };
+    
+    history.unshift(entry);
+    
+    if (history.length > 50) {
+        history = history.slice(0, 50);
+    }
+    
+    await env.DB.put(historyKey, JSON.stringify(history));
+    
+    return entry;
+}
+
+async function getUserHistory(env, telegramId) {
+    const historyKey = `history:${telegramId}`;
+    const data = await env.DB.get(historyKey);
+    
+    if (!data) {
+        return [];
+    }
+    
+    return JSON.parse(data);
+}
+
 export async function onRequest(context) {
     const { request, env } = context;
     const url = new URL(request.url);
@@ -141,6 +183,11 @@ export async function onRequest(context) {
             return await handleDeleteCountry(request, env, countryId);
         }
 
+        if (path.startsWith('/api/admin/countries/') && request.method === 'PUT') {
+            const countryId = path.split('/').pop();
+            return await handleUpdateCountry(request, env, countryId);
+        }
+
         if (path === '/api/announcements' && request.method === 'GET') {
             return await handleGetAnnouncements(request, env);
         }
@@ -160,6 +207,10 @@ export async function onRequest(context) {
 
         if (path === '/api/admin/system-status' && request.method === 'GET') {
             return await handleSystemStatus(request, env);
+        }
+
+        if (path === '/api/user/history' && request.method === 'GET') {
+            return await handleGetUserHistory(request, env);
         }
 
         return errorResponse('Not Found', 404);
@@ -321,13 +372,15 @@ async function handleGetUserLimits(request, env) {
         return errorResponse('احراز هویت نشده', 401);
     }
 
+    const userIsAdmin = isAdmin(session.telegramId, env);
     const limits = await getUserLimits(env, session.telegramId);
     
     return jsonResponse({
-        wireguardRemaining: Math.max(0, 3 - (limits.wireguard || 0)),
-        dnsRemaining: Math.max(0, 3 - (limits.dns || 0)),
+        wireguardRemaining: userIsAdmin ? -1 : Math.max(0, 3 - (limits.wireguard || 0)),
+        dnsRemaining: userIsAdmin ? -1 : Math.max(0, 3 - (limits.dns || 0)),
         wireguardUsed: limits.wireguard || 0,
-        dnsUsed: limits.dns || 0
+        dnsUsed: limits.dns || 0,
+        isAdmin: userIsAdmin
     });
 }
 
@@ -339,13 +392,17 @@ async function handleGenerateConfig(request, env) {
         return errorResponse('احراز هویت نشده', 401);
     }
 
-    const limits = await getUserLimits(env, session.telegramId);
-    if ((limits.wireguard || 0) >= 3) {
-        return errorResponse('محدودیت روزانه شما تمام شده است', 429);
+    const userIsAdmin = isAdmin(session.telegramId, env);
+
+    if (!userIsAdmin) {
+        const limits = await getUserLimits(env, session.telegramId);
+        if ((limits.wireguard || 0) >= 3) {
+            return errorResponse('محدودیت روزانه شما تمام شده است', 429);
+        }
     }
 
     const body = await request.json();
-    const { locationId, dnsType = 'both', primaryDns = '1.1.1.1', operator = 'irancell' } = body;
+    const { locationId, dnsType = 'ipv4' } = body;
 
     const countriesData = await env.DB.get('countries:list');
     const countries = countriesData ? JSON.parse(countriesData) : [];
@@ -355,54 +412,38 @@ async function handleGenerateConfig(request, env) {
         return errorResponse('کشور یافت نشد');
     }
 
-    const operators = {
-        irancell: {
-            title: "ایرانسل",
-            addresses: ["2.144.0.0/16"],
-            addressesV6: ["2a01:5ec0:1000::1/128", "2a01:5ec0:1000::2/128"]
-        },
-        mci: {
-            title: "همراه اول",
-            addresses: ["5.52.0.0/16"],
-            addressesV6: ["2a02:4540::1/128", "2a02:4540::2/128"]
-        },
-        tci: {
-            title: "مخابرات",
-            addresses: ["2.176.0.0/15", "2.190.0.0/15"],
-            addressesV6: ["2a04:2680:13::1/128", "2a04:2680:13::2/128"]
-        },
-        rightel: {
-            title: "رایتل",
-            addresses: ["37.137.128.0/17", "95.162.0.0/17"],
-            addressesV6: ["2a03:ef42::1/128", "2a03:ef42::2/128"]
-        },
-        shatel: {
-            title: "شاتل موبایل",
-            addresses: ["94.182.0.0/16", "37.148.0.0/18"],
-            addressesV6: ["2a0e::1/128", "2a0e::2/128"]
+    let dnsServers = [];
+
+    if (dnsType === 'ipv4') {
+        if (!location.dns.ipv4 || location.dns.ipv4.length === 0) {
+            return errorResponse('این کشور آدرس IPv4 ندارد');
         }
-    };
-
-    const selectedOperator = operators[operator] || operators.irancell;
-    
-    let address = selectedOperator.addresses[0];
-    if (dnsType === 'ipv6') {
-        address = selectedOperator.addressesV6[0];
-    } else if (dnsType === 'both') {
-        address = selectedOperator.addresses[0] + ', ' + selectedOperator.addressesV6[0];
-    }
-
-    let locationDns = [];
-    if (dnsType === 'ipv4' || dnsType === 'both') {
-        locationDns = locationDns.concat(location.dns.ipv4 || []);
-    }
-    if (dnsType === 'ipv6' || dnsType === 'both') {
-        locationDns = locationDns.concat(location.dns.ipv6 || []);
-    }
-
-    const dnsServers = [primaryDns];
-    if (locationDns.length > 0) {
-        dnsServers.push(locationDns[0]);
+        
+        const ipv4Address = location.dns.ipv4[0];
+        dnsServers.push(ipv4Address);
+        
+        location.dns.ipv4.shift();
+        
+        const countryIndex = countries.findIndex(c => c.id === locationId);
+        if (countryIndex !== -1) {
+            countries[countryIndex] = location;
+            await env.DB.put('countries:list', JSON.stringify(countries));
+        }
+    } else if (dnsType === 'ipv6') {
+        if (!location.dns.ipv6 || location.dns.ipv6.length < 2) {
+            return errorResponse('این کشور آدرس IPv6 کافی ندارد');
+        }
+        
+        dnsServers.push(location.dns.ipv6[0]);
+        dnsServers.push(location.dns.ipv6[1]);
+        
+        location.dns.ipv6.splice(0, 2);
+        
+        const countryIndex = countries.findIndex(c => c.id === locationId);
+        if (countryIndex !== -1) {
+            countries[countryIndex] = location;
+            await env.DB.put('countries:list', JSON.stringify(countries));
+        }
     }
 
     const array = new Uint8Array(32);
@@ -410,14 +451,24 @@ async function handleGenerateConfig(request, env) {
     const privateKey = btoa(String.fromCharCode.apply(null, array));
 
     const config = `[Interface]
-# تولید شده توسط سرویس VPN
-# مکان: ${location.name} (${location.city})
-# اپراتور: ${selectedOperator.title}
+# تولید شده توسط سرویس گیمینگ
+# مکان: ${location.name}
+# نوع: ${dnsType === 'ipv4' ? 'IPv4' : 'IPv6'}
 PrivateKey = ${privateKey}
-Address = ${address}
+Address = ${dnsType === 'ipv4' ? '10.0.0.2/32' : 'fd00::2/128'}
 DNS = ${dnsServers.join(', ')}`;
 
-    await incrementLimit(env, session.telegramId, 'wireguard');
+    if (!userIsAdmin) {
+        await incrementLimit(env, session.telegramId, 'wireguard');
+    }
+
+    await saveToHistory(env, session.telegramId, 'wireguard', {
+        locationId,
+        locationName: location.name,
+        dnsType,
+        dnsServers,
+        config
+    });
 
     return jsonResponse({
         success: true,
@@ -434,13 +485,17 @@ async function handleGenerateDns(request, env) {
         return errorResponse('احراز هویت نشده', 401);
     }
 
-    const limits = await getUserLimits(env, session.telegramId);
-    if ((limits.dns || 0) >= 3) {
-        return errorResponse('محدودیت روزانه شما تمام شده است', 429);
+    const userIsAdmin = isAdmin(session.telegramId, env);
+
+    if (!userIsAdmin) {
+        const limits = await getUserLimits(env, session.telegramId);
+        if ((limits.dns || 0) >= 3) {
+            return errorResponse('محدودیت روزانه شما تمام شده است', 429);
+        }
     }
 
     const body = await request.json();
-    const { locationId, dnsType = 'both' } = body;
+    const { locationId, dnsType = 'ipv4' } = body;
 
     const countriesData = await env.DB.get('countries:list');
     const countries = countriesData ? JSON.parse(countriesData) : [];
@@ -451,19 +506,69 @@ async function handleGenerateDns(request, env) {
     }
 
     let dns = [];
-    if (dnsType === 'ipv4' || dnsType === 'both') {
-        dns = dns.concat(location.dns.ipv4 || []);
-    }
-    if (dnsType === 'ipv6' || dnsType === 'both') {
-        dns = dns.concat(location.dns.ipv6 || []);
+
+    if (dnsType === 'ipv4') {
+        if (!location.dns.ipv4 || location.dns.ipv4.length === 0) {
+            return errorResponse('این کشور آدرس IPv4 ندارد');
+        }
+        
+        dns.push(location.dns.ipv4[0]);
+        
+        location.dns.ipv4.shift();
+        
+        const countryIndex = countries.findIndex(c => c.id === locationId);
+        if (countryIndex !== -1) {
+            countries[countryIndex] = location;
+            await env.DB.put('countries:list', JSON.stringify(countries));
+        }
+    } else if (dnsType === 'ipv6') {
+        if (!location.dns.ipv6 || location.dns.ipv6.length < 2) {
+            return errorResponse('این کشور آدرس IPv6 کافی ندارد');
+        }
+        
+        dns.push(location.dns.ipv6[0]);
+        dns.push(location.dns.ipv6[1]);
+        
+        location.dns.ipv6.splice(0, 2);
+        
+        const countryIndex = countries.findIndex(c => c.id === locationId);
+        if (countryIndex !== -1) {
+            countries[countryIndex] = location;
+            await env.DB.put('countries:list', JSON.stringify(countries));
+        }
     }
 
-    await incrementLimit(env, session.telegramId, 'dns');
+    if (!userIsAdmin) {
+        await incrementLimit(env, session.telegramId, 'dns');
+    }
+
+    await saveToHistory(env, session.telegramId, 'dns', {
+        locationId,
+        locationName: location.name,
+        dnsType,
+        dns
+    });
+
+    let caption = null;
+    if (dnsType === 'ipv4' && dns.length > 0) {
+        caption = `🔧 برای تانل کردن ادرس های پیشنهادی:
+• 178.22.122.100 - شاتل
+• 185.51.200.2 - ایرانسل
+• 10.202.10.10 - رادار
+• 8.8.8.8 - گوگل
+• 1.1.1.1 - کلودفلر
+• 4.2.2.4 - لول 3
+• 78.157.42.100 - الکترو
+
+💡 نکته: برای بررسی فیلتر، فقط سرورهای ایران را چک کنید (باید 4/4 باشد)
+https://check-host.net/check-ping?host=${dns[0]}`;
+    }
 
     return jsonResponse({
         success: true,
         dns,
-        location: location.name
+        location: location.name,
+        caption
     });
 }
 
@@ -626,9 +731,9 @@ async function handleAddCountry(request, env) {
     }
 
     const body = await request.json();
-    const { id, name, city, flagUrl, dns, endpoint, latency } = body;
+    const { id, name, nameEn, flagUrl, dns } = body;
 
-    if (!id || !name || !city || !flagUrl) {
+    if (!id || !name || !nameEn || !flagUrl) {
         return errorResponse('اطلاعات ناقص است');
     }
 
@@ -640,14 +745,18 @@ async function handleAddCountry(request, env) {
         return errorResponse('این کشور قبلا ثبت شده است');
     }
 
+    const ipv4 = dns?.ipv4 || [];
+    const ipv6 = dns?.ipv6 || [];
+
     const newCountry = {
         id, 
-        name, 
-        city, 
+        name,
+        nameEn,
         flagUrl, 
-        dns: dns || { ipv4: [], ipv6: [] }, 
-        endpoint: endpoint || '', 
-        latency: latency || '~0ms'
+        dns: { 
+            ipv4: [...new Set(ipv4)], 
+            ipv6: [...new Set(ipv6)] 
+        }
     };
 
     countries.push(newCountry);
@@ -658,6 +767,59 @@ async function handleAddCountry(request, env) {
         success: true,
         message: 'کشور با موفقیت اضافه شد',
         country: newCountry
+    });
+}
+
+async function handleUpdateCountry(request, env, oldCountryId) {
+    const token = request.headers.get('Authorization')?.replace('Bearer ', '');
+    const session = await getAdminSession(env, token);
+    
+    if (!session) {
+        return errorResponse('دسترسی غیرمجاز - لطفا وارد پنل مدیریت شوید', 403);
+    }
+
+    const body = await request.json();
+    const { id, name, nameEn, flagUrl, dns } = body;
+
+    if (!id || !name || !nameEn || !flagUrl) {
+        return errorResponse('اطلاعات ناقص است');
+    }
+
+    const countriesData = await env.DB.get('countries:list');
+    const countries = countriesData ? JSON.parse(countriesData) : [];
+
+    const countryIndex = countries.findIndex(c => c.id === oldCountryId);
+    if (countryIndex === -1) {
+        return errorResponse('کشور یافت نشد');
+    }
+
+    if (id !== oldCountryId) {
+        const idExists = countries.find(c => c.id === id);
+        if (idExists) {
+            return errorResponse('کد ISO جدید قبلا استفاده شده است');
+        }
+    }
+
+    const ipv4 = dns?.ipv4 || [];
+    const ipv6 = dns?.ipv6 || [];
+
+    countries[countryIndex] = {
+        id,
+        name,
+        nameEn,
+        flagUrl,
+        dns: {
+            ipv4: [...new Set(ipv4)],
+            ipv6: [...new Set(ipv6)]
+        }
+    };
+
+    await env.DB.put('countries:list', JSON.stringify(countries));
+
+    return jsonResponse({
+        success: true,
+        message: 'کشور با موفقیت ویرایش شد',
+        country: countries[countryIndex]
     });
 }
 
@@ -857,5 +1019,23 @@ async function handleSystemStatus(request, env) {
             message: botMessage
         },
         timestamp: Date.now()
+    });
+}
+
+async function handleGetUserHistory(request, env) {
+    const token = request.headers.get('Authorization')?.replace('Bearer ', '');
+    const session = await getSession(env, token);
+    
+    if (!session) {
+        return errorResponse('احراز هویت نشده', 401);
+    }
+
+    const history = await getUserHistory(env, session.telegramId);
+    const userIsAdmin = isAdmin(session.telegramId, env);
+    
+    return jsonResponse({
+        success: true,
+        history,
+        isAdmin: userIsAdmin
     });
 }
