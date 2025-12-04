@@ -801,11 +801,11 @@ app.post('/api/config/generate', (req, res) => {
 
     if (dnsType === 'ipv4') {
         if (!location.dns.ipv4 || location.dns.ipv4.length === 0) {
-            return res.status(400).json({ error: 'این کشور آدرس IPv4 ندارد. موجودی فعلی: ' + (location.dns.ipv4?.length || 0) });
+            return res.status(400).json({ error: 'این کشور آدرس IPv4 ندارد. لطفا از پنل ادمین آدرس اضافه کنید.' });
         }
     } else if (dnsType === 'ipv6') {
         if (!location.dns.ipv6 || location.dns.ipv6.length < 2) {
-            return res.status(400).json({ error: 'این کشور آدرس IPv6 کافی ندارد. موجودی فعلی: ' + (location.dns.ipv6?.length || 0) });
+            return res.status(400).json({ error: 'این کشور آدرس IPv6 کافی ندارد (حداقل 2 آدرس لازم است). لطفا از پنل ادمین آدرس اضافه کنید.' });
         }
     }
 
@@ -818,6 +818,8 @@ app.post('/api/config/generate', (req, res) => {
         dnsServers.push(location.dns.ipv6[1]);
         location.dns.ipv6 = location.dns.ipv6.slice(2);
     }
+
+    console.log(`آدرس تخصیص یافت: کشور=${locationId}, نوع=${dnsType}, کاربر=${session.telegramId}`);
 
     const countryIndex = countries.findIndex(c => c.id === locationId);
     if (countryIndex !== -1) {
@@ -948,11 +950,11 @@ app.post('/api/dns/generate', (req, res) => {
 
     if (dnsType === 'ipv4') {
         if (!location.dns.ipv4 || location.dns.ipv4.length === 0) {
-            return res.status(400).json({ error: 'این کشور آدرس IPv4 ندارد. موجودی فعلی: ' + (location.dns.ipv4?.length || 0) });
+            return res.status(400).json({ error: 'این کشور آدرس IPv4 ندارد. لطفا از پنل ادمین آدرس اضافه کنید.' });
         }
     } else if (dnsType === 'ipv6') {
         if (!location.dns.ipv6 || location.dns.ipv6.length < 2) {
-            return res.status(400).json({ error: 'این کشور آدرس IPv6 کافی ندارد. موجودی فعلی: ' + (location.dns.ipv6?.length || 0) });
+            return res.status(400).json({ error: 'این کشور آدرس IPv6 کافی ندارد (حداقل 2 آدرس لازم است). لطفا از پنل ادمین آدرس اضافه کنید.' });
         }
     }
 
@@ -965,6 +967,8 @@ app.post('/api/dns/generate', (req, res) => {
         dns.push(location.dns.ipv6[1]);
         location.dns.ipv6 = location.dns.ipv6.slice(2);
     }
+
+    console.log(`DNS تخصیص یافت: کشور=${locationId}, نوع=${dnsType}, کاربر=${session.telegramId}`);
 
     const countryIndex = countries.findIndex(c => c.id === locationId);
     if (countryIndex !== -1) {
@@ -1258,84 +1262,5 @@ app.get('*', (req, res) => {
 
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on http://0.0.0.0:${PORT}`);
-    
-    const countriesData = kvGet('countries:list');
-    if (!countriesData) {
-        const defaultCountries = [
-            {
-                id: 'us',
-                name: 'آمریکا',
-                nameEn: 'United States',
-                dns: {
-                    ipv4: ['1.1.1.1', '8.8.8.8', '9.9.9.9', '208.67.222.222', '208.67.220.220'],
-                    ipv6: ['2606:4700:4700::1111', '2001:4860:4860::8888', '2620:fe::fe', '2620:119:35::35']
-                }
-            },
-            {
-                id: 'de',
-                name: 'آلمان',
-                nameEn: 'Germany',
-                dns: {
-                    ipv4: ['1.1.1.1', '9.9.9.9', '185.95.218.42', '185.95.218.43'],
-                    ipv6: ['2606:4700:4700::1111', '2620:fe::fe', '2a05:fc84::42', '2a05:fc84::43']
-                }
-            },
-            {
-                id: 'nl',
-                name: 'هلند',
-                nameEn: 'Netherlands',
-                dns: {
-                    ipv4: ['1.1.1.1', '8.8.4.4', '9.9.9.9'],
-                    ipv6: ['2606:4700:4700::1001', '2001:4860:4860::8844']
-                }
-            },
-            {
-                id: 'gb',
-                name: 'انگلستان',
-                nameEn: 'United Kingdom',
-                dns: {
-                    ipv4: ['1.0.0.1', '8.8.8.8'],
-                    ipv6: ['2606:4700:4700::1001', '2001:4860:4860::8888']
-                }
-            },
-            {
-                id: 'fr',
-                name: 'فرانسه',
-                nameEn: 'France',
-                dns: {
-                    ipv4: ['1.1.1.1', '80.67.169.12'],
-                    ipv6: ['2606:4700:4700::1111', '2001:910:800::12']
-                }
-            },
-            {
-                id: 'jp',
-                name: 'ژاپن',
-                nameEn: 'Japan',
-                dns: {
-                    ipv4: ['1.1.1.1', '8.8.8.8'],
-                    ipv6: ['2606:4700:4700::1111', '2001:4860:4860::8888']
-                }
-            },
-            {
-                id: 'sg',
-                name: 'سنگاپور',
-                nameEn: 'Singapore',
-                dns: {
-                    ipv4: ['1.1.1.1', '8.8.8.8'],
-                    ipv6: ['2606:4700:4700::1111', '2001:4860:4860::8888']
-                }
-            },
-            {
-                id: 'ca',
-                name: 'کانادا',
-                nameEn: 'Canada',
-                dns: {
-                    ipv4: ['1.1.1.1', '8.8.8.8'],
-                    ipv6: ['2606:4700:4700::1111', '2001:4860:4860::8888']
-                }
-            }
-        ];
-        kvPut('countries:list', JSON.stringify(defaultCountries));
-        console.log('Default countries added to database');
-    }
+    console.log('Server started. Add countries via admin panel.');
 });
