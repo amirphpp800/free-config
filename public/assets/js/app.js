@@ -5,6 +5,7 @@ class App {
     constructor() {
         this.selectedWireguardLocation = null;
         this.selectedDnsLocation = null;
+        this.currentLocationId = null;
         this.wireguardDnsType = 'both';
         this.dnsDnsType = 'both';
         this.generatedWireguardConfig = null;
@@ -653,6 +654,7 @@ class App {
         });
 
         this.currentServiceType = 'wireguard';
+        this.currentLocationId = locationId;
         this.openIpVersionModal(locationId);
     }
 
@@ -664,6 +666,7 @@ class App {
         });
 
         this.currentServiceType = 'dns';
+        this.currentLocationId = locationId;
         this.openIpVersionModal(locationId);
     }
 
@@ -706,9 +709,8 @@ class App {
     }
 
     async handleIpVersionSelect(ipVersion) {
-        const location = this.countries.find(c => 
-            c.id === (this.currentServiceType === 'wireguard' ? this.selectedWireguardLocation : this.selectedDnsLocation)
-        );
+        const locationId = this.currentLocationId || (this.currentServiceType === 'wireguard' ? this.selectedWireguardLocation : this.selectedDnsLocation);
+        const location = this.countries.find(c => c.id === locationId);
 
         if (!location) {
             this.showToast('error', 'کشور یافت نشد');
@@ -716,8 +718,8 @@ class App {
             return;
         }
 
-        const hasIpv4 = location.dns.ipv4 && location.dns.ipv4.length > 0;
-        const hasIpv6 = location.dns.ipv6 && location.dns.ipv6.length > 0;
+        const hasIpv4 = location.dns && location.dns.ipv4 && location.dns.ipv4.length > 0;
+        const hasIpv6 = location.dns && location.dns.ipv6 && location.dns.ipv6.length > 0;
 
         if (ipVersion === 'ipv4' && !hasIpv4) {
             if (hasIpv6 && confirm('این کشور آدرس IPv4 ندارد. آیا می‌خواهید از IPv6 استفاده کنید؟')) {
@@ -737,14 +739,11 @@ class App {
 
         this.closeIpVersionModal();
 
-        // اضافه کردن تأخیر کوتاه برای بسته شدن کامل مودال
-        setTimeout(async () => {
-            if (this.currentServiceType === 'wireguard') {
-                await this.generateWireguard(ipVersion);
-            } else if (this.currentServiceType === 'dns') {
-                await this.generateDns(ipVersion);
-            }
-        }, 100);
+        if (this.currentServiceType === 'wireguard') {
+            await this.generateWireguard(ipVersion);
+        } else if (this.currentServiceType === 'dns') {
+            await this.generateDns(ipVersion);
+        }
     }
 
     async generateWireguard(dnsType) {
@@ -797,7 +796,24 @@ class App {
             await this.loadUserLimits();
             await this.loadCountries();
             this.renderLocations();
-            this.showToast('success', 'کانفیگ با موفقیت دریافت شد');
+            
+            let operatorName = '';
+            if (operator) {
+                const operatorNames = {
+                    'mci': 'همراه اول',
+                    'irancell': 'ایرانسل',
+                    'rightel': 'رایتل',
+                    'shatel': 'شاتل موبایل',
+                    'tci': 'مخابرات'
+                };
+                operatorName = operatorNames[operator] || '';
+            }
+            
+            const message = operatorName ? 
+                `کانفیگ با موفقیت دریافت شد (${operatorName})` : 
+                'کانفیگ با موفقیت دریافت شد';
+            
+            this.showToast('success', message);
 
         } catch (error) {
             this.showToast('error', error.message);

@@ -73,35 +73,44 @@
                 </h2>
 
                 <div class="wireguard-options">
-                    <div class="wireguard-options-title">تنظیمات تانل</div>
-                    <div class="wireguard-options-grid">
-                        <div class="option-group">
-                            <label class="option-label">اپراتور</label>
-                            <select id="wireguard-operator" class="option-select">
-                                <option value="">انتخاب اپراتور...</option>
-                                <option value="همراه اول">همراه اول</option>
-                                <option value="ایرانسل">ایرانسل</option>
-                                <option value="رایتل">رایتل</option>
-                                <option value="شاتل">شاتل</option>
-                                <option value="مخابرات">مخابرات</option>
-                                <option value="های‌وب">های‌وب</option>
-                                <option value="آسیاتک">آسیاتک</option>
-                                <option value="سایر">سایر</option>
-                            </select>
-                        </div>
-                        <div class="option-group">
-                            <label class="option-label">DNS ثابت تانل</label>
-                            <select id="wireguard-tunnel-dns" class="option-select">
-                                <option value="">انتخاب DNS تانل...</option>
-                                <option value="178.22.122.100">178.22.122.100 - شاتل</option>
-                                <option value="185.51.200.2">185.51.200.2 - ایرانسل</option>
-                                <option value="10.202.10.10">10.202.10.10 - رادار</option>
-                                <option value="8.8.8.8">8.8.8.8 - گوگل</option>
-                                <option value="1.1.1.1">1.1.1.1 - کلودفلر</option>
-                                <option value="4.2.2.4">4.2.2.4 - لول 3</option>
-                                <option value="78.157.42.100">78.157.42.100 - الکترو</option>
-                            </select>
-                        </div>
+                    <h3 class="wireguard-options-title">⚙️ تنظیمات پیشرفته تانل</h3>
+                    <p class="wireguard-options-subtitle">برای بهترین عملکرد، اپراتور و DNS تانل خود را انتخاب کنید</p>
+                    
+                    <div class="option-group">
+                        <label class="option-label">
+                            <span class="option-icon">📱</span>
+                            <span>انتخاب اپراتور</span>
+                        </label>
+                        <select id="wireguard-operator" class="option-select">
+                            <option value="">بدون اپراتور (پیش‌فرض)</option>
+                            <option value="mci">همراه اول</option>
+                            <option value="irancell">ایرانسل</option>
+                            <option value="rightel">رایتل</option>
+                            <option value="shatel">شاتل موبایل</option>
+                            <option value="tci">مخابرات</option>
+                        </select>
+                    </div>
+                    
+                    <div class="option-group">
+                        <label class="option-label">
+                            <span class="option-icon">🌐</span>
+                            <span>DNS ثابت تانل</span>
+                        </label>
+                        <select id="wireguard-tunnel-dns" class="option-select">
+                            <option value="">بدون DNS تانل (پیش‌فرض)</option>
+                            <option value="1.1.1.1">1.1.1.1 - کلودفلر</option>
+                            <option value="1.0.0.1">1.0.0.1 - کلودفلر</option>
+                            <option value="8.8.8.8">8.8.8.8 - گوگل</option>
+                            <option value="8.8.4.4">8.8.4.4 - گوگل</option>
+                            <option value="9.9.9.9">9.9.9.9 - Quad9</option>
+                            <option value="10.202.10.10">10.202.10.10 - رادار</option>
+                            <option value="78.157.42.100">78.157.42.100 - الکترو</option>
+                            <option value="208.67.222.222">208.67.222.222 - OpenDNS</option>
+                            <option value="208.67.220.220">208.67.220.220 - OpenDNS</option>
+                            <option value="185.55.226.26">185.55.226.26 - Shatel</option>
+                            <option value="185.55.225.25">185.55.225.25 - Shatel</option>
+                            <option value="185.51.200.2">185.51.200.2 - ایرانسل</option>
+                        </select>
                     </div>
                 </div>
 
