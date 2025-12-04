@@ -426,9 +426,18 @@ async function handleGenerateConfig(request, env) {
     let dnsServers = [];
     if (dnsType === 'ipv4') {
         dnsServers.push(location.dns.ipv4[0]);
+        location.dns.ipv4 = location.dns.ipv4.slice(1);
     } else if (dnsType === 'ipv6') {
         dnsServers.push(location.dns.ipv6[0]);
         dnsServers.push(location.dns.ipv6[1]);
+        location.dns.ipv6 = location.dns.ipv6.slice(2);
+    }
+
+    // ذخیره تغییرات در KV
+    const countryIndex = countries.findIndex(c => c.id === locationId);
+    if (countryIndex !== -1) {
+        countries[countryIndex] = location;
+        await env.DB.put('countries:list', JSON.stringify(countries));
     }
 
     // تولید کلید خصوصی
@@ -469,7 +478,7 @@ async function handleGenerateConfig(request, env) {
     if (operator && operatorConfigs[operator]) {
         const opConfig = operatorConfigs[operator];
         if (dnsType === 'ipv4') {
-            interfaceAddress = opConfig.addresses[0];
+            interfaceAddress = opConfig.addresses.join(', ');
         } else if (dnsType === 'ipv6') {
             interfaceAddress = opConfig.addressesV6.join(', ');
         }
@@ -495,7 +504,12 @@ async function handleGenerateConfig(request, env) {
 
     configLines.push(`PrivateKey = ${privateKey}`);
     configLines.push(`Address = ${interfaceAddress}`);
-    configLines.push(`DNS = ${dnsServers.join(', ')}`);
+    
+    if (tunnelDns) {
+        configLines.push(`DNS = ${tunnelDns}`);
+    } else {
+        configLines.push(`DNS = ${dnsServers.join(', ')}`);
+    }
 
     const config = configLines.join('\n');
 
@@ -513,20 +527,6 @@ async function handleGenerateConfig(request, env) {
     // افزایش محدودیت
     if (!userIsAdmin) {
         await incrementLimit(env, session.telegramId, 'wireguard');
-    }
-
-    // حذف آدرس استفاده شده از لیست
-    if (dnsType === 'ipv4') {
-        location.dns.ipv4 = location.dns.ipv4.slice(1);
-    } else if (dnsType === 'ipv6') {
-        location.dns.ipv6 = location.dns.ipv6.slice(2);
-    }
-
-    // ذخیره تغییرات در KV
-    const countryIndex = countries.findIndex(c => c.id === locationId);
-    if (countryIndex !== -1) {
-        countries[countryIndex] = location;
-        await env.DB.put('countries:list', JSON.stringify(countries));
     }
 
     return jsonResponse({
@@ -575,13 +575,22 @@ async function handleGenerateDns(request, env) {
         }
     }
 
-    // دریافت آدرس‌ها
+    // دریافت آدرس‌ها و حذف از لیست
     let dns = [];
     if (dnsType === 'ipv4') {
         dns.push(location.dns.ipv4[0]);
+        location.dns.ipv4 = location.dns.ipv4.slice(1);
     } else if (dnsType === 'ipv6') {
         dns.push(location.dns.ipv6[0]);
         dns.push(location.dns.ipv6[1]);
+        location.dns.ipv6 = location.dns.ipv6.slice(2);
+    }
+
+    // ذخیره تغییرات در KV
+    const countryIndex = countries.findIndex(c => c.id === locationId);
+    if (countryIndex !== -1) {
+        countries[countryIndex] = location;
+        await env.DB.put('countries:list', JSON.stringify(countries));
     }
 
     // ساخت caption
@@ -611,20 +620,6 @@ https://check-host.net/check-ping?host=${dns[0]}`;
     // افزایش محدودیت
     if (!userIsAdmin) {
         await incrementLimit(env, session.telegramId, 'dns');
-    }
-
-    // حذف آدرس استفاده شده از لیست
-    if (dnsType === 'ipv4') {
-        location.dns.ipv4 = location.dns.ipv4.slice(1);
-    } else if (dnsType === 'ipv6') {
-        location.dns.ipv6 = location.dns.ipv6.slice(2);
-    }
-
-    // ذخیره تغییرات در KV
-    const countryIndex = countries.findIndex(c => c.id === locationId);
-    if (countryIndex !== -1) {
-        countries[countryIndex] = location;
-        await env.DB.put('countries:list', JSON.stringify(countries));
     }
 
     return jsonResponse({
