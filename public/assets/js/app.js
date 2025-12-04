@@ -337,6 +337,9 @@ class App {
             this.announcementsTab?.classList.add('active');
             this.loadAnnouncements();
         }
+
+        // ذخیره تب فعلی در localStorage
+        localStorage.setItem('activeTab', tab);
     }
 
     updateToolsStats() {
@@ -381,6 +384,12 @@ class App {
             }
 
             await this.loadUserLimits();
+
+            // بازیابی تب ذخیره شده
+            const savedTab = localStorage.getItem('activeTab');
+            if (savedTab) {
+                this.switchTab(savedTab);
+            }
         } else {
             this.authSection?.classList.remove('hidden');
             this.mainContent?.classList.add('hidden');
@@ -701,7 +710,11 @@ class App {
             c.id === (this.currentServiceType === 'wireguard' ? this.selectedWireguardLocation : this.selectedDnsLocation)
         );
 
-        if (!location) return;
+        if (!location) {
+            this.showToast('error', 'کشور یافت نشد');
+            this.closeIpVersionModal();
+            return;
+        }
 
         const hasIpv4 = location.dns.ipv4 && location.dns.ipv4.length > 0;
         const hasIpv6 = location.dns.ipv6 && location.dns.ipv6.length > 0;
@@ -724,11 +737,14 @@ class App {
 
         this.closeIpVersionModal();
 
-        if (this.currentServiceType === 'wireguard') {
-            await this.generateWireguard(ipVersion);
-        } else if (this.currentServiceType === 'dns') {
-            await this.generateDns(ipVersion);
-        }
+        // اضافه کردن تأخیر کوتاه برای بسته شدن کامل مودال
+        setTimeout(async () => {
+            if (this.currentServiceType === 'wireguard') {
+                await this.generateWireguard(ipVersion);
+            } else if (this.currentServiceType === 'dns') {
+                await this.generateDns(ipVersion);
+            }
+        }, 100);
     }
 
     async generateWireguard(dnsType) {

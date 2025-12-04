@@ -570,9 +570,19 @@ body {
     color: #E02F3A;
 }
 
+.btn-cancel {
+    background: transparent;
+    color: #E02F3A !important;
+}
+
 .btn-cancel:hover {
     background: rgba(224, 47, 58, 0.15);
-    color: #E02F3A;
+    color: #E02F3A !important;
+}
+
+.btn-cancel:active {
+    background: rgba(224, 47, 58, 0.25);
+    color: #E02F3A !important;
 }
 
 .btn-lg {
