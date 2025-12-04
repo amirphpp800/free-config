@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>وایرگارد - ROOTLeaker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/public/styles.css">
+</head>
+<body>
+    <div class="app">
+        <header class="header">
+            <div class="container">
+                <div class="header-content">
+                    <a href="/" class="logo">
+                        <div class="logo-icon">
+                            <i class="fas fa-shield-halved"></i>
+                        </div>
+                        <div class="logo-text">
+                            <h1>ROOTLeaker</h1>
+                            <span>ابزارهای امنیتی</span>
+                        </div>
+                    </a>
+                    
+                    <nav class="main-nav">
+                        <a href="/" class="nav-link"><i class="fas fa-home"></i> خانه</a>
+                        <a href="/dns.html" class="nav-link"><i class="fas fa-globe"></i> DNS</a>
+                        <a href="/wireguard.html" class="nav-link active"><i class="fas fa-network-wired"></i> WireGuard</a>
+                        <a href="/tools.html" class="nav-link"><i class="fas fa-toolbox"></i> ابزارها</a>
+                    </nav>
+                    
+                    <div class="header-actions">
+                        <a href="https://t.me/ROOTLeaker" target="_blank" class="btn btn-telegram">
+                            <i class="fab fa-telegram"></i>
+                            کانال تلگرام
+                        </a>
+                        <div id="auth-buttons">
+                            <button class="btn btn-outline" onclick="showAuthModal()">
+                                <i class="fas fa-sign-in-alt"></i>
+                                ورود
+                            </button>
+                        </div>
+                        <div id="user-menu" class="hidden">
+                            <div class="user-badge">
+                                <i class="fas fa-user-circle"></i>
+                                <span id="user-display"></span>
+                            </div>
+                            <button class="btn btn-sm btn-danger" onclick="logout()">
+                                <i class="fas fa-sign-out-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="announcement-bar" id="announcement-bar">
+            <div class="container">
+                <i class="fas fa-bullhorn"></i>
+                <span id="announcement-text"></span>
+                <button class="close-btn" onclick="closeAnnouncement()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+
+        <main class="main">
+            <div class="container page-content">
+                <div class="page-header">
+                    <div class="page-icon wireguard">
+                        <img src="/images/wireguard.jpeg" alt="WireGuard" style="width: 100%; height: 100%; object-fit: cover; border-radius: var(--radius);">
+                    </div>
+                    <div class="page-info">
+                        <h1>کانفیگ WireGuard</h1>
+                        <p>کانفیگ‌های VPN با سرعت بالا و امنیت قوی</p>
+                    </div>
+                </div>
+
+                <div id="login-required" class="login-required-box">
+                    <div class="lock-icon">
+                        <i class="fas fa-lock"></i>
+                    </div>
+                    <h3>برای دریافت کانفیگ باید وارد شوید</h3>
+                    <p>با استفاده از آیدی عددی تلگرام خود وارد شوید</p>
+                    <button class="btn btn-primary" onclick="showAuthModal()">
+                        <i class="fas fa-sign-in-alt"></i>
+                        ورود / ثبت نام
+                    </button>
+                </div>
+
+                <div id="wg-content" class="hidden">
+                    <div class="usage-info">
+                        <div class="usage-card">
+                            <i class="fas fa-chart-pie"></i>
+                            <div>
+                                <span class="usage-label">مصرف امروز</span>
+                                <span class="usage-value"><span id="wg-used">0</span> از <span id="wg-limit">3</span></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="options-panel">
+                        <div class="option-group">
+                            <label>نسخه IP</label>
+                            <div class="toggle-group">
+                                <button class="toggle-btn active" data-value="ipv4" data-target="wg-ip-version">IPv4</button>
+                                <button class="toggle-btn" data-value="ipv6" data-target="wg-ip-version">IPv6</button>
+                            </div>
+                            <input type="hidden" id="wg-ip-version" value="ipv4">
+                        </div>
+
+                        <div class="option-group">
+                            <label>اپراتور</label>
+                            <select id="wg-operator">
+                                <option value="">بدون اپراتور</option>
+                            </select>
+                        </div>
+
+                        <div class="option-group">
+                            <label>DNS</label>
+                            <select id="wg-dns">
+                                <option value="">تصادفی</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="wg-search" placeholder="جستجوی کشور...">
+                    </div>
+
+                    <div class="countries-grid" id="wg-countries"></div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <div class="container">
+                <div class="footer-content">
+                    <div class="footer-brand">
+                        <i class="fas fa-shield-halved"></i>
+                        <span>ROOTLeaker</span>
+                    </div>
+                    <div class="footer-links">
+                        <a href="https://t.me/ROOTLeaker" target="_blank">
+                            <i class="fab fa-telegram"></i>
+                            کانال تلگرام
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </footer>
+
+        <div class="modal-overlay" id="auth-modal">
+            <div class="modal auth-modal">
+                <div class="modal-header">
+                    <h3><i class="fas fa-user-circle"></i> ورود / ثبت نام</h3>
+                    <button class="modal-close" onclick="closeAuthModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div id="auth-step-1">
+                        <p class="auth-desc">آیدی عددی تلگرام خود را وارد کنید</p>
+                        <div class="auth-tip">
+                            <i class="fas fa-info-circle"></i>
+                            برای دریافت آیدی عددی، به ربات ما پیام /id بفرستید
+                        </div>
+                        <div class="input-group">
+                            <label>آیدی عددی تلگرام</label>
+                            <input type="text" id="telegram-id" placeholder="مثال: 123456789" pattern="[0-9]*" inputmode="numeric">
+                        </div>
+                        <button class="btn btn-primary btn-block" onclick="sendVerifyCode()">
+                            <i class="fas fa-paper-plane"></i>
+                            ارسال کد تایید
+                        </button>
+                    </div>
+                    <div id="auth-step-2" class="hidden">
+                        <p class="auth-desc">کد ۶ رقمی ارسال شده به تلگرام را وارد کنید</p>
+                        <div class="input-group">
+                            <label>کد تایید</label>
+                            <input type="text" id="verify-code" placeholder="مثال: 123456" maxlength="6" pattern="[0-9]*" inputmode="numeric">
+                        </div>
+                        <button class="btn btn-primary btn-block" onclick="verifyCode()">
+                            <i class="fas fa-check"></i>
+                            تایید و ورود
+                        </button>
+                        <button class="btn btn-link" onclick="backToStep1()">
+                            <i class="fas fa-arrow-right"></i>
+                            بازگشت
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-overlay" id="result-modal">
+            <div class="modal">
+                <div class="modal-header">
+                    <h3 id="result-title"><i class="fas fa-network-wired"></i> WireGuard</h3>
+                    <button class="modal-close" onclick="closeResultModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="result-info" id="result-info"></div>
+                    <div class="config-box">
+                        <div class="config-header">
+                            <span>کانفیگ</span>
+                            <button class="copy-btn" onclick="copyConfig()">
+                                <i class="fas fa-copy"></i>
+                                کپی
+                            </button>
+                        </div>
+                        <pre id="config-content"></pre>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="closeResultModal()">بستن</button>
+                    <button class="btn btn-primary" onclick="downloadConfig()">
+                        <i class="fas fa-download"></i>
+                        دانلود فایل
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="loading-overlay" id="loading">
+            <div class="loading-spinner">
+                <i class="fas fa-spinner fa-spin"></i>
+                <span>در حال پردازش...</span>
+            </div>
+        </div>
+
+        <div class="toast" id="toast"></div>
+    </div>
+
+    <script>
+        let countries = [];
+        let authToken = localStorage.getItem('authToken');
+        let currentUser = null;
+        let pendingTelegramId = null;
+        let currentConfig = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await checkAuth();
+            await loadCountries();
+            await loadOperators();
+            await loadDnsOptions();
+            await loadAnnouncements();
+            initToggles();
+            initSearch();
+        });
+
+        async function checkAuth() {
+            if (!authToken) {
+                showLoginRequired();
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/auth/me', {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    currentUser = data.user;
+                    showWgContent();
+                    updateUserUI();
+                } else {
+                    localStorage.removeItem('authToken');
+                    authToken = null;
+                    showLoginRequired();
+                }
+            } catch (error) {
+                showLoginRequired();
+            }
+        }
+
+        function showLoginRequired() {
+            document.getElementById('login-required').classList.remove('hidden');
+            document.getElementById('wg-content').classList.add('hidden');
+            document.getElementById('auth-buttons').classList.remove('hidden');
+            document.getElementById('user-menu').classList.add('hidden');
+        }
+
+        function showWgContent() {
+            document.getElementById('login-required').classList.add('hidden');
+            document.getElementById('wg-content').classList.remove('hidden');
+            document.getElementById('auth-buttons').classList.add('hidden');
+            document.getElementById('user-menu').classList.remove('hidden');
+        }
+
+        function updateUserUI() {
+            if (currentUser) {
+                document.getElementById('user-display').textContent = currentUser.telegramId;
+                if (currentUser.dailyWgUsed !== undefined) {
+                    document.getElementById('wg-used').textContent = currentUser.dailyWgUsed || 0;
+                }
+                document.getElementById('wg-limit').textContent = currentUser.isVip ? '∞' : '3';
+            }
+        }
+
+        async function loadAnnouncements() {
+            try {
+                const response = await fetch('/api/announcements');
+                const data = await response.json();
+                if (data.success && data.announcements && data.announcements.length > 0) {
+                    const latest = data.announcements[0];
+                    const seenAnnouncements = JSON.parse(localStorage.getItem('seenAnnouncements') || '[]');
+                    if (!seenAnnouncements.includes(latest.id)) {
+                        document.getElementById('announcement-text').textContent = latest.message;
+                        document.getElementById('announcement-bar').classList.add('active');
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading announcements:', error);
+            }
+        }
+
+        function closeAnnouncement() {
+            const bar = document.getElementById('announcement-bar');
+            bar.classList.remove('active');
+            const seenAnnouncements = JSON.parse(localStorage.getItem('seenAnnouncements') || '[]');
+            seenAnnouncements.push(Date.now().toString());
+            localStorage.setItem('seenAnnouncements', JSON.stringify(seenAnnouncements.slice(-10)));
+        }
+
+        async function loadCountries() {
+            try {
+                const response = await fetch('/api/countries');
+                countries = await response.json();
+                renderCountries();
+            } catch (error) {
+                console.error('Error loading countries:', error);
+            }
+        }
+
+        async function loadOperators() {
+            try {
+                const response = await fetch('/api/config/operators');
+                const operators = await response.json();
+                const select = document.getElementById('wg-operator');
+                operators.forEach(op => {
+                    const option = document.createElement('option');
+                    option.value = op.id;
+                    option.textContent = op.title;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading operators:', error);
+            }
+        }
+
+        async function loadDnsOptions() {
+            try {
+                const response = await fetch('/api/config/dns-options');
+                const dnsOptions = await response.json();
+                const select = document.getElementById('wg-dns');
+                dnsOptions.forEach(dns => {
+                    const option = document.createElement('option');
+                    option.value = dns.ip;
+                    option.textContent = `${dns.name} (${dns.ip})`;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading DNS options:', error);
+            }
+        }
+
+        function renderCountries() {
+            const container = document.getElementById('wg-countries');
+            container.innerHTML = '';
+
+            countries.forEach(country => {
+                const card = document.createElement('div');
+                card.className = 'country-card';
+                card.onclick = () => generateWireGuard(country.code);
+
+                const flagUrl = `https://flagcdn.com/w80/${country.code.toLowerCase()}.png`;
+
+                card.innerHTML = `
+                    <img class="country-flag" src="${flagUrl}" alt="${country.en} flag" onerror="this.style.display='none'">
+                    <div class="country-info">
+                        <div class="country-name-fa">${country.fa}</div>
+                        <div class="country-name-en">${country.en}</div>
+                    </div>
+                    <div class="country-code">${country.code}</div>
+                `;
+
+                container.appendChild(card);
+            });
+        }
+
+        function initToggles() {
+            document.querySelectorAll('.toggle-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const target = btn.dataset.target;
+                    const value = btn.dataset.value;
+                    btn.parentElement.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    document.getElementById(target).value = value;
+                });
+            });
+        }
+
+        function initSearch() {
+            document.getElementById('wg-search').addEventListener('input', (e) => {
+                const search = e.target.value.toLowerCase();
+                const filtered = countries.filter(c =>
+                    c.fa.includes(search) ||
+                    c.en.toLowerCase().includes(search) ||
+                    c.code.toLowerCase().includes(search)
+                );
+                renderFilteredCountries(filtered);
+            });
+        }
+
+        function renderFilteredCountries(list) {
+            const container = document.getElementById('wg-countries');
+            container.innerHTML = '';
+
+            list.forEach(country => {
+                const card = document.createElement('div');
+                card.className = 'country-card';
+                card.onclick = () => generateWireGuard(country.code);
+
+                const flagUrl = `https://flagcdn.com/w80/${country.code.toLowerCase()}.png`;
+
+                card.innerHTML = `
+                    <img class="country-flag" src="${flagUrl}" alt="${country.en} flag" onerror="this.style.display='none'">
+                    <div class="country-info">
+                        <div class="country-name-fa">${country.fa}</div>
+                        <div class="country-name-en">${country.en}</div>
+                    </div>
+                    <div class="country-code">${country.code}</div>
+                `;
+
+                container.appendChild(card);
+            });
+        }
+
+        async function generateWireGuard(countryCode) {
+            if (!authToken) {
+                showToast('لطفا ابتدا وارد شوید', 'error');
+                return;
+            }
+
+            showLoading();
+
+            try {
+                const ipVersion = document.getElementById('wg-ip-version').value;
+                const operator = document.getElementById('wg-operator').value;
+                const dns = document.getElementById('wg-dns').value;
+
+                const response = await fetch('/api/config/generate-wireguard', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ country: countryCode, operator, dns, ipVersion })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    currentConfig = data;
+                    showResult(data);
+                    if (data.dailyUsed !== undefined) {
+                        document.getElementById('wg-used').textContent = data.dailyUsed;
+                    }
+                } else {
+                    showToast(data.error || 'خطا در دریافت کانفیگ', 'error');
+                }
+            } catch (error) {
+                showToast('خطا در ارتباط با سرور', 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function showResult(data) {
+            document.getElementById('result-title').innerHTML = `<i class="fas fa-network-wired" style="color: var(--secondary);"></i> WireGuard ${data.country}`;
+            
+            let badges = `
+                <div class="badge"><i class="fas fa-flag"></i> ${data.country}</div>
+                <div class="badge"><i class="fas fa-server"></i> DNS: ${data.dns}</div>
+                <div class="badge"><i class="fas fa-ruler"></i> MTU: ${data.mtu}</div>
+                <div class="badge"><i class="fas fa-network-wired"></i> ${data.ipVersion.toUpperCase()}</div>
+            `;
+            if (data.operator) {
+                badges += `<div class="badge"><i class="fas fa-mobile-alt"></i> ${data.operator}</div>`;
+            }
+            document.getElementById('result-info').innerHTML = badges;
+            document.getElementById('config-content').textContent = data.config;
+
+            document.getElementById('result-modal').classList.add('active');
+        }
+
+        function closeResultModal() {
+            document.getElementById('result-modal').classList.remove('active');
+        }
+
+        function copyConfig() {
+            const content = document.getElementById('config-content').textContent;
+            navigator.clipboard.writeText(content).then(() => {
+                showToast('کپی شد!', 'success');
+            });
+        }
+
+        function downloadConfig() {
+            if (!currentConfig) return;
+            const content = currentConfig.config;
+            const filename = `wireguard-${currentConfig.countryCode || 'config'}.conf`;
+
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            showToast('دانلود شد!', 'success');
+        }
+
+        function showAuthModal() {
+            document.getElementById('auth-modal').classList.add('active');
+            document.getElementById('auth-step-1').classList.remove('hidden');
+            document.getElementById('auth-step-2').classList.add('hidden');
+        }
+
+        function closeAuthModal() {
+            document.getElementById('auth-modal').classList.remove('active');
+        }
+
+        function backToStep1() {
+            document.getElementById('auth-step-1').classList.remove('hidden');
+            document.getElementById('auth-step-2').classList.add('hidden');
+        }
+
+        async function sendVerifyCode() {
+            const telegramId = document.getElementById('telegram-id').value.trim();
+
+            if (!telegramId || !/^\d{5,15}$/.test(telegramId)) {
+                showToast('لطفا آیدی عددی معتبر وارد کنید', 'error');
+                return;
+            }
+
+            showLoading();
+
+            try {
+                const response = await fetch('/api/auth/send-code', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ telegramId })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    pendingTelegramId = telegramId;
+                    document.getElementById('auth-step-1').classList.add('hidden');
+                    document.getElementById('auth-step-2').classList.remove('hidden');
+                    showToast('کد تایید ارسال شد', 'success');
+                } else {
+                    showToast(data.error || 'خطا در ارسال کد', 'error');
+                }
+            } catch (error) {
+                showToast('خطا در ارتباط با سرور', 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function verifyCode() {
+            const code = document.getElementById('verify-code').value.trim();
+
+            if (!code || code.length !== 6) {
+                showToast('لطفا کد ۶ رقمی را وارد کنید', 'error');
+                return;
+            }
+
+            showLoading();
+
+            try {
+                const response = await fetch('/api/auth/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ telegramId: pendingTelegramId, code })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    authToken = data.token;
+                    currentUser = data.user;
+                    localStorage.setItem('authToken', authToken);
+                    closeAuthModal();
+                    showWgContent();
+                    updateUserUI();
+                    showToast('ورود موفق!', 'success');
+                } else {
+                    showToast(data.error || 'کد تایید اشتباه است', 'error');
+                }
+            } catch (error) {
+                showToast('خطا در ارتباط با سرور', 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('authToken');
+            authToken = null;
+            currentUser = null;
+            showLoginRequired();
+            showToast('خارج شدید', 'success');
+        }
+
+        function showLoading() {
+            document.getElementById('loading').classList.add('active');
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').classList.remove('active');
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast ${type} active`;
+            setTimeout(() => toast.classList.remove('active'), 3000);
+        }
+
+        document.querySelectorAll('.modal-overlay').forEach(modal => {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.classList.remove('active');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

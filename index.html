@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ROOTLeaker - ابزارهای امنیتی</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <div class="app">
+        <header class="header">
+            <div class="container">
+                <div class="header-content">
+                    <a href="/" class="logo">
+                        <div class="logo-icon">
+                            <i class="fas fa-shield-halved"></i>
+                        </div>
+                        <div class="logo-text">
+                            <h1>ROOTLeaker</h1>
+                            <span>ابزارهای امنیتی</span>
+                        </div>
+                    </a>
+                    
+                    <nav class="main-nav">
+                        <a href="/" class="nav-link active"><i class="fas fa-home"></i> خانه</a>
+                        <a href="/dns" class="nav-link"><i class="fas fa-globe"></i> DNS</a>
+                        <a href="/wireguard" class="nav-link"><i class="fas fa-network-wired"></i> WireGuard</a>
+                        <a href="/tools" class="nav-link"><i class="fas fa-toolbox"></i> ابزارها</a>
+                    </nav>
+                    
+                    <div class="header-actions">
+                        <a href="https://t.me/ROOTLeaker" target="_blank" class="btn btn-telegram">
+                            <i class="fab fa-telegram"></i>
+                            کانال تلگرام
+                        </a>
+                        <div id="auth-buttons">
+                            <button class="btn btn-outline" onclick="showAuthModal()">
+                                <i class="fas fa-sign-in-alt"></i>
+                                ورود
+                            </button>
+                        </div>
+                        <div id="user-menu" class="hidden">
+                            <div class="user-badge">
+                                <i class="fas fa-user-circle"></i>
+                                <span id="user-display"></span>
+                            </div>
+                            <button id="admin-btn" class="btn btn-sm btn-outline hidden" onclick="goToAdmin()">
+                                <i class="fas fa-cog"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="logout()">
+                                <i class="fas fa-sign-out-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="announcement-bar" id="announcement-bar">
+            <div class="container">
+                <i class="fas fa-bullhorn"></i>
+                <span id="announcement-text"></span>
+                <button class="close-btn" onclick="closeAnnouncement()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+
+        <main class="main">
+            <div class="container page-content">
+                <section class="hero">
+                    <div class="hero-content">
+                        <h1>به ROOTLeaker خوش آمدید</h1>
+                        <p>دسترسی آزاد و امن به اینترنت با ابزارهای حرفه‌ای</p>
+                    </div>
+                </section>
+
+                <section class="services-section">
+                    <h2 class="section-title">
+                        <i class="fas fa-server"></i>
+                        خدمات ما
+                    </h2>
+                    
+                    <div class="services-grid">
+                        <a href="/dns" class="service-card dns-card">
+                            <div class="service-icon">
+                                <img src="images/dns.webp" alt="DNS Icon" style="width: 100%; height: 100%; object-fit: cover; border-radius: var(--radius);">
+                            </div>
+                            <div class="service-content">
+                                <h3>دی ان اس (DNS)</h3>
+                                <p>آدرس‌های DNS اختصاصی برای دسترسی آزاد به اینترنت</p>
+                                <ul class="service-features">
+                                    <li><i class="fas fa-check"></i> پشتیبانی از IPv4 و IPv6</li>
+                                    <li><i class="fas fa-check"></i> سرعت بالا</li>
+                                    <li><i class="fas fa-check"></i> امنیت تضمین‌شده</li>
+                                </ul>
+                            </div>
+                            <div class="service-action">
+                                <span class="btn btn-primary">
+                                    دریافت DNS
+                                    <i class="fas fa-arrow-left"></i>
+                                </span>
+                            </div>
+                        </a>
+
+                        <a href="/wireguard" class="service-card wireguard-card">
+                            <div class="service-icon">
+                                <img src="images/wireguard.jpeg" alt="WireGuard Icon" style="width: 100%; height: 100%; object-fit: cover; border-radius: var(--radius);">
+                            </div>
+                            <div class="service-content">
+                                <h3>وایرگارد (WireGuard)</h3>
+                                <p>کانفیگ‌های VPN حرفه‌ای با سرعت و امنیت بالا</p>
+                                <ul class="service-features">
+                                    <li><i class="fas fa-check"></i> کشورهای متنوع</li>
+                                    <li><i class="fas fa-check"></i> انتخاب اپراتور</li>
+                                    <li><i class="fas fa-check"></i> پشتیبانی IPv4/IPv6</li>
+                                </ul>
+                            </div>
+                            <div class="service-action">
+                                <span class="btn btn-primary">
+                                    دریافت کانفیگ
+                                    <i class="fas fa-arrow-left"></i>
+                                </span>
+                            </div>
+                        </a>
+
+                        <a href="/tools" class="service-card tools-card">
+                            <div class="service-icon">
+                                <img src="images/tool.webp" alt="Tools Icon" style="width: 100%; height: 100%; object-fit: cover; border-radius: var(--radius);">
+                            </div>
+                            <div class="service-content">
+                                <h3>ابزارها</h3>
+                                <p>مجموعه ابزارهای کاربردی برای شبکه و امنیت</p>
+                                <ul class="service-features">
+                                    <li><i class="fas fa-check"></i> بررسی IP</li>
+                                    <li><i class="fas fa-check"></i> تست سرعت DNS</li>
+                                    <li><i class="fas fa-check"></i> ساخت QR Code</li>
+                                </ul>
+                            </div>
+                            <div class="service-action">
+                                <span class="btn btn-primary">
+                                    مشاهده ابزارها
+                                    <i class="fas fa-arrow-left"></i>
+                                </span>
+                            </div>
+                        </a>
+                    </div>
+                </section>
+
+                <section class="info-section">
+                    <div class="info-card">
+                        <i class="fas fa-shield-halved"></i>
+                        <h4>امنیت بالا</h4>
+                        <p>تمام سرویس‌ها با بالاترین استانداردهای امنیتی ارائه می‌شوند</p>
+                    </div>
+                    <div class="info-card">
+                        <i class="fas fa-bolt"></i>
+                        <h4>سرعت بالا</h4>
+                        <p>سرورهای پرسرعت برای بهترین تجربه کاربری</p>
+                    </div>
+                    <div class="info-card">
+                        <i class="fas fa-headset"></i>
+                        <h4>پشتیبانی</h4>
+                        <p>پشتیبانی ۲۴ ساعته از طریق کانال تلگرام</p>
+                    </div>
+                </section>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <div class="container">
+                <div class="footer-content">
+                    <div class="footer-brand">
+                        <i class="fas fa-shield-halved"></i>
+                        <span>ROOTLeaker</span>
+                    </div>
+                    <div class="footer-links">
+                        <a href="https://t.me/ROOTLeaker" target="_blank">
+                            <i class="fab fa-telegram"></i>
+                            کانال تلگرام
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </footer>
+
+        <div class="modal-overlay" id="auth-modal">
+            <div class="modal auth-modal">
+                <div class="modal-header">
+                    <h3><i class="fas fa-user-circle"></i> ورود / ثبت نام</h3>
+                    <button class="modal-close" onclick="closeAuthModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div id="auth-step-1">
+                        <p class="auth-desc">آیدی عددی تلگرام خود را وارد کنید</p>
+                        <div class="auth-tip">
+                            <i class="fas fa-info-circle"></i>
+                            برای دریافت آیدی عددی، به ربات ما پیام /id بفرستید
+                        </div>
+                        <div class="input-group">
+                            <label>آیدی عددی تلگرام</label>
+                            <input type="text" id="telegram-id" placeholder="مثال: 123456789" pattern="[0-9]*" inputmode="numeric">
+                        </div>
+                        <button class="btn btn-primary btn-block" onclick="sendVerifyCode()">
+                            <i class="fas fa-paper-plane"></i>
+                            ارسال کد تایید
+                        </button>
+                    </div>
+                    <div id="auth-step-2" class="hidden">
+                        <p class="auth-desc">کد ۶ رقمی ارسال شده به تلگرام را وارد کنید</p>
+                        <div class="input-group">
+                            <label>کد تایید</label>
+                            <input type="text" id="verify-code" placeholder="مثال: 123456" maxlength="6" pattern="[0-9]*" inputmode="numeric">
+                        </div>
+                        <button class="btn btn-primary btn-block" onclick="verifyCode()">
+                            <i class="fas fa-check"></i>
+                            تایید و ورود
+                        </button>
+                        <button class="btn btn-link" onclick="backToStep1()">
+                            <i class="fas fa-arrow-right"></i>
+                            بازگشت
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="loading-overlay" id="loading">
+            <div class="loading-spinner">
+                <i class="fas fa-spinner fa-spin"></i>
+                <span>در حال پردازش...</span>
+            </div>
+        </div>
+
+        <div class="toast" id="toast"></div>
+    </div>
+
+    <script src="/js/main.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            await checkAuth();
+            await loadAnnouncements();
+        });
+
+        async function checkAuth() {
+            const token = localStorage.getItem('authToken');
+            if (!token) {
+                updateAuthUI(false);
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/auth/me', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    currentUser = data.user;
+                    updateAuthUI(true);
+                } else {
+                    localStorage.removeItem('authToken');
+                    updateAuthUI(false);
+                }
+            } catch (error) {
+                updateAuthUI(false);
+            }
+        }
+
+        function updateAuthUI(isLoggedIn) {
+            if (isLoggedIn && currentUser) {
+                document.getElementById('auth-buttons').classList.add('hidden');
+                document.getElementById('user-menu').classList.remove('hidden');
+                document.getElementById('user-display').textContent = currentUser.telegramId;
+                
+                if (currentUser.isAdmin) {
+                    document.getElementById('admin-btn').classList.remove('hidden');
+                }
+            } else {
+                document.getElementById('auth-buttons').classList.remove('hidden');
+                document.getElementById('user-menu').classList.add('hidden');
+            }
+        }
+
+        function goToAdmin() {
+            if (currentUser && currentUser.telegramId) {
+                window.location.href = `/admin?admin=${currentUser.telegramId}`;
+            }
+        }
+
+        async function loadAnnouncements() {
+            try {
+                const response = await fetch('/api/announcements');
+                const data = await response.json();
+                if (data.success && data.announcements && data.announcements.length > 0) {
+                    const latest = data.announcements[0];
+                    const seenAnnouncements = JSON.parse(localStorage.getItem('seenAnnouncements') || '[]');
+                    if (!seenAnnouncements.includes(latest.id)) {
+                        document.getElementById('announcement-text').textContent = latest.message;
+                        document.getElementById('announcement-bar').classList.add('active');
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading announcements:', error);
+            }
+        }
+
+        function closeAnnouncement() {
+            const bar = document.getElementById('announcement-bar');
+            bar.classList.remove('active');
+            const seenAnnouncements = JSON.parse(localStorage.getItem('seenAnnouncements') || '[]');
+            seenAnnouncements.push(Date.now().toString());
+            localStorage.setItem('seenAnnouncements', JSON.stringify(seenAnnouncements.slice(-10)));
+        }
+
+        function showAuthModal() {
+            document.getElementById('auth-modal').classList.add('active');
+            document.getElementById('auth-step-1').classList.remove('hidden');
+            document.getElementById('auth-step-2').classList.add('hidden');
+        }
+
+        function closeAuthModal() {
+            document.getElementById('auth-modal').classList.remove('active');
+        }
+
+        function backToStep1() {
+            document.getElementById('auth-step-1').classList.remove('hidden');
+            document.getElementById('auth-step-2').classList.add('hidden');
+        }
+
+        async function sendVerifyCode() {
+            const telegramId = document.getElementById('telegram-id').value.trim();
+
+            if (!telegramId || !/^\d{5,15}$/.test(telegramId)) {
+                showToast('لطفا آیدی عددی معتبر وارد کنید', 'error');
+                return;
+            }
+
+            showLoading();
+
+            try {
+                const response = await fetch('/api/auth/send-code', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ telegramId })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    pendingTelegramId = telegramId;
+                    document.getElementById('auth-step-1').classList.add('hidden');
+                    document.getElementById('auth-step-2').classList.remove('hidden');
+                    showToast('کد تایید ارسال شد', 'success');
+                } else {
+                    showToast(data.error || 'خطا در ارسال کد', 'error');
+                }
+            } catch (error) {
+                showToast('خطا در ارتباط با سرور', 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function verifyCode() {
+            const code = document.getElementById('verify-code').value.trim();
+
+            if (!code || code.length !== 6) {
+                showToast('لطفا کد ۶ رقمی را وارد کنید', 'error');
+                return;
+            }
+
+            showLoading();
+
+            try {
+                const response = await fetch('/api/auth/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ telegramId: pendingTelegramId, code })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    authToken = data.token;
+                    currentUser = data.user;
+                    localStorage.setItem('authToken', authToken);
+                    closeAuthModal();
+                    updateAuthUI(true);
+                    showToast('ورود موفق!', 'success');
+                } else {
+                    showToast(data.error || 'کد تایید اشتباه است', 'error');
+                }
+            } catch (error) {
+                showToast('خطا در ارتباط با سرور', 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('authToken');
+            authToken = null;
+            currentUser = null;
+            updateAuthUI(false);
+            showToast('خارج شدید', 'success');
+        }
+
+        function showLoading() {
+            document.getElementById('loading').classList.add('active');
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').classList.remove('active');
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast ${type} active`;
+            setTimeout(() => toast.classList.remove('active'), 3000);
+        }
+
+        document.getElementById('auth-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'auth-modal') {
+                closeAuthModal();
+            }
+        });
+    </script>
+</body>
+</html>

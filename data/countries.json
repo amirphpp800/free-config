@@ -1,0 +1,102 @@
+[
+  {
+    "code": "IR",
+    "fa": "ایران",
+    "en": "Iran"
+  },
+  {
+    "code": "US",
+    "fa": "آمریکا",
+    "en": "USA"
+  },
+  {
+    "code": "GB",
+    "fa": "انگلستان",
+    "en": "UK"
+  },
+  {
+    "code": "DE",
+    "fa": "آلمان",
+    "en": "Germany"
+  },
+  {
+    "code": "FR",
+    "fa": "فرانسه",
+    "en": "France"
+  },
+  {
+    "code": "NL",
+    "fa": "هلند",
+    "en": "Netherlands"
+  },
+  {
+    "code": "CA",
+    "fa": "کانادا",
+    "en": "Canada"
+  },
+  {
+    "code": "AU",
+    "fa": "استرالیا",
+    "en": "Australia"
+  },
+  {
+    "code": "JP",
+    "fa": "ژاپن",
+    "en": "Japan"
+  },
+  {
+    "code": "KR",
+    "fa": "کره جنوبی",
+    "en": "South Korea"
+  },
+  {
+    "code": "SG",
+    "fa": "سنگاپور",
+    "en": "Singapore"
+  },
+  {
+    "code": "AE",
+    "fa": "امارات",
+    "en": "UAE"
+  },
+  {
+    "code": "TR",
+    "fa": "ترکیه",
+    "en": "Turkey"
+  },
+  {
+    "code": "RU",
+    "fa": "روسیه",
+    "en": "Russia"
+  },
+  {
+    "code": "SE",
+    "fa": "سوئد",
+    "en": "Sweden"
+  },
+  {
+    "code": "CH",
+    "fa": "سوئیس",
+    "en": "Switzerland"
+  },
+  {
+    "code": "IT",
+    "fa": "ایتالیا",
+    "en": "Italy"
+  },
+  {
+    "code": "ES",
+    "fa": "اسپانیا",
+    "en": "Spain"
+  },
+  {
+    "code": "PL",
+    "fa": "لهستان",
+    "en": "Poland"
+  },
+  {
+    "code": "FI",
+    "fa": "فنلاند",
+    "en": "Finland"
+  }
+]
