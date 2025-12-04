@@ -2,7 +2,7 @@ let countries = [];
 let currentConfig = null;
 let currentType = null;
 let authToken = localStorage.getItem('authToken');
-let currentUser = null;
+let currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
 let pendingTelegramId = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -139,6 +139,7 @@ async function verifyCode() {
             authToken = data.token;
             currentUser = data.user;
             localStorage.setItem('authToken', authToken);
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
             updateAuthUI(true);
             closeAuthModal();
             showToast(data.user.isNewUser ? 'ثبت نام موفق! خوش آمدید' : 'ورود موفق! خوش آمدید', 'success');
