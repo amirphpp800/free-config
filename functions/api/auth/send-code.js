@@ -25,13 +25,34 @@ export async function onRequestPost(context) {
     
     try {
         const body = await request.json();
-        const { telegramId } = body;
+        const { telegramId, isAdminPanel } = body;
         
         if (!telegramId || !/^\d{5,15}$/.test(telegramId)) {
             return Response.json({ 
                 success: false, 
                 error: 'آیدی عددی تلگرام نامعتبر است' 
             }, { status: 400 });
+        }
+        
+        // اگر درخواست از پنل ادمین است، باید بررسی کنیم کاربر ادمین باشد
+        if (isAdminPanel) {
+            const userKey = `user:${telegramId}`;
+            const userDataStr = await env.DB.get(userKey);
+            
+            if (!userDataStr) {
+                return Response.json({ 
+                    success: false, 
+                    error: 'شما دسترسی به پنل مدیریت ندارید' 
+                }, { status: 403 });
+            }
+            
+            const user = JSON.parse(userDataStr);
+            if (!user.isAdmin) {
+                return Response.json({ 
+                    success: false, 
+                    error: 'شما دسترسی به پنل مدیریت ندارید' 
+                }, { status: 403 });
+            }
         }
         
         const code = generateVerifyCode();
