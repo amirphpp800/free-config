@@ -11,6 +11,7 @@ class AdminPanel {
         this.cacheElements();
         this.bindEvents();
         await this.loadSystemStatus();
+        await this.loadUsers();
         await this.loadCountries();
         await this.loadAnnouncements();
     }
@@ -53,6 +54,8 @@ class AdminPanel {
         this.toastIcon = document.getElementById('toast-icon');
         this.toastMessage = document.getElementById('toast-message');
         this.editModal = document.getElementById('edit-country-modal');
+        this.usersList = document.getElementById('users-list');
+        this.totalUsersCount = document.getElementById('total-users-count');
     }
 
     bindEvents() {
@@ -620,6 +623,68 @@ class AdminPanel {
         } catch (error) {
             this.showToast('error', error.message);
         }
+    }
+
+    async loadUsers() {
+        const adminToken = localStorage.getItem('admin_token');
+        if (!adminToken) return;
+
+        try {
+            const response = await fetch('/api/admin/users', {
+                headers: {
+                    'Authorization': `Bearer ${adminToken}`
+                }
+            });
+
+            const data = await response.json();
+            if (response.ok) {
+                this.renderUsers(data.users || []);
+            }
+        } catch (error) {
+            console.error('Error loading users:', error);
+        }
+    }
+
+    renderUsers(users) {
+        if (!this.usersList || !this.totalUsersCount) return;
+
+        this.totalUsersCount.textContent = users.length;
+
+        if (users.length === 0) {
+            this.usersList.innerHTML = '<p style="color: var(--text-secondary); padding: 8px;">هیچ کاربری ثبت نشده است</p>';
+            return;
+        }
+
+        const html = users.map((user, index) => {
+            const date = new Date(user.lastActivity || user.createdAt);
+            const formattedDate = new Intl.DateTimeFormat('fa-IR', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            }).format(date);
+
+            return `
+                <div class="country-item">
+                    <div class="country-info">
+                        <div style="background: var(--accent); color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold;">
+                            ${index + 1}
+                        </div>
+                        <div>
+                            <div class="location-name">کاربر ${user.telegramId}</div>
+                            <div class="location-city">آخرین فعالیت: ${formattedDate}</div>
+                        </div>
+                    </div>
+                    <div style="text-align: left;">
+                        <div style="font-size: 12px; color: var(--text-secondary);">WireGuard: ${user.wireguardUsed || 0}/3</div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">DNS: ${user.dnsUsed || 0}/3</div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        this.usersList.innerHTML = html;
     }
 
     handleLogout() {
