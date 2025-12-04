@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>پنل مدیریت - WireGuard & DNS</title>
+    <title>پنل مدیریت - ROOTLeaker</title>
+    <link rel="icon" type="image/jpeg" href="/images/logo.jpg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -43,8 +44,8 @@
         
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
             margin-bottom: 40px;
         }
         
@@ -52,32 +53,32 @@
             background: var(--card-bg);
             border: 1px solid var(--border);
             border-radius: var(--radius-lg);
-            padding: 24px;
+            padding: 20px;
             display: flex;
             align-items: center;
-            gap: 20px;
+            gap: 16px;
         }
         
         .stat-icon {
-            width: 56px;
-            height: 56px;
+            width: 48px;
+            height: 48px;
             background: var(--secondary);
             border-radius: var(--radius);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 22px;
+            font-size: 20px;
             color: white;
         }
         
         .stat-info h3 {
-            font-size: 28px;
+            font-size: 24px;
             font-weight: 800;
             color: var(--text-primary);
         }
         
         .stat-info p {
-            font-size: 14px;
+            font-size: 13px;
             color: var(--text-secondary);
         }
         
@@ -101,6 +102,7 @@
             display: flex;
             align-items: center;
             gap: 8px;
+            transition: all 0.3s ease;
         }
         
         .admin-tab:hover {
@@ -145,13 +147,13 @@
         
         .data-table th,
         .data-table td {
-            padding: 16px;
+            padding: 14px;
             text-align: right;
             border-bottom: 1px solid var(--border);
         }
         
         .data-table th {
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 600;
             color: var(--text-secondary);
             text-transform: uppercase;
@@ -166,7 +168,7 @@
             color: #000;
             padding: 4px 10px;
             border-radius: 6px;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 600;
         }
         
@@ -175,7 +177,7 @@
             color: white;
             padding: 4px 10px;
             border-radius: 6px;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 600;
         }
         
@@ -185,14 +187,15 @@
         }
         
         .action-btn {
-            width: 36px;
-            height: 36px;
+            width: 34px;
+            height: 34px;
             border: none;
             border-radius: 8px;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
+            transition: all 0.3s ease;
         }
         
         .action-btn.edit {
@@ -205,8 +208,13 @@
             color: #ef4444;
         }
         
+        .action-btn.view {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+        }
+        
         .action-btn:hover {
-            opacity: 0.8;
+            transform: scale(1.1);
         }
         
         .settings-form {
@@ -246,7 +254,7 @@
         }
         
         .form-group textarea {
-            min-height: 120px;
+            min-height: 100px;
             resize: vertical;
         }
         
@@ -267,6 +275,7 @@
             border-radius: 14px;
             position: relative;
             cursor: pointer;
+            transition: all 0.3s ease;
         }
         
         .toggle-switch label::after {
@@ -278,6 +287,7 @@
             height: 20px;
             background: white;
             border-radius: 50%;
+            transition: all 0.3s ease;
         }
         
         .toggle-switch input:checked + label {
@@ -311,6 +321,12 @@
             background: var(--primary);
             border-radius: var(--radius);
             margin-bottom: 12px;
+            transition: all 0.3s ease;
+        }
+        
+        .country-item:hover {
+            border-color: var(--secondary);
+            transform: translateX(-4px);
         }
         
         .country-item img {
@@ -336,13 +352,14 @@
         
         .add-form {
             background: var(--primary);
-            padding: 20px;
+            padding: 24px;
             border-radius: var(--radius);
             margin-bottom: 24px;
+            border: 1px solid var(--border);
         }
         
         .add-form h3 {
-            margin-bottom: 16px;
+            margin-bottom: 20px;
             font-size: 16px;
             display: flex;
             align-items: center;
@@ -358,6 +375,23 @@
             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
             gap: 16px;
             margin-bottom: 16px;
+        }
+        
+        .form-section {
+            background: rgba(224, 47, 58, 0.05);
+            border: 1px solid rgba(224, 47, 58, 0.2);
+            border-radius: var(--radius);
+            padding: 16px;
+            margin-top: 16px;
+        }
+        
+        .form-section h4 {
+            font-size: 14px;
+            color: var(--secondary);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
         
         .login-container {
@@ -389,16 +423,48 @@
         }
         
         .login-icon {
-            width: 80px;
-            height: 80px;
-            background: var(--secondary);
-            border-radius: 50%;
+            width: 100px;
+            height: 100px;
+            border-radius: var(--radius-lg);
             display: flex;
             align-items: center;
             justify-content: center;
             margin: 0 auto 24px;
-            font-size: 32px;
-            color: white;
+            overflow: hidden;
+        }
+        
+        .login-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .header .logo-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .modal-overlay.active {
+            display: flex;
+        }
+        
+        .address-modal {
+            max-width: 600px;
         }
         
         @media (max-width: 768px) {
@@ -410,6 +476,10 @@
             .form-row {
                 grid-template-columns: 1fr;
             }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
         }
     </style>
 </head>
@@ -418,7 +488,7 @@
         <div id="login-page" class="login-container">
             <div class="login-box">
                 <div class="login-icon">
-                    <i class="fas fa-shield-halved"></i>
+                    <img src="/images/logo.jpg" alt="ROOTLeaker">
                 </div>
                 <h2>پنل مدیریت</h2>
                 <p>برای ورود به پنل مدیریت، آیدی عددی تلگرام خود را وارد کنید</p>
@@ -452,24 +522,26 @@
         <div id="admin-page" class="hidden">
             <header class="header">
                 <div class="container">
-                    <div class="logo">
-                        <div class="logo-icon">
-                            <i class="fas fa-shield-halved"></i>
+                    <div class="header-content">
+                        <a href="/" class="logo">
+                            <div class="logo-icon">
+                                <img src="/images/logo.jpg" alt="ROOTLeaker">
+                            </div>
+                            <div class="logo-text">
+                                <h1>ROOTLeaker</h1>
+                                <span>پنل مدیریت</span>
+                            </div>
+                        </a>
+                        <div class="header-actions">
+                            <button class="btn btn-outline" onclick="window.location.href='/'">
+                                <i class="fas fa-arrow-right"></i>
+                                بازگشت به سایت
+                            </button>
+                            <button class="btn btn-danger btn-sm" onclick="adminLogout()">
+                                <i class="fas fa-sign-out-alt"></i>
+                                خروج
+                            </button>
                         </div>
-                        <div class="logo-text">
-                            <h1>WireGuard & DNS</h1>
-                            <span>پنل مدیریت</span>
-                        </div>
-                    </div>
-                    <div class="header-right">
-                        <button class="btn btn-outline" onclick="window.location.href='/'">
-                            <i class="fas fa-arrow-right"></i>
-                            بازگشت به سایت
-                        </button>
-                        <button class="btn btn-danger btn-sm" onclick="adminLogout()">
-                            <i class="fas fa-sign-out-alt"></i>
-                            خروج
-                        </button>
                     </div>
                 </div>
             </header>
@@ -508,21 +580,21 @@
                         <div class="stat-icon"><i class="fas fa-file-code"></i></div>
                         <div class="stat-info">
                             <h3 id="stat-configs">-</h3>
-                            <p>کانفیگ ساخته شده</p>
+                            <p>کانفیگ‌ها</p>
                         </div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-icon"><i class="fas fa-database"></i></div>
                         <div class="stat-info">
                             <h3 id="stat-kv"><i class="fas fa-spinner fa-spin"></i></h3>
-                            <p>وضعیت KV</p>
+                            <p>دیتابیس</p>
                         </div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-icon"><i class="fab fa-telegram"></i></div>
                         <div class="stat-info">
                             <h3 id="stat-bot"><i class="fas fa-spinner fa-spin"></i></h3>
-                            <p>وضعیت Bot Token</p>
+                            <p>ربات</p>
                         </div>
                     </div>
                 </div>
@@ -547,10 +619,10 @@
                 </div>
 
                 <div id="countries-section" class="admin-section active">
-                    <h2><i class="fas fa-flag"></i> مدیریت کشورها</h2>
+                    <h2><i class="fas fa-flag"></i> مدیریت کشورها و آدرس‌ها</h2>
                     
                     <div class="add-form">
-                        <h3><i class="fas fa-plus"></i> افزودن کشور جدید</h3>
+                        <h3><i class="fas fa-plus"></i> افزودن / ویرایش کشور</h3>
                         <div class="form-row">
                             <div class="form-group">
                                 <label>کد کشور (مثال: IR)</label>
@@ -565,9 +637,48 @@
                                 <input type="text" id="new-country-en" placeholder="Iran">
                             </div>
                         </div>
-                        <button class="btn btn-primary" onclick="addCountry()">
-                            <i class="fas fa-plus"></i>
-                            افزودن کشور
+                        
+                        <div class="form-section">
+                            <h4><i class="fas fa-network-wired"></i> آدرس‌های WireGuard</h4>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>آدرس‌های IPv4 (هر خط یک آدرس)</label>
+                                    <textarea id="new-country-ipv4" placeholder="10.0.0.1/32&#10;10.0.0.2/32"></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label>آدرس‌های IPv6 (هر خط یک آدرس)</label>
+                                    <textarea id="new-country-ipv6" placeholder="fd00::1/128&#10;fd00::2/128"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-section">
+                            <h4><i class="fas fa-globe"></i> آدرس‌های DNS</h4>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>DNS اصلی IPv4</label>
+                                    <input type="text" id="new-dns-ipv4-primary" placeholder="1.1.1.1">
+                                </div>
+                                <div class="form-group">
+                                    <label>DNS ثانویه IPv4</label>
+                                    <input type="text" id="new-dns-ipv4-secondary" placeholder="8.8.8.8">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>DNS اصلی IPv6</label>
+                                    <input type="text" id="new-dns-ipv6-primary" placeholder="2606:4700:4700::1111">
+                                </div>
+                                <div class="form-group">
+                                    <label>DNS ثانویه IPv6</label>
+                                    <input type="text" id="new-dns-ipv6-secondary" placeholder="2001:4860:4860::8888">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button class="btn btn-primary" onclick="addCountry()" style="margin-top: 16px;">
+                            <i class="fas fa-save"></i>
+                            ذخیره کشور
                         </button>
                     </div>
                     
@@ -632,6 +743,27 @@
                             ارسال به همه کاربران
                         </button>
                     </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-overlay" id="address-modal">
+            <div class="modal address-modal">
+                <div class="modal-header">
+                    <h3><i class="fas fa-network-wired"></i> آدرس‌های <span id="modal-country-name"></span></h3>
+                    <button class="modal-close" onclick="closeAddressModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-section">
+                        <h4><i class="fas fa-server"></i> آدرس‌های WireGuard</h4>
+                        <div id="modal-addresses"></div>
+                    </div>
+                    <div class="form-section">
+                        <h4><i class="fas fa-globe"></i> آدرس‌های DNS</h4>
+                        <div id="modal-dns"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -793,22 +925,16 @@
                     const kvStatus = document.getElementById('stat-kv');
                     const botStatus = document.getElementById('stat-bot');
                     
-                    if (data.stats.kvConnected) {
-                        kvStatus.innerHTML = '<i class="fas fa-check-circle" style="color: var(--success);"></i>';
-                    } else {
-                        kvStatus.innerHTML = '<i class="fas fa-times-circle" style="color: var(--danger);"></i>';
-                    }
+                    kvStatus.innerHTML = data.stats.kvConnected 
+                        ? '<i class="fas fa-check-circle" style="color: var(--success);"></i>'
+                        : '<i class="fas fa-times-circle" style="color: var(--danger);"></i>';
                     
-                    if (data.stats.botTokenConfigured) {
-                        botStatus.innerHTML = '<i class="fas fa-check-circle" style="color: var(--success);"></i>';
-                    } else {
-                        botStatus.innerHTML = '<i class="fas fa-times-circle" style="color: var(--danger);"></i>';
-                    }
+                    botStatus.innerHTML = data.stats.botTokenConfigured 
+                        ? '<i class="fas fa-check-circle" style="color: var(--success);"></i>'
+                        : '<i class="fas fa-times-circle" style="color: var(--danger);"></i>';
                 }
             } catch (error) {
                 console.error('Error loading stats:', error);
-                document.getElementById('stat-kv').innerHTML = '<i class="fas fa-exclamation-circle" style="color: var(--warning);"></i>';
-                document.getElementById('stat-bot').innerHTML = '<i class="fas fa-exclamation-circle" style="color: var(--warning);"></i>';
             }
         }
 
@@ -834,7 +960,13 @@
                                 <span>${country.en} (${country.code})</span>
                             </div>
                             <div class="action-btns">
-                                <button class="action-btn delete" onclick="deleteCountry('${country.code}')">
+                                <button class="action-btn view" onclick="viewCountryAddresses('${country.code}', '${country.fa}')" title="مشاهده آدرس‌ها">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="action-btn edit" onclick="editCountry('${country.code}')" title="ویرایش">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="action-btn delete" onclick="deleteCountry('${country.code}')" title="حذف">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </div>
@@ -842,10 +974,118 @@
                         container.appendChild(item);
                     });
                 } else {
-                    container.innerHTML = '<div class="empty-state"><i class="fas fa-flag"></i><p>کشوری یافت نشد</p></div>';
+                    container.innerHTML = '<div class="empty-state"><i class="fas fa-flag"></i><p>کشوری اضافه نشده است</p></div>';
                 }
             } catch (error) {
                 console.error('Error loading countries:', error);
+            }
+        }
+
+        async function viewCountryAddresses(code, name) {
+            showLoading();
+            try {
+                const response = await fetch(`/api/admin/country/${code}/addresses`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                const data = await response.json();
+                
+                document.getElementById('modal-country-name').textContent = name;
+                
+                const addressesDiv = document.getElementById('modal-addresses');
+                const dnsDiv = document.getElementById('modal-dns');
+                
+                if (data.success) {
+                    let addressesHtml = '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">';
+                    addressesHtml += '<div><strong style="color: var(--secondary);">IPv4:</strong><br>';
+                    if (data.addresses.ipv4 && data.addresses.ipv4.length > 0) {
+                        addressesHtml += data.addresses.ipv4.map(a => `<code style="display: block; padding: 4px; background: var(--primary); border-radius: 4px; margin: 4px 0; font-size: 12px;">${a}</code>`).join('');
+                    } else {
+                        addressesHtml += '<span style="color: var(--text-muted);">تعریف نشده</span>';
+                    }
+                    addressesHtml += '</div>';
+                    
+                    addressesHtml += '<div><strong style="color: var(--secondary);">IPv6:</strong><br>';
+                    if (data.addresses.ipv6 && data.addresses.ipv6.length > 0) {
+                        addressesHtml += data.addresses.ipv6.map(a => `<code style="display: block; padding: 4px; background: var(--primary); border-radius: 4px; margin: 4px 0; font-size: 12px;">${a}</code>`).join('');
+                    } else {
+                        addressesHtml += '<span style="color: var(--text-muted);">تعریف نشده</span>';
+                    }
+                    addressesHtml += '</div></div>';
+                    addressesDiv.innerHTML = addressesHtml;
+                    
+                    let dnsHtml = '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">';
+                    dnsHtml += '<div><strong style="color: var(--secondary);">IPv4:</strong><br>';
+                    if (data.dns.ipv4) {
+                        dnsHtml += `<span>اصلی: <code>${data.dns.ipv4.primary || '-'}</code></span><br>`;
+                        dnsHtml += `<span>ثانویه: <code>${data.dns.ipv4.secondary || '-'}</code></span>`;
+                    } else {
+                        dnsHtml += '<span style="color: var(--text-muted);">تعریف نشده</span>';
+                    }
+                    dnsHtml += '</div>';
+                    
+                    dnsHtml += '<div><strong style="color: var(--secondary);">IPv6:</strong><br>';
+                    if (data.dns.ipv6) {
+                        dnsHtml += `<span>اصلی: <code>${data.dns.ipv6.primary || '-'}</code></span><br>`;
+                        dnsHtml += `<span>ثانویه: <code>${data.dns.ipv6.secondary || '-'}</code></span>`;
+                    } else {
+                        dnsHtml += '<span style="color: var(--text-muted);">تعریف نشده</span>';
+                    }
+                    dnsHtml += '</div></div>';
+                    dnsDiv.innerHTML = dnsHtml;
+                }
+                
+                document.getElementById('address-modal').classList.add('active');
+            } catch (error) {
+                showToast('خطا در دریافت آدرس‌ها', 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function closeAddressModal() {
+            document.getElementById('address-modal').classList.remove('active');
+        }
+
+        async function editCountry(code) {
+            showLoading();
+            try {
+                const response = await fetch(`/api/admin/country/${code}/addresses`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                const data = await response.json();
+                
+                const countriesResponse = await fetch('/api/admin/countries', {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                const countriesData = await countriesResponse.json();
+                const country = countriesData.countries.find(c => c.code === code);
+                
+                if (country) {
+                    document.getElementById('new-country-code').value = country.code;
+                    document.getElementById('new-country-fa').value = country.fa;
+                    document.getElementById('new-country-en').value = country.en;
+                }
+                
+                if (data.success) {
+                    document.getElementById('new-country-ipv4').value = (data.addresses.ipv4 || []).join('\n');
+                    document.getElementById('new-country-ipv6').value = (data.addresses.ipv6 || []).join('\n');
+                    
+                    if (data.dns.ipv4) {
+                        document.getElementById('new-dns-ipv4-primary').value = data.dns.ipv4.primary || '';
+                        document.getElementById('new-dns-ipv4-secondary').value = data.dns.ipv4.secondary || '';
+                    }
+                    if (data.dns.ipv6) {
+                        document.getElementById('new-dns-ipv6-primary').value = data.dns.ipv6.primary || '';
+                        document.getElementById('new-dns-ipv6-secondary').value = data.dns.ipv6.secondary || '';
+                    }
+                }
+                
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                showToast('اطلاعات بارگذاری شد. ویرایش کنید و ذخیره نمایید', 'success');
+            } catch (error) {
+                showToast('خطا در بارگذاری اطلاعات', 'error');
+            } finally {
+                hideLoading();
             }
         }
 
@@ -853,9 +1093,15 @@
             const code = document.getElementById('new-country-code').value.trim().toUpperCase();
             const fa = document.getElementById('new-country-fa').value.trim();
             const en = document.getElementById('new-country-en').value.trim();
+            const ipv4Addresses = document.getElementById('new-country-ipv4').value.trim();
+            const ipv6Addresses = document.getElementById('new-country-ipv6').value.trim();
+            const dnsIpv4Primary = document.getElementById('new-dns-ipv4-primary').value.trim();
+            const dnsIpv4Secondary = document.getElementById('new-dns-ipv4-secondary').value.trim();
+            const dnsIpv6Primary = document.getElementById('new-dns-ipv6-primary').value.trim();
+            const dnsIpv6Secondary = document.getElementById('new-dns-ipv6-secondary').value.trim();
             
             if (!code || !fa || !en) {
-                showToast('لطفا همه فیلدها را پر کنید', 'error');
+                showToast('کد کشور، نام فارسی و انگلیسی الزامی است', 'error');
                 return;
             }
             
@@ -873,16 +1119,29 @@
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${authToken}`
                     },
-                    body: JSON.stringify({ code, fa, en })
+                    body: JSON.stringify({ 
+                        code, fa, en, 
+                        ipv4Addresses, ipv6Addresses,
+                        dnsIpv4Primary, dnsIpv4Secondary,
+                        dnsIpv6Primary, dnsIpv6Secondary
+                    })
                 });
                 
                 const data = await response.json();
                 
                 if (data.success) {
-                    showToast('کشور اضافه شد', 'success');
+                    showToast('کشور ذخیره شد', 'success');
+                    
                     document.getElementById('new-country-code').value = '';
                     document.getElementById('new-country-fa').value = '';
                     document.getElementById('new-country-en').value = '';
+                    document.getElementById('new-country-ipv4').value = '';
+                    document.getElementById('new-country-ipv6').value = '';
+                    document.getElementById('new-dns-ipv4-primary').value = '';
+                    document.getElementById('new-dns-ipv4-secondary').value = '';
+                    document.getElementById('new-dns-ipv6-primary').value = '';
+                    document.getElementById('new-dns-ipv6-secondary').value = '';
+                    
                     await loadCountries();
                     await loadStats();
                 } else {
@@ -952,10 +1211,10 @@
                             <td>${badges || '-'}</td>
                             <td>
                                 <div class="action-btns">
-                                    <button class="action-btn edit" onclick="toggleVip('${user.telegramId}', ${user.isVip})">
+                                    <button class="action-btn edit" onclick="toggleVip('${user.telegramId}', ${user.isVip})" title="${user.isVip ? 'حذف VIP' : 'افزودن VIP'}">
                                         <i class="fas fa-crown"></i>
                                     </button>
-                                    <button class="action-btn delete" onclick="deleteUser('${user.telegramId}')">
+                                    <button class="action-btn delete" onclick="deleteUser('${user.telegramId}')" title="حذف کاربر">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </div>
@@ -964,7 +1223,7 @@
                         tbody.appendChild(tr);
                     });
                 } else {
-                    tbody.innerHTML = '<tr><td colspan="5" class="empty-state"><i class="fas fa-users-slash"></i><p>کاربری یافت نشد</p></td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px; color: var(--text-muted);">کاربری یافت نشد</td></tr>';
                 }
             } catch (error) {
                 console.error('Error loading users:', error);
@@ -998,8 +1257,6 @@
         }
 
         async function toggleVip(telegramId, currentVip) {
-            const newVip = !currentVip;
-            
             showLoading();
             try {
                 const response = await fetch('/api/admin/user/update', {
@@ -1008,12 +1265,12 @@
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${authToken}`
                     },
-                    body: JSON.stringify({ telegramId, isVip: newVip })
+                    body: JSON.stringify({ telegramId, isVip: !currentVip })
                 });
                 
                 const data = await response.json();
                 if (data.success) {
-                    showToast(`کاربر ${newVip ? 'VIP شد' : 'از VIP خارج شد'}`, 'success');
+                    showToast(`کاربر ${!currentVip ? 'VIP شد' : 'از VIP خارج شد'}`, 'success');
                     await loadUsers();
                     await loadStats();
                 } else {
@@ -1058,11 +1315,6 @@
         async function saveSettings(e) {
             e.preventDefault();
             
-            const channelId = document.getElementById('channel-id').value;
-            const channelUsername = document.getElementById('channel-username').value;
-            const websiteUrl = document.getElementById('website-url').value;
-            const maintenanceMode = document.getElementById('maintenance-mode').checked;
-            
             showLoading();
             try {
                 const response = await fetch('/api/admin/settings/update', {
@@ -1071,7 +1323,12 @@
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${authToken}`
                     },
-                    body: JSON.stringify({ channelId, channelUsername, websiteUrl, maintenanceMode })
+                    body: JSON.stringify({
+                        channelId: document.getElementById('channel-id').value,
+                        channelUsername: document.getElementById('channel-username').value,
+                        websiteUrl: document.getElementById('website-url').value,
+                        maintenanceMode: document.getElementById('maintenance-mode').checked
+                    })
                 });
                 
                 const data = await response.json();
@@ -1143,11 +1400,12 @@
             const toast = document.getElementById('toast');
             toast.textContent = message;
             toast.className = `toast ${type} active`;
-            
-            setTimeout(() => {
-                toast.classList.remove('active');
-            }, 3000);
+            setTimeout(() => toast.classList.remove('active'), 3000);
         }
+
+        document.getElementById('address-modal')?.addEventListener('click', (e) => {
+            if (e.target.id === 'address-modal') closeAddressModal();
+        });
     </script>
 </body>
 </html>
