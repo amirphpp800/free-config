@@ -217,15 +217,17 @@ app.post('/api/auth/verify', async (req, res) => {
             user = {
                 telegramId,
                 createdAt: Date.now(),
-                isAdmin: telegramId === env.ADMIN_ID, // Set isAdmin based on ADMIN_ID
+                isAdmin: telegramId === env.ADMIN_ID,
                 isVip: false,
                 configCount: 0
             };
             await KV.put(`user:${telegramId}`, JSON.stringify(user));
 
             const usersList = await KV.get('users:list', 'json') || [];
-            usersList.push(telegramId);
-            await KV.put('users:list', JSON.stringify(usersList));
+            if (!usersList.includes(telegramId)) {
+                usersList.push(telegramId);
+                await KV.put('users:list', JSON.stringify(usersList));
+            }
         } else {
             // Ensure admin status is correctly reflected for existing users
             if (telegramId === env.ADMIN_ID && !user.isAdmin) {
