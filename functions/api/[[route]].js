@@ -212,6 +212,34 @@ export async function onRequest(context) {
             return await handleGetUserHistory(request, env);
         }
 
+        if (path === '/api/profile' && request.method === 'GET') {
+            return await handleGetProfile(request, env);
+        }
+
+        if (path === '/api/auth/check-password' && request.method === 'POST') {
+            return await handleCheckPassword(request, env);
+        }
+
+        if (path === '/api/auth/login' && request.method === 'POST') {
+            return await handleLoginWithPassword(request, env);
+        }
+
+        if (path === '/api/profile/set-password' && request.method === 'POST') {
+            return await handleSetPassword(request, env);
+        }
+
+        if (path === '/api/profile/change-password' && request.method === 'POST') {
+            return await handleChangePassword(request, env);
+        }
+
+        if (path === '/api/auth/forgot-password' && request.method === 'POST') {
+            return await handleForgotPassword(request, env);
+        }
+
+        if (path === '/api/auth/reset-password' && request.method === 'POST') {
+            return await handleResetPassword(request, env);
+        }
+
         return errorResponse('Not Found', 404);
 
     } catch (error) {
@@ -1111,5 +1139,341 @@ async function handleGetUserHistory(request, env) {
         success: true,
         history,
         isAdmin: userIsAdmin
+    });
+}
+
+async function getUser(env, telegramId) {
+    const userData = await env.DB.get(`user:${telegramId}`);
+    return userData ? JSON.parse(userData) : null;
+}
+
+async function saveUser(env, user) {
+    await env.DB.put(`user:${user.telegramId}`, JSON.stringify(user));
+    
+    const usersIndexData = await env.DB.get('users:index');
+    let usersIndex = usersIndexData ? JSON.parse(usersIndexData) : [];
+    if (!usersIndex.includes(user.telegramId)) {
+        usersIndex.push(user.telegramId);
+        await env.DB.put('users:index', JSON.stringify(usersIndex));
+    }
+}
+
+async function hashPassword(password) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(password);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function verifyPassword(password, hash) {
+    const testHash = await hashPassword(password);
+    return testHash === hash;
+}
+
+async function handleGetProfile(request, env) {
+    const token = request.headers.get('Authorization')?.replace('Bearer ', '');
+    const session = await getSession(env, token);
+
+    if (!session) {
+        return errorResponse('احراز هویت نشده', 401);
+    }
+
+    const user = await getUser(env, session.telegramId);
+    const userIsAdmin = isAdmin(session.telegramId, env);
+    const limits = await getUserLimits(env, session.telegramId);
+
+    return jsonResponse({
+        telegramId: session.telegramId,
+        hasPassword: user?.hasPassword || false,
+        isAdmin: userIsAdmin,
+        createdAt: user?.createdAt,
+        lastLoginAt: user?.lastLoginAt,
+        limits: {
+            wireguardRemaining: userIsAdmin ? -1 : Math.max(0, 3 - (limits.wireguard || 0)),
+            dnsRemaining: userIsAdmin ? -1 : Math.max(0, 3 - (limits.dns || 0)),
+            wireguardUsed: limits.wireguard || 0,
+            dnsUsed: limits.dns || 0
+        }
+    });
+}
+
+async function handleCheckPassword(request, env) {
+    const body = await request.json();
+    const { telegramId } = body;
+
+    if (!telegramId || !/^\d{5,15}$/.test(telegramId)) {
+        return errorResponse('شناسه تلگرام نامعتبر است');
+    }
+
+    const user = await getUser(env, telegramId);
+    
+    return jsonResponse({
+        exists: !!user,
+        hasPassword: user?.hasPassword || false
+    });
+}
+
+async function handleLoginWithPassword(request, env) {
+    const body = await request.json();
+    const { telegramId, password } = body;
+
+    if (!telegramId || !password) {
+        return errorResponse('شناسه و رمز عبور الزامی است');
+    }
+
+    const rateLimitKey = `password_rl:${telegramId}`;
+    const rateLimit = await env.DB.get(rateLimitKey);
+    if (rateLimit) {
+        const data = JSON.parse(rateLimit);
+        if (data.count >= 5 && Date.now() < data.resetAt) {
+            return errorResponse('تعداد تلاش‌های ناموفق زیاد است. لطفا 15 دقیقه صبر کنید.', 429);
+        }
+    }
+
+    const user = await getUser(env, telegramId);
+    
+    if (!user || !user.hasPassword) {
+        return errorResponse('این حساب رمز عبور ندارد. با کد تایید وارد شوید.');
+    }
+
+    const isValid = await verifyPassword(password, user.passwordHash);
+
+    if (!isValid) {
+        const existing = await env.DB.get(rateLimitKey);
+        let count = 1;
+        if (existing) {
+            const data = JSON.parse(existing);
+            if (Date.now() < data.resetAt) {
+                count = data.count + 1;
+            }
+        }
+        await env.DB.put(rateLimitKey, JSON.stringify({ count, resetAt: Date.now() + (15 * 60 * 1000) }), { expirationTtl: 900 });
+        return errorResponse('رمز عبور اشتباه است');
+    }
+
+    await env.DB.delete(rateLimitKey);
+
+    user.lastLoginAt = Date.now();
+    user.updatedAt = Date.now();
+    await saveUser(env, user);
+
+    const sessionToken = crypto.randomUUID();
+    const sessionData = {
+        telegramId,
+        createdAt: Date.now(),
+        expiresAt: Date.now() + (24 * 60 * 60 * 1000)
+    };
+
+    await env.DB.put(`session:${sessionToken}`, JSON.stringify(sessionData), { expirationTtl: 86400 });
+
+    return jsonResponse({
+        success: true,
+        token: sessionToken,
+        telegramId,
+        hasPassword: true,
+        createdAt: sessionData.createdAt
+    });
+}
+
+async function handleSetPassword(request, env) {
+    const token = request.headers.get('Authorization')?.replace('Bearer ', '');
+    const session = await getSession(env, token);
+
+    if (!session) {
+        return errorResponse('احراز هویت نشده', 401);
+    }
+
+    const body = await request.json();
+    const { password } = body;
+
+    if (!password || password.length < 4) {
+        return errorResponse('رمز عبور باید حداقل ۴ کاراکتر باشد');
+    }
+
+    const passwordHash = await hashPassword(password);
+    
+    const user = await getUser(env, session.telegramId);
+    if (!user) {
+        return errorResponse('کاربر یافت نشد');
+    }
+
+    user.hasPassword = true;
+    user.passwordHash = passwordHash;
+    user.passwordSetAt = Date.now();
+    user.updatedAt = Date.now();
+    await saveUser(env, user);
+
+    return jsonResponse({ success: true, message: 'رمز عبور با موفقیت تنظیم شد' });
+}
+
+async function handleChangePassword(request, env) {
+    const token = request.headers.get('Authorization')?.replace('Bearer ', '');
+    const session = await getSession(env, token);
+
+    if (!session) {
+        return errorResponse('احراز هویت نشده', 401);
+    }
+
+    const body = await request.json();
+    const { currentPassword, newPassword } = body;
+
+    if (!newPassword || newPassword.length < 4) {
+        return errorResponse('رمز عبور جدید باید حداقل ۴ کاراکتر باشد');
+    }
+
+    const user = await getUser(env, session.telegramId);
+    if (!user) {
+        return errorResponse('کاربر یافت نشد');
+    }
+
+    if (user.hasPassword && currentPassword) {
+        const isValid = await verifyPassword(currentPassword, user.passwordHash);
+        if (!isValid) {
+            return errorResponse('رمز عبور فعلی اشتباه است');
+        }
+    }
+
+    const passwordHash = await hashPassword(newPassword);
+    
+    user.hasPassword = true;
+    user.passwordHash = passwordHash;
+    user.passwordChangedAt = Date.now();
+    user.updatedAt = Date.now();
+    await saveUser(env, user);
+
+    return jsonResponse({ success: true, message: 'رمز عبور با موفقیت تغییر کرد' });
+}
+
+async function handleForgotPassword(request, env) {
+    const body = await request.json();
+    const { telegramId } = body;
+
+    if (!telegramId || !/^\d{5,15}$/.test(telegramId)) {
+        return errorResponse('شناسه تلگرام نامعتبر است');
+    }
+
+    const user = await getUser(env, telegramId);
+    if (!user) {
+        return errorResponse('حساب کاربری با این شناسه یافت نشد');
+    }
+
+    const rateLimitKey = `forgot_rl:${telegramId}`;
+    const rateLimit = await env.DB.get(rateLimitKey);
+    if (rateLimit) {
+        const data = JSON.parse(rateLimit);
+        if (data.count >= 3 && Date.now() < data.resetAt) {
+            return errorResponse('تعداد درخواست‌های شما زیاد است. لطفا کمی صبر کنید.', 429);
+        }
+    }
+
+    const code = generateCode();
+    const codeHash = await hashCode(code);
+    const expiresAt = Date.now() + (5 * 60 * 1000);
+
+    await env.DB.put(`reset_password:${telegramId}`, JSON.stringify({
+        codeHash,
+        expiresAt,
+        attempts: 0
+    }), { expirationTtl: 300 });
+
+    const existing = await env.DB.get(rateLimitKey);
+    const rateData = { count: 1, resetAt: Date.now() + (60 * 60 * 1000) };
+    if (existing) {
+        const data = JSON.parse(existing);
+        if (Date.now() < data.resetAt) {
+            rateData.count = data.count + 1;
+            rateData.resetAt = data.resetAt;
+        }
+    }
+    await env.DB.put(rateLimitKey, JSON.stringify(rateData), { expirationTtl: 3600 });
+
+    const message = `🔐 <b>بازیابی رمز عبور</b>\n\nکد بازیابی شما: <code>${code}</code>\n\nاین کد 5 دقیقه اعتبار دارد.`;
+
+    if (!env.BOT_TOKEN) {
+        console.log(`[DEV MODE] کد بازیابی برای ${telegramId}: ${code}`);
+        return jsonResponse({
+            success: true,
+            message: 'کد بازیابی ارسال شد (حالت توسعه)',
+            devCode: code
+        });
+    }
+
+    const result = await sendTelegramMessage(env.BOT_TOKEN, telegramId, message);
+
+    if (!result.ok) {
+        return errorResponse('ارسال کد ناموفق بود.');
+    }
+
+    return jsonResponse({ success: true, message: 'کد بازیابی به تلگرام شما ارسال شد' });
+}
+
+async function handleResetPassword(request, env) {
+    const body = await request.json();
+    const { telegramId, code, newPassword } = body;
+
+    if (!telegramId || !code || code.length !== 6 || !newPassword) {
+        return errorResponse('درخواست نامعتبر');
+    }
+
+    if (newPassword.length < 4) {
+        return errorResponse('رمز عبور باید حداقل ۴ کاراکتر باشد');
+    }
+
+    const stored = await env.DB.get(`reset_password:${telegramId}`);
+    if (!stored) {
+        return errorResponse('کد بازیابی منقضی شده یا یافت نشد');
+    }
+
+    const storedData = JSON.parse(stored);
+
+    if (Date.now() > storedData.expiresAt) {
+        await env.DB.delete(`reset_password:${telegramId}`);
+        return errorResponse('کد بازیابی منقضی شده است');
+    }
+
+    if (storedData.attempts >= 3) {
+        await env.DB.delete(`reset_password:${telegramId}`);
+        return errorResponse('تلاش‌های ناموفق زیاد. لطفا کد جدید درخواست کنید.');
+    }
+
+    const submittedHash = await hashCode(code);
+
+    if (submittedHash !== storedData.codeHash) {
+        storedData.attempts += 1;
+        await env.DB.put(`reset_password:${telegramId}`, JSON.stringify(storedData), { 
+            expirationTtl: Math.floor((storedData.expiresAt - Date.now()) / 1000) 
+        });
+        return errorResponse('کد بازیابی اشتباه است');
+    }
+
+    await env.DB.delete(`reset_password:${telegramId}`);
+
+    const user = await getUser(env, telegramId);
+    if (!user) {
+        return errorResponse('کاربر یافت نشد');
+    }
+
+    const passwordHash = await hashPassword(newPassword);
+    user.hasPassword = true;
+    user.passwordHash = passwordHash;
+    user.passwordChangedAt = Date.now();
+    user.updatedAt = Date.now();
+    await saveUser(env, user);
+
+    const sessionToken = crypto.randomUUID();
+    const sessionData = {
+        telegramId,
+        createdAt: Date.now(),
+        expiresAt: Date.now() + (24 * 60 * 60 * 1000)
+    };
+
+    await env.DB.put(`session:${sessionToken}`, JSON.stringify(sessionData), { expirationTtl: 86400 });
+
+    return jsonResponse({
+        success: true,
+        message: 'رمز عبور با موفقیت تغییر کرد',
+        token: sessionToken,
+        telegramId
     });
 }
