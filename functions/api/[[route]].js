@@ -412,17 +412,21 @@ async function handleGenerateConfig(request, env) {
     }
 
     // بررسی وجود آدرس‌ها
+    if (!location.dns) {
+        location.dns = { ipv4: [], ipv6: [] };
+    }
+    
     if (dnsType === 'ipv4') {
-        if (!location.dns || !location.dns.ipv4 || location.dns.ipv4.length === 0) {
-            return errorResponse('این کشور آدرس IPv4 ندارد');
+        if (!location.dns.ipv4 || location.dns.ipv4.length === 0) {
+            return errorResponse('این کشور آدرس IPv4 ندارد. موجودی فعلی: ' + (location.dns.ipv4?.length || 0));
         }
     } else if (dnsType === 'ipv6') {
-        if (!location.dns || !location.dns.ipv6 || location.dns.ipv6.length < 2) {
-            return errorResponse('این کشور آدرس IPv6 کافی ندارد');
+        if (!location.dns.ipv6 || location.dns.ipv6.length < 2) {
+            return errorResponse('این کشور آدرس IPv6 کافی ندارد. موجودی فعلی: ' + (location.dns.ipv6?.length || 0));
         }
     }
 
-    // دریافت آدرس‌ها
+    // دریافت آدرس‌ها و حذف از لیست
     let dnsServers = [];
     if (dnsType === 'ipv4') {
         dnsServers.push(location.dns.ipv4[0]);
@@ -473,6 +477,14 @@ async function handleGenerateConfig(request, env) {
             addressesV6: ["2a0e::1/128", "2a0e::2/128"]
         }
     };
+
+    // لیست DNS های تانل پیشنهادی
+    const tunnelDnsList = [
+        "1.1.1.1", "1.0.0.1", "8.8.8.8", "8.8.4.4", 
+        "9.9.9.9", "10.202.10.10", "78.157.42.100",
+        "208.67.222.222", "208.67.220.220", "185.55.226.26",
+        "185.55.225.25", "185.51.200.2"
+    ];
 
     let interfaceAddress = '';
     if (operator && operatorConfigs[operator]) {
@@ -565,13 +577,17 @@ async function handleGenerateDns(request, env) {
     }
 
     // بررسی وجود آدرس‌ها
+    if (!location.dns) {
+        location.dns = { ipv4: [], ipv6: [] };
+    }
+    
     if (dnsType === 'ipv4') {
-        if (!location.dns || !location.dns.ipv4 || location.dns.ipv4.length === 0) {
-            return errorResponse('این کشور آدرس IPv4 ندارد');
+        if (!location.dns.ipv4 || location.dns.ipv4.length === 0) {
+            return errorResponse('این کشور آدرس IPv4 ندارد. موجودی فعلی: ' + (location.dns.ipv4?.length || 0));
         }
     } else if (dnsType === 'ipv6') {
-        if (!location.dns || !location.dns.ipv6 || location.dns.ipv6.length < 2) {
-            return errorResponse('این کشور آدرس IPv6 کافی ندارد');
+        if (!location.dns.ipv6 || location.dns.ipv6.length < 2) {
+            return errorResponse('این کشور آدرس IPv6 کافی ندارد. موجودی فعلی: ' + (location.dns.ipv6?.length || 0));
         }
     }
 
