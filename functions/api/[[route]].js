@@ -1,4 +1,3 @@
-
 const CORS_HEADERS = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
@@ -31,7 +30,7 @@ async function hashCode(code) {
 
 async function sendTelegramMessage(botToken, chatId, text) {
     const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
-    
+
     const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -47,42 +46,42 @@ async function sendTelegramMessage(botToken, chatId, text) {
 
 async function getSession(env, token) {
     if (!token || !env.DB) return null;
-    
+
     const sessionData = await env.DB.get(`session:${token}`);
     if (!sessionData) return null;
-    
+
     const session = JSON.parse(sessionData);
     if (session.expiresAt < Date.now()) {
         await env.DB.delete(`session:${token}`);
         return null;
     }
-    
+
     return session;
 }
 
 async function getUserLimits(env, telegramId) {
     const today = new Date().toISOString().split('T')[0];
     const key = `limits:${telegramId}:${today}`;
-    
+
     const data = await env.DB.get(key);
     if (!data) {
         return { wireguard: 0, dns: 0 };
     }
-    
+
     return JSON.parse(data);
 }
 
 async function incrementLimit(env, telegramId, type) {
     const today = new Date().toISOString().split('T')[0];
     const key = `limits:${telegramId}:${today}`;
-    
+
     const limits = await getUserLimits(env, telegramId);
     limits[type] = (limits[type] || 0) + 1;
-    
+
     await env.DB.put(key, JSON.stringify(limits), { 
         expirationTtl: 86400 * 2
     });
-    
+
     return limits;
 }
 
@@ -93,38 +92,38 @@ function isAdmin(telegramId, env) {
 async function saveToHistory(env, telegramId, type, data) {
     const historyKey = `history:${telegramId}`;
     let history = [];
-    
+
     const existingData = await env.DB.get(historyKey);
     if (existingData) {
         history = JSON.parse(existingData);
     }
-    
+
     const entry = {
         id: crypto.randomUUID(),
         type,
         data,
         createdAt: Date.now()
     };
-    
+
     history.unshift(entry);
-    
+
     if (history.length > 50) {
         history = history.slice(0, 50);
     }
-    
+
     await env.DB.put(historyKey, JSON.stringify(history));
-    
+
     return entry;
 }
 
 async function getUserHistory(env, telegramId) {
     const historyKey = `history:${telegramId}`;
     const data = await env.DB.get(historyKey);
-    
+
     if (!data) {
         return [];
     }
-    
+
     return JSON.parse(data);
 }
 
@@ -132,7 +131,7 @@ export async function onRequest(context) {
     const { request, env } = context;
     const url = new URL(request.url);
     const path = url.pathname;
-    
+
     if (request.method === 'OPTIONS') {
         return new Response(null, { headers: CORS_HEADERS });
     }
@@ -141,43 +140,43 @@ export async function onRequest(context) {
         if (path === '/api/auth/request' && request.method === 'POST') {
             return await handleAuthRequest(request, env);
         }
-        
+
         if (path === '/api/auth/verify' && request.method === 'POST') {
             return await handleAuthVerify(request, env);
         }
-        
+
         if (path === '/api/admin/auth/request' && request.method === 'POST') {
             return await handleAdminAuthRequest(request, env);
         }
-        
+
         if (path === '/api/admin/auth/verify' && request.method === 'POST') {
             return await handleAdminAuthVerify(request, env);
         }
-        
+
         if (path === '/api/countries' && request.method === 'GET') {
             return await handleGetCountries(request, env);
         }
-        
+
         if (path === '/api/user/limits' && request.method === 'GET') {
             return await handleGetUserLimits(request, env);
         }
-        
+
         if (path === '/api/config/generate' && request.method === 'POST') {
             return await handleGenerateConfig(request, env);
         }
-        
+
         if (path === '/api/dns/generate' && request.method === 'POST') {
             return await handleGenerateDns(request, env);
         }
-        
+
         if (path === '/api/admin/countries' && request.method === 'POST') {
             return await handleAddCountry(request, env);
         }
-        
+
         if (path === '/api/admin/countries' && request.method === 'GET') {
             return await handleGetAllCountries(request, env);
         }
-        
+
         if (path.startsWith('/api/admin/countries/') && request.method === 'DELETE') {
             const countryId = path.split('/').pop();
             return await handleDeleteCountry(request, env, countryId);
@@ -214,7 +213,7 @@ export async function onRequest(context) {
         }
 
         return errorResponse('Not Found', 404);
-        
+
     } catch (error) {
         console.error('API Error:', error);
         return errorResponse('Internal Server Error', 500);
@@ -264,9 +263,9 @@ async function handleAuthRequest(request, env) {
     }
 
     const message = `🔐 <b>کد تایید سرویس گیمینگ</b>\n\nکد تایید شما: <code>${code}</code>\n\nاین کد 5 دقیقه اعتبار دارد.\n\n📢 کانال ما: @ROOTLeaker`;
-    
+
     const botToken = env.BOT_TOKEN;
-    
+
     if (!botToken) {
         console.log(`[DEV MODE] کد تایید برای ${telegramId}: ${code}`);
         return jsonResponse({ 
@@ -275,9 +274,9 @@ async function handleAuthRequest(request, env) {
             devCode: code
         });
     }
-    
+
     const result = await sendTelegramMessage(botToken, telegramId, message);
-    
+
     if (!result.ok) {
         console.error('Telegram API Error:', result);
         return errorResponse('ارسال کد ناموفق بود. ابتدا به ربات @jojo85_robot پیام دهید و دستور /start را ارسال کنید.', 400);
@@ -298,7 +297,7 @@ async function handleAuthVerify(request, env) {
     }
 
     let storedData = null;
-    
+
     if (env.DB) {
         const stored = await env.DB.get(`verification:${telegramId}`);
         if (!stored) {
@@ -320,7 +319,7 @@ async function handleAuthVerify(request, env) {
     }
 
     const submittedHash = await hashCode(code);
-    
+
     if (submittedHash !== storedData.codeHash) {
         storedData.attempts += 1;
         await env.DB.put(`verification:${telegramId}`, JSON.stringify(storedData), { 
@@ -337,7 +336,7 @@ async function handleAuthVerify(request, env) {
         createdAt: Date.now(),
         expiresAt: Date.now() + (24 * 60 * 60 * 1000)
     };
-    
+
     await env.DB.put(`session:${sessionToken}`, JSON.stringify(sessionData), { 
         expirationTtl: 86400 
     });
@@ -353,28 +352,28 @@ async function handleAuthVerify(request, env) {
 async function handleGetCountries(request, env) {
     const token = request.headers.get('Authorization')?.replace('Bearer ', '');
     const session = await getSession(env, token);
-    
+
     if (!session) {
         return errorResponse('احراز هویت نشده', 401);
     }
 
     const countriesData = await env.DB.get('countries:list');
     const countries = countriesData ? JSON.parse(countriesData) : [];
-    
+
     return jsonResponse({ countries });
 }
 
 async function handleGetUserLimits(request, env) {
     const token = request.headers.get('Authorization')?.replace('Bearer ', '');
     const session = await getSession(env, token);
-    
+
     if (!session) {
         return errorResponse('احراز هویت نشده', 401);
     }
 
     const userIsAdmin = isAdmin(session.telegramId, env);
     const limits = await getUserLimits(env, session.telegramId);
-    
+
     return jsonResponse({
         wireguardRemaining: userIsAdmin ? -1 : Math.max(0, 3 - (limits.wireguard || 0)),
         dnsRemaining: userIsAdmin ? -1 : Math.max(0, 3 - (limits.dns || 0)),
@@ -387,7 +386,7 @@ async function handleGetUserLimits(request, env) {
 async function handleGenerateConfig(request, env) {
     const token = request.headers.get('Authorization')?.replace('Bearer ', '');
     const session = await getSession(env, token);
-    
+
     if (!session) {
         return errorResponse('احراز هویت نشده', 401);
     }
@@ -402,7 +401,7 @@ async function handleGenerateConfig(request, env) {
     }
 
     const body = await request.json();
-    const { locationId, dnsType = 'ipv4' } = body;
+    const { locationId, dnsType = 'ipv4', operator, tunnelDns } = body;
 
     const countriesData = await env.DB.get('countries:list');
     const countries = countriesData ? JSON.parse(countriesData) : [];
@@ -437,14 +436,68 @@ async function handleGenerateConfig(request, env) {
     crypto.getRandomValues(array);
     const privateKey = btoa(String.fromCharCode.apply(null, array));
 
+    // تعیین آدرس بر اساس اپراتور
+    const operatorConfigs = {
+        irancell: {
+            title: "ایرانسل",
+            addresses: ["2.144.0.0/16"],
+            addressesV6: ["2a01:5ec0:1000::1/128", "2a01:5ec0:1000::2/128"]
+        },
+        mci: {
+            title: "همراه اول",
+            addresses: ["5.52.0.0/16"],
+            addressesV6: ["2a02:4540::1/128", "2a02:4540::2/128"]
+        },
+        tci: {
+            title: "مخابرات",
+            addresses: ["2.176.0.0/15", "2.190.0.0/15"],
+            addressesV6: ["2a04:2680:13::1/128", "2a04:2680:13::2/128"]
+        },
+        rightel: {
+            title: "رایتل",
+            addresses: ["37.137.128.0/17", "95.162.0.0/17"],
+            addressesV6: ["2a03:ef42::1/128", "2a03:ef42::2/128"]
+        },
+        shatel: {
+            title: "شاتل موبایل",
+            addresses: ["94.182.0.0/16", "37.148.0.0/18"],
+            addressesV6: ["2a0e::1/128", "2a0e::2/128"]
+        }
+    };
+
+    let interfaceAddress = '';
+    if (operator && operatorConfigs[operator]) {
+        const opConfig = operatorConfigs[operator];
+        if (dnsType === 'ipv4') {
+            interfaceAddress = opConfig.addresses[0];
+        } else if (dnsType === 'ipv6') {
+            interfaceAddress = opConfig.addressesV6.join(', ');
+        }
+    } else {
+        interfaceAddress = dnsType === 'ipv4' ? '10.0.0.2/32' : 'fd00::2/128';
+    }
+
     // ساخت کانفیگ
-    const config = `[Interface]
-# تولید شده توسط سرویس گیمینگ
-# مکان: ${location.name}
-# نوع: ${dnsType === 'ipv4' ? 'IPv4' : 'IPv6'}
-PrivateKey = ${privateKey}
-Address = ${dnsType === 'ipv4' ? '10.0.0.2/32' : 'fd00::2/128'}
-DNS = ${dnsServers.join(', ')}`;
+    let configLines = [
+        '[Interface]',
+        '# تولید شده توسط سرویس گیمینگ',
+        `# مکان: ${location.name}`,
+        `# نوع: ${dnsType === 'ipv4' ? 'IPv4' : 'IPv6'}`
+    ];
+
+    if (operator && operatorConfigs[operator]) {
+        configLines.push(`# اپراتور: ${operatorConfigs[operator].title}`);
+    }
+
+    if (tunnelDns) {
+        configLines.push(`# DNS تانل: ${tunnelDns}`);
+    }
+
+    configLines.push(`PrivateKey = ${privateKey}`);
+    configLines.push(`Address = ${interfaceAddress}`);
+    configLines.push(`DNS = ${dnsServers.join(', ')}`);
+
+    const config = configLines.join('\n');
 
     // ذخیره در تاریخچه
     await saveToHistory(env, session.telegramId, 'wireguard', {
@@ -452,6 +505,8 @@ DNS = ${dnsServers.join(', ')}`;
         locationName: location.name,
         dnsType,
         dnsServers,
+        operator: operator || null,
+        tunnelDns: tunnelDns || null,
         config
     });
 
@@ -484,7 +539,7 @@ DNS = ${dnsServers.join(', ')}`;
 async function handleGenerateDns(request, env) {
     const token = request.headers.get('Authorization')?.replace('Bearer ', '');
     const session = await getSession(env, token);
-    
+
     if (!session) {
         return errorResponse('احراز هویت نشده', 401);
     }
@@ -623,9 +678,9 @@ async function handleAdminAuthRequest(request, env) {
     }
 
     const message = `🔐 <b>کد تایید پنل مدیریت</b>\n\nکد تایید شما: <code>${code}</code>\n\nاین کد 5 دقیقه اعتبار دارد.\n\n⚠️ این کد برای دسترسی به پنل مدیریت است.`;
-    
+
     const botToken = env.BOT_TOKEN;
-    
+
     if (!botToken) {
         console.log(`[DEV MODE] کد تایید ادمین برای ${telegramId}: ${code}`);
         return jsonResponse({ 
@@ -634,9 +689,9 @@ async function handleAdminAuthRequest(request, env) {
             devCode: code
         });
     }
-    
+
     const result = await sendTelegramMessage(botToken, telegramId, message);
-    
+
     if (!result.ok) {
         console.error('Telegram API Error:', result);
         return errorResponse('ارسال کد ناموفق بود. ابتدا به ربات @jojo85_robot پیام دهید و دستور /start را ارسال کنید.', 400);
@@ -657,7 +712,7 @@ async function handleAdminAuthVerify(request, env) {
     }
 
     let storedData = null;
-    
+
     if (env.DB) {
         const stored = await env.DB.get(`admin_verification:${telegramId}`);
         if (!stored) {
@@ -679,7 +734,7 @@ async function handleAdminAuthVerify(request, env) {
     }
 
     const submittedHash = await hashCode(code);
-    
+
     if (submittedHash !== storedData.codeHash) {
         storedData.attempts += 1;
         await env.DB.put(`admin_verification:${telegramId}`, JSON.stringify(storedData), { 
@@ -697,7 +752,7 @@ async function handleAdminAuthVerify(request, env) {
         createdAt: Date.now(),
         expiresAt: Date.now() + (2 * 60 * 60 * 1000)
     };
-    
+
     await env.DB.put(`admin_session:${sessionToken}`, JSON.stringify(sessionData), { 
         expirationTtl: 7200 
     });
@@ -713,27 +768,27 @@ async function handleAdminAuthVerify(request, env) {
 
 async function getAdminSession(env, token) {
     if (!token || !env.DB) return null;
-    
+
     const sessionData = await env.DB.get(`admin_session:${token}`);
     if (!sessionData) return null;
-    
+
     const session = JSON.parse(sessionData);
     if (session.expiresAt < Date.now()) {
         await env.DB.delete(`admin_session:${token}`);
         return null;
     }
-    
+
     if (!session.isAdmin || session.telegramId !== env.ADMIN_ID) {
         return null;
     }
-    
+
     return session;
 }
 
 async function handleAddCountry(request, env) {
     const token = request.headers.get('Authorization')?.replace('Bearer ', '');
     const session = await getAdminSession(env, token);
-    
+
     if (!session) {
         return errorResponse('دسترسی غیرمجاز - لطفا وارد پنل مدیریت شوید', 403);
     }
@@ -781,7 +836,7 @@ async function handleAddCountry(request, env) {
 async function handleUpdateCountry(request, env, oldCountryId) {
     const token = request.headers.get('Authorization')?.replace('Bearer ', '');
     const session = await getAdminSession(env, token);
-    
+
     if (!session) {
         return errorResponse('دسترسی غیرمجاز - لطفا وارد پنل مدیریت شوید', 403);
     }
@@ -834,14 +889,14 @@ async function handleUpdateCountry(request, env, oldCountryId) {
 async function handleGetAllCountries(request, env) {
     const token = request.headers.get('Authorization')?.replace('Bearer ', '');
     const session = await getAdminSession(env, token);
-    
+
     if (!session) {
         return errorResponse('دسترسی غیرمجاز - لطفا وارد پنل مدیریت شوید', 403);
     }
 
     const countriesData = await env.DB.get('countries:list');
     const countries = countriesData ? JSON.parse(countriesData) : [];
-    
+
     return jsonResponse({ 
         success: true,
         countries 
@@ -851,7 +906,7 @@ async function handleGetAllCountries(request, env) {
 async function handleDeleteCountry(request, env, countryId) {
     const token = request.headers.get('Authorization')?.replace('Bearer ', '');
     const session = await getAdminSession(env, token);
-    
+
     if (!session) {
         return errorResponse('دسترسی غیرمجاز - لطفا وارد پنل مدیریت شوید', 403);
     }
@@ -876,16 +931,16 @@ async function handleDeleteCountry(request, env, countryId) {
 async function handleGetAnnouncements(request, env) {
     const token = request.headers.get('Authorization')?.replace('Bearer ', '');
     const session = await getSession(env, token);
-    
+
     if (!session) {
         return errorResponse('احراز هویت نشده', 401);
     }
 
     const announcementsData = await env.DB.get('announcements:list');
     const announcements = announcementsData ? JSON.parse(announcementsData) : [];
-    
+
     const sortedAnnouncements = announcements.sort((a, b) => b.createdAt - a.createdAt);
-    
+
     return jsonResponse({ 
         success: true,
         announcements: sortedAnnouncements 
@@ -895,7 +950,7 @@ async function handleGetAnnouncements(request, env) {
 async function handlePublishAnnouncement(request, env) {
     const token = request.headers.get('Authorization')?.replace('Bearer ', '');
     const session = await getAdminSession(env, token);
-    
+
     if (!session) {
         return errorResponse('دسترسی غیرمجاز - لطفا وارد پنل مدیریت شوید', 403);
     }
@@ -932,16 +987,16 @@ async function handlePublishAnnouncement(request, env) {
 async function handleGetAllAnnouncements(request, env) {
     const token = request.headers.get('Authorization')?.replace('Bearer ', '');
     const session = await getAdminSession(env, token);
-    
+
     if (!session) {
         return errorResponse('دسترسی غیرمجاز - لطفا وارد پنل مدیریت شوید', 403);
     }
 
     const announcementsData = await env.DB.get('announcements:list');
     const announcements = announcementsData ? JSON.parse(announcementsData) : [];
-    
+
     const sortedAnnouncements = announcements.sort((a, b) => b.createdAt - a.createdAt);
-    
+
     return jsonResponse({ 
         success: true,
         announcements: sortedAnnouncements 
@@ -951,7 +1006,7 @@ async function handleGetAllAnnouncements(request, env) {
 async function handleDeleteAnnouncement(request, env, announcementId) {
     const token = request.headers.get('Authorization')?.replace('Bearer ', '');
     const session = await getAdminSession(env, token);
-    
+
     if (!session) {
         return errorResponse('دسترسی غیرمجاز - لطفا وارد پنل مدیریت شوید', 403);
     }
@@ -976,14 +1031,14 @@ async function handleDeleteAnnouncement(request, env, announcementId) {
 async function handleSystemStatus(request, env) {
     const token = request.headers.get('Authorization')?.replace('Bearer ', '');
     const session = await getAdminSession(env, token);
-    
+
     if (!session) {
         return errorResponse('دسترسی غیرمجاز - لطفا وارد پنل مدیریت شوید', 403);
     }
 
     let kvStatus = 'disconnected';
     let kvMessage = 'عدم اتصال';
-    
+
     try {
         await env.DB.put('health_check', 'ok', { expirationTtl: 60 });
         const test = await env.DB.get('health_check');
@@ -997,12 +1052,12 @@ async function handleSystemStatus(request, env) {
 
     let botStatus = 'disconnected';
     let botMessage = 'توکن تنظیم نشده';
-    
+
     if (env.BOT_TOKEN) {
         try {
             const response = await fetch(`https://api.telegram.org/bot${env.BOT_TOKEN}/getMe`);
             const data = await response.json();
-            
+
             if (data.ok) {
                 botStatus = 'connected';
                 botMessage = `متصل - ربات: @${data.result.username}`;
@@ -1033,14 +1088,14 @@ async function handleSystemStatus(request, env) {
 async function handleGetUserHistory(request, env) {
     const token = request.headers.get('Authorization')?.replace('Bearer ', '');
     const session = await getSession(env, token);
-    
+
     if (!session) {
         return errorResponse('احراز هویت نشده', 401);
     }
 
     const history = await getUserHistory(env, session.telegramId);
     const userIsAdmin = isAdmin(session.telegramId, env);
-    
+
     return jsonResponse({
         success: true,
         history,
