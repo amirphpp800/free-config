@@ -67,9 +67,6 @@ async function checkAuth() {
             updateAuthUI(true);
         } else {
             updateAuthUI(false);
-        }ز اطلاعات localStorage استفاده کنیم
-        if (currentUser) {
-            updateAuthUI(true);
         }
     }
 }
