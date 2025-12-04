@@ -46,18 +46,28 @@ async function checkAuth() {
             localStorage.setItem('currentUser', JSON.stringify(currentUser));
             updateAuthUI(true);
         } else {
-            // فقط در صورتی که سرور خطا داد، session را پاک کنیم
+            // فقط در صورت 401 (Unauthorized) session را پاک می‌کنیم
             if (response.status === 401) {
                 localStorage.removeItem('authToken');
                 localStorage.removeItem('currentUser');
                 authToken = null;
                 currentUser = null;
                 updateAuthUI(false);
+            } else {
+                // برای خطاهای دیگر، از اطلاعات ذخیره شده استفاده می‌کنیم
+                if (currentUser) {
+                    updateAuthUI(true);
+                }
             }
         }
     } catch (error) {
         console.error('Auth check error:', error);
-        // در صورت خطای شبکه، از اطلاعات localStorage استفاده کنیم
+        // در صورت خطای شبکه، از اطلاعات ذخیره شده استفاده می‌کنیم
+        if (currentUser) {
+            updateAuthUI(true);
+        } else {
+            updateAuthUI(false);
+        }ز اطلاعات localStorage استفاده کنیم
         if (currentUser) {
             updateAuthUI(true);
         }

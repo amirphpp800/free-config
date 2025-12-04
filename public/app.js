@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (currentUser) {
         updateAuthUI(true);
     }
-    
+
     await checkAuth();
     await loadCountries();
     await loadOperators();
@@ -27,15 +27,15 @@ async function checkAuth() {
         updateAuthUI(false);
         return;
     }
-    
+
     try {
         const response = await fetch('/api/auth/me', {
             headers: { 'Authorization': `Bearer ${authToken}` }
         });
-        
+
         if (response.ok) {
             const data = await response.json();
-            
+
             if (data.success && data.user) {
                 currentUser = data.user;
                 localStorage.setItem('currentUser', JSON.stringify(currentUser));
@@ -43,7 +43,7 @@ async function checkAuth() {
                 return;
             }
         }
-        
+
         // فقط در صورت 401 (Unauthorized) session را پاک می‌کنیم
         if (response.status === 401) {
             localStorage.removeItem('authToken');
@@ -73,12 +73,12 @@ function updateAuthUI(isLoggedIn) {
     const userButtons = document.getElementById('user-buttons');
     const adminBtn = document.getElementById('admin-btn');
     const userIdDisplay = document.getElementById('user-id-display');
-    
+
     if (isLoggedIn && currentUser) {
         guestButtons.classList.add('hidden');
         userButtons.classList.remove('hidden');
         userIdDisplay.textContent = currentUser.telegramId;
-        
+
         if (currentUser.isAdmin) {
             adminBtn.classList.remove('hidden');
         } else {
@@ -109,23 +109,23 @@ function backToStep1() {
 
 async function sendVerifyCode() {
     const telegramId = document.getElementById('telegram-id').value.trim();
-    
+
     if (!telegramId || !/^\d{5,15}$/.test(telegramId)) {
         showToast('لطفا آیدی عددی معتبر وارد کنید', 'error');
         return;
     }
-    
+
     showLoading();
-    
+
     try {
         const response = await fetch('/api/auth/send-code', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ telegramId })
         });
-        
+
         const data = await response.json();
-        
+
         if (data.success) {
             pendingTelegramId = telegramId;
             document.getElementById('auth-step-1').classList.add('hidden');
@@ -144,23 +144,23 @@ async function sendVerifyCode() {
 
 async function verifyCode() {
     const code = document.getElementById('verify-code').value.trim();
-    
+
     if (!code || code.length !== 6) {
         showToast('لطفا کد ۶ رقمی را وارد کنید', 'error');
         return;
     }
-    
+
     showLoading();
-    
+
     try {
         const response = await fetch('/api/auth/verify', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ telegramId: pendingTelegramId, code })
         });
-        
+
         const data = await response.json();
-        
+
         if (data.success) {
             authToken = data.token;
             currentUser = data.user;
@@ -189,7 +189,7 @@ async function logout() {
     } catch (e) {
         console.error('Logout error:', e);
     }
-    
+
     localStorage.removeItem('authToken');
     localStorage.removeItem('currentUser');
     authToken = null;
@@ -247,12 +247,12 @@ async function loadDnsOptions() {
 function renderCountries(containerId, type) {
     const container = document.getElementById(containerId);
     container.innerHTML = '';
-    
+
     countries.forEach(country => {
         const card = document.createElement('div');
         card.className = 'country-card';
         card.onclick = () => generateConfig(country.code, type);
-        
+
         card.innerHTML = `
             <div class="country-flag">${country.flag}</div>
             <div class="country-info">
@@ -261,7 +261,7 @@ function renderCountries(containerId, type) {
             </div>
             <div class="country-code">${country.code}</div>
         `;
-        
+
         container.appendChild(card);
     });
 }
@@ -269,18 +269,18 @@ function renderCountries(containerId, type) {
 function filterCountries(searchText, containerId, type) {
     const container = document.getElementById(containerId);
     container.innerHTML = '';
-    
+
     const filtered = countries.filter(country => 
         country.fa.includes(searchText) ||
         country.en.toLowerCase().includes(searchText.toLowerCase()) ||
         country.code.toLowerCase().includes(searchText.toLowerCase())
     );
-    
+
     filtered.forEach(country => {
         const card = document.createElement('div');
         card.className = 'country-card';
         card.onclick = () => generateConfig(country.code, type);
-        
+
         card.innerHTML = `
             <div class="country-flag">${country.flag}</div>
             <div class="country-info">
@@ -289,19 +289,19 @@ function filterCountries(searchText, containerId, type) {
             </div>
             <div class="country-code">${country.code}</div>
         `;
-        
+
         container.appendChild(card);
     });
 }
 
 function initTabs() {
     const navBtns = document.querySelectorAll('.nav-btn');
-    
+
     navBtns.forEach(btn => {
         btn.addEventListener('click', () => {
             navBtns.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-            
+
             const tab = btn.dataset.tab;
             document.querySelectorAll('.section').forEach(section => {
                 section.classList.remove('active');
@@ -313,16 +313,16 @@ function initTabs() {
 
 function initToggles() {
     const toggleBtns = document.querySelectorAll('.toggle-btn');
-    
+
     toggleBtns.forEach(btn => {
         btn.addEventListener('click', () => {
             const target = btn.dataset.target;
             const value = btn.dataset.value;
-            
+
             const siblings = btn.parentElement.querySelectorAll('.toggle-btn');
             siblings.forEach(s => s.classList.remove('active'));
             btn.classList.add('active');
-            
+
             document.getElementById(target).value = value;
         });
     });
@@ -332,7 +332,7 @@ function initSearch() {
     document.getElementById('wg-search').addEventListener('input', (e) => {
         filterCountries(e.target.value, 'wg-countries', 'wireguard');
     });
-    
+
     document.getElementById('dns-search').addEventListener('input', (e) => {
         filterCountries(e.target.value, 'dns-countries', 'dns');
     });
@@ -341,26 +341,26 @@ function initSearch() {
 async function generateConfig(countryCode, type) {
     showLoading();
     currentType = type;
-    
+
     const headers = { 'Content-Type': 'application/json' };
     if (authToken) {
         headers['Authorization'] = `Bearer ${authToken}`;
     }
-    
+
     try {
         let response;
-        
+
         if (type === 'wireguard') {
             const ipVersion = document.getElementById('wg-ip-version').value;
             const operator = document.getElementById('wg-operator').value;
             const dns = document.getElementById('wg-dns').value;
-            
+
             if (!operator || !dns) {
                 showToast('لطفا DNS و اپراتور را انتخاب کنید', 'error');
                 hideLoading();
                 return;
             }
-            
+
             response = await fetch('/api/config/generate-wireguard', {
                 method: 'POST',
                 headers,
@@ -368,16 +368,16 @@ async function generateConfig(countryCode, type) {
             });
         } else {
             const ipVersion = document.getElementById('dns-ip-version').value;
-            
+
             response = await fetch('/api/config/generate-dns', {
                 method: 'POST',
                 headers,
                 body: JSON.stringify({ country: countryCode, ipVersion })
             });
         }
-        
+
         const data = await response.json();
-        
+
         if (data.success) {
             currentConfig = data;
             showResult(data, type);
@@ -398,7 +398,7 @@ function showResult(data, type) {
     const title = document.getElementById('modal-title');
     const info = document.getElementById('result-info');
     const content = document.getElementById('config-content');
-    
+
     if (type === 'wireguard') {
         title.innerHTML = `<i class="fas fa-network-wired" style="color: var(--secondary);"></i> کانفیگ WireGuard`;
         let badges = `
@@ -421,7 +421,7 @@ function showResult(data, type) {
         `;
         content.textContent = `# DNS Configuration for ${data.country} (${data.countryEn}) ${data.flag}\n\nDNS Primary:   ${data.dns.primary}\nDNS Secondary: ${data.dns.secondary}\n\n# IP Version: ${data.ipVersion.toUpperCase()}\n# Generated: ${data.generated}`;
     }
-    
+
     modal.classList.add('active');
 }
 
@@ -440,9 +440,9 @@ function copyConfig() {
 
 function downloadConfig() {
     if (!currentConfig) return;
-    
+
     let content, filename;
-    
+
     if (currentType === 'wireguard') {
         content = currentConfig.config;
         filename = `wireguard-${currentConfig.countryCode || 'config'}.conf`;
@@ -450,7 +450,7 @@ function downloadConfig() {
         content = `DNS Primary: ${currentConfig.dns.primary}\nDNS Secondary: ${currentConfig.dns.secondary}`;
         filename = `dns-${currentConfig.countryCode || 'config'}.txt`;
     }
-    
+
     const blob = new Blob([content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -460,7 +460,7 @@ function downloadConfig() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    
+
     showToast('دانلود شد!', 'success');
 }
 
@@ -476,7 +476,7 @@ function showToast(message, type = 'success') {
     const toast = document.getElementById('toast');
     toast.textContent = message;
     toast.className = `toast ${type} active`;
-    
+
     setTimeout(() => {
         toast.classList.remove('active');
     }, 3000);
