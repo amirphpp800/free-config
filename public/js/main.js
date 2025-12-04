@@ -24,6 +24,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 async function checkAuth() {
+    // بارگذاری مجدد از localStorage در صورت از دست رفتن
+    if (!authToken) {
+        authToken = localStorage.getItem('authToken');
+    }
+    if (!currentUser) {
+        currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+    }
+
     // اگر اطلاعات localStorage داریم، از آن استفاده کنیم
     if (currentUser && authToken) {
         updateAuthUI(true);

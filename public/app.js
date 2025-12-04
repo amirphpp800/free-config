@@ -488,15 +488,20 @@ document.getElementById('modal').addEventListener('click', (e) => {
     }
 });
 
-document.getElementById('auth-modal').addEventListener('click', (e) => {
-    if (e.target.id === 'auth-modal') {
-        closeAuthModal();
-    }
-});
+// Event listeners با بررسی وجود المنت‌ها
+const authModalElement = document.getElementById('auth-modal');
+if (authModalElement) {
+    authModalElement.addEventListener('click', (e) => {
+        if (e.target.id === 'auth-modal') {
+            closeAuthModal();
+        }
+    });
+}
 
+const modalElement = document.getElementById('modal');
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
-        closeModal();
-        closeAuthModal();
+        if (modalElement) closeModal();
+        if (authModalElement) closeAuthModal();
     }
 });
