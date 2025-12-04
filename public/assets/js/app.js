@@ -81,8 +81,9 @@ class App {
         this.wireguardSegments = document.querySelectorAll('.segment-btn');
         this.dnsSegments = document.querySelectorAll('.segment-btn-dns');
 
-        this.wireguardDnsSelect = document.getElementById('wireguard-dns-select');
-        this.wireguardOperatorSelect = document.getElementById('wireguard-operator-select');
+        this.wireguardOperator = document.getElementById('wireguard-operator');
+        this.wireguardTunnelDns = document.getElementById('wireguard-tunnel-dns');
+        this.profileBtn = document.getElementById('profile-btn');
 
         this.generateWireguardBtn = document.getElementById('generate-wireguard-btn');
         this.generateDnsBtn = document.getElementById('generate-dns-btn');
@@ -117,6 +118,7 @@ class App {
     bindEvents() {
         this.loginBtn?.addEventListener('click', () => this.openLoginModal());
         this.logoutBtn?.addEventListener('click', () => this.handleLogout());
+        this.profileBtn?.addEventListener('click', () => this.switchTab('profile'));
         this.adminPanelBtn?.addEventListener('click', () => this.openAdminPanelWithAuth());
         this.closeAdminBtn?.addEventListener('click', () => this.closeAdminPanel());
 
@@ -593,21 +595,30 @@ class App {
     renderLocations() {
         if (!this.wireguardLocations || !this.dnsLocations) return;
 
-        const html = this.countries.map(loc => `
-            <div class="location-card" data-id="${loc.id}">
-                <div class="location-header">
-                    <span class="fi fi-${loc.id.toLowerCase()}" style="font-size: 48px; margin-left: 12px;"></span>
-                    <div>
-                        <div class="location-name">${loc.name}</div>
-                        <div class="location-city">${loc.nameEn || loc.id.toUpperCase()}</div>
+        const html = this.countries.map(loc => {
+            const ipv4Count = loc.dns?.ipv4?.length || 0;
+            const ipv6Count = loc.dns?.ipv6?.length || 0;
+            
+            return `
+                <div class="location-card" data-id="${loc.id}">
+                    <div class="location-header">
+                        <span class="fi fi-${loc.id.toLowerCase()}" style="font-size: 48px; margin-left: 12px;"></span>
+                        <div>
+                            <div class="location-name">${loc.name}</div>
+                            <div class="location-city">${loc.nameEn || loc.id.toUpperCase()}</div>
+                        </div>
+                    </div>
+                    <div class="location-details">
+                        <span class="location-tag ipv4">IPv4</span>
+                        <span class="location-tag ipv6">IPv6</span>
+                    </div>
+                    <div class="location-inventory">
+                        <span class="inventory-tag ipv4">موجودی IPv4: <span class="inventory-count">${ipv4Count}</span></span>
+                        <span class="inventory-tag ipv6">موجودی IPv6: <span class="inventory-count">${ipv6Count}</span></span>
                     </div>
                 </div>
-                <div class="location-details">
-                    <span class="location-tag ipv4">IPv4</span>
-                    <span class="location-tag ipv6">IPv6</span>
-                </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
 
         this.wireguardLocations.innerHTML = html;
         this.dnsLocations.innerHTML = html;
@@ -726,10 +737,13 @@ class App {
             return;
         }
 
-        if (this.userLimits && this.userLimits.wireguardRemaining <= 0) {
+        if (this.userLimits && this.userLimits.wireguardRemaining <= 0 && !this.userLimits.isAdmin) {
             this.showToast('error', 'محدودیت روزانه شما تمام شده است');
             return;
         }
+
+        const operator = this.wireguardOperator?.value || '';
+        const tunnelDns = this.wireguardTunnelDns?.value || '';
 
         const token = auth.getToken();
         if (!token) return;
@@ -743,7 +757,9 @@ class App {
                 },
                 body: JSON.stringify({
                     locationId: this.selectedWireguardLocation,
-                    dnsType: dnsType
+                    dnsType: dnsType,
+                    operator: operator,
+                    tunnelDns: tunnelDns
                 })
             });
 
@@ -763,6 +779,8 @@ class App {
             this.wireguardOutput?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
             await this.loadUserLimits();
+            await this.loadCountries();
+            this.renderLocations();
             this.showToast('success', 'کانفیگ با موفقیت دریافت شد');
 
         } catch (error) {
@@ -817,6 +835,8 @@ class App {
             this.dnsOutput?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
             await this.loadUserLimits();
+            await this.loadCountries();
+            this.renderLocations();
             this.showToast('success', 'DNS با موفقیت دریافت شد');
 
         } catch (error) {
