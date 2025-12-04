@@ -255,9 +255,13 @@ function showToast(message, type = 'success') {
 }
 
 document.getElementById('auth-modal')?.addEventListener('click', (e) => {
-    if (e.target.id === 'auth-modal') {
+    if (e.target.classList.contains('modal-overlay')) {
         closeAuthModal();
     }
+});
+
+document.querySelector('#auth-modal .modal')?.addEventListener('click', (e) => {
+    e.stopPropagation();
 });
 
 // Removing shadow from cards on hover

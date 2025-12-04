@@ -22,13 +22,69 @@ app.use((req, res, next) => {
 });
 
 const kvStore = new Map();
+const SESSIONS_FILE = join(__dirname, 'data', 'sessions_store.json');
+const USERS_FILE = join(__dirname, 'data', 'users_store.json');
+
+async function loadSessionsFromFile() {
+    try {
+        const content = await fs.readFile(SESSIONS_FILE, 'utf-8');
+        const sessions = JSON.parse(content);
+        for (const [key, value] of Object.entries(sessions)) {
+            kvStore.set(key, value);
+        }
+        console.log('Sessions loaded from file');
+    } catch (error) {
+        console.log('No previous sessions found, starting fresh');
+    }
+}
+
+async function loadUsersFromFile() {
+    try {
+        const content = await fs.readFile(USERS_FILE, 'utf-8');
+        const users = JSON.parse(content);
+        for (const [key, value] of Object.entries(users)) {
+            kvStore.set(key, value);
+        }
+        console.log('Users loaded from file');
+    } catch (error) {
+        console.log('No previous users found');
+    }
+}
+
+async function saveSessionsToFile() {
+    try {
+        const sessions = {};
+        for (const [key, value] of kvStore.entries()) {
+            if (key.startsWith('session:') || key.startsWith('verify:')) {
+                sessions[key] = value;
+            }
+        }
+        await fs.writeFile(SESSIONS_FILE, JSON.stringify(sessions, null, 2));
+    } catch (error) {
+        console.error('Error saving sessions:', error);
+    }
+}
+
+async function saveUsersToFile() {
+    try {
+        const users = {};
+        for (const [key, value] of kvStore.entries()) {
+            if (key.startsWith('user:') || key === 'users:list') {
+                users[key] = value;
+            }
+        }
+        await fs.writeFile(USERS_FILE, JSON.stringify(users, null, 2));
+    } catch (error) {
+        console.error('Error saving users:', error);
+    }
+}
 
 async function loadInitialData() {
     try {
         const dataDir = join(__dirname, 'data');
         const files = await fs.readdir(dataDir);
         for (const file of files) {
-            if (file.endsWith('.json')) {
+            if (file.endsWith('.json') && file !== 'sessions_store.json' && file !== 'users_store.json') {
                 const content = await fs.readFile(join(dataDir, file), 'utf-8');
                 const key = file.replace('.json', '');
                 kvStore.set(`${key}:data`, JSON.parse(content));
@@ -54,9 +110,21 @@ const KV = {
     },
     async put(key, value, options = {}) {
         kvStore.set(key, typeof value === 'string' ? value : JSON.stringify(value));
+        if (key.startsWith('session:') || key.startsWith('verify:')) {
+            await saveSessionsToFile();
+        }
+        if (key.startsWith('user:') || key === 'users:list') {
+            await saveUsersToFile();
+        }
     },
     async delete(key) {
         kvStore.delete(key);
+        if (key.startsWith('session:') || key.startsWith('verify:')) {
+            await saveSessionsToFile();
+        }
+        if (key.startsWith('user:') || key === 'users:list') {
+            await saveUsersToFile();
+        }
     }
 };
 
@@ -117,7 +185,6 @@ app.post('/api/auth/send-code', async (req, res) => {
             });
         }
 
-        // Check if the user is an admin and if the admin ID is provided
         if (telegramId !== env.ADMIN_ID) {
             return res.status(403).json({ 
                 success: false, 
@@ -229,12 +296,11 @@ app.post('/api/auth/verify', async (req, res) => {
                 await KV.put('users:list', JSON.stringify(usersList));
             }
         } else {
-            // Ensure admin status is correctly reflected for existing users
             if (telegramId === env.ADMIN_ID && !user.isAdmin) {
                 user.isAdmin = true;
                 await KV.put(`user:${telegramId}`, JSON.stringify(user));
             } else if (telegramId !== env.ADMIN_ID && user.isAdmin) {
-                user.isAdmin = false; // Remove admin status if they are no longer the admin
+                user.isAdmin = false;
                 await KV.put(`user:${telegramId}`, JSON.stringify(user));
             }
         }
@@ -618,7 +684,10 @@ app.post('/api/config/generate-dns', async (req, res) => {
 
 async function adminAuth(req, res, next) {
     const session = await verifyToken(req.get('Authorization'));
-    if (!session || !session.isAdmin) {
+    if (!session) {
+        return res.status(401).json({ success: false, error: 'لطفا وارد شوید' });
+    }
+    if (!session.isAdmin) {
         return res.status(403).json({ success: false, error: 'دسترسی غیرمجاز' });
     }
     req.user = session;
@@ -628,31 +697,17 @@ async function adminAuth(req, res, next) {
 app.get('/api/admin/stats', adminAuth, async (req, res) => {
     try {
         const usersList = await KV.get('users:list', 'json') || [];
-        const countries = await KV.get('countries:list', 'json') || [];
-        let totalConfigs = 0, vipCount = 0, adminCount = 0;
-
-        for (const telegramId of usersList) {
-            const userData = await KV.get(`user:${telegramId}`, 'json');
-            if (userData) {
-                totalConfigs += userData.configCount || 0;
-                if (userData.isVip) vipCount++;
-                if (userData.isAdmin) adminCount++;
-            }
-        }
-
+        const announcements = await KV.get('announcements:list', 'json') || [];
+        
         return res.json({
             success: true,
             stats: {
                 totalUsers: usersList.length,
-                vipUsers: vipCount,
-                adminUsers: adminCount,
-                totalConfigs,
-                totalCountries: countries.length,
-                kvConnected: true,
-                botTokenConfigured: !!env.BOT_TOKEN
+                totalAnnouncements: announcements.length
             }
         });
     } catch (error) {
+        console.error('Stats error:', error);
         return res.status(500).json({ success: false, error: 'خطای سرور' });
     }
 });
@@ -661,14 +716,56 @@ app.get('/api/admin/users', adminAuth, async (req, res) => {
     try {
         const usersList = await KV.get('users:list', 'json') || [];
         const users = [];
-
+        
         for (const telegramId of usersList) {
-            const userData = await KV.get(`user:${telegramId}`, 'json');
-            if (userData) users.push(userData);
+            const user = await KV.get(`user:${telegramId}`, 'json');
+            if (user) {
+                users.push(user);
+            }
         }
-
-        return res.json({ success: true, users, total: users.length });
+        
+        return res.json({ success: true, users });
     } catch (error) {
+        console.error('Users error:', error);
+        return res.status(500).json({ success: false, error: 'خطای سرور' });
+    }
+});
+
+app.post('/api/admin/announcements', adminAuth, async (req, res) => {
+    try {
+        const { message } = req.body;
+        
+        if (!message || message.trim().length === 0) {
+            return res.status(400).json({ success: false, error: 'متن اعلان الزامی است' });
+        }
+        
+        const announcements = await KV.get('announcements:list', 'json') || [];
+        const newAnnouncement = {
+            id: Date.now().toString(),
+            message: message.trim(),
+            createdAt: Date.now()
+        };
+        
+        announcements.unshift(newAnnouncement);
+        await KV.put('announcements:list', JSON.stringify(announcements.slice(0, 50)));
+        
+        return res.json({ success: true, announcement: newAnnouncement });
+    } catch (error) {
+        console.error('Announcement error:', error);
+        return res.status(500).json({ success: false, error: 'خطای سرور' });
+    }
+});
+
+app.delete('/api/admin/announcements/:id', adminAuth, async (req, res) => {
+    try {
+        const { id } = req.params;
+        let announcements = await KV.get('announcements:list', 'json') || [];
+        announcements = announcements.filter(a => a.id !== id);
+        await KV.put('announcements:list', JSON.stringify(announcements));
+        
+        return res.json({ success: true });
+    } catch (error) {
+        console.error('Delete announcement error:', error);
         return res.status(500).json({ success: false, error: 'خطای سرور' });
     }
 });
@@ -678,6 +775,162 @@ app.get('/api/admin/countries', adminAuth, async (req, res) => {
         const countries = await KV.get('countries:list', 'json') || [];
         return res.json({ success: true, countries });
     } catch (error) {
+        console.error('Countries error:', error);
+        return res.status(500).json({ success: false, error: 'خطای سرور' });
+    }
+});
+
+app.get('/api/admin/country/:code/addresses', adminAuth, async (req, res) => {
+    try {
+        const { code } = req.params;
+        const addresses = await KV.get(`country:${code.toUpperCase()}:addresses`, 'json') || { ipv4: [], ipv6: [] };
+        const dns = await KV.get(`country:${code.toUpperCase()}:dns`, 'json') || { ipv4: null, ipv6: null };
+        
+        return res.json({ success: true, addresses, dns });
+    } catch (error) {
+        console.error('Country addresses error:', error);
+        return res.status(500).json({ success: false, error: 'خطای سرور' });
+    }
+});
+
+function isValidIPv4(ip) {
+    const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/;
+    if (!ipv4Regex.test(ip)) return false;
+    const parts = ip.split('/')[0].split('.');
+    return parts.every(p => parseInt(p) >= 0 && parseInt(p) <= 255);
+}
+
+function isValidIPv6(ip) {
+    const ipv6Regex = /^([0-9a-fA-F]{0,4}:){2,7}[0-9a-fA-F]{0,4}(\/\d{1,3})?$/;
+    return ipv6Regex.test(ip) || /^::([0-9a-fA-F]{1,4}:){0,5}[0-9a-fA-F]{1,4}(\/\d{1,3})?$/.test(ip);
+}
+
+app.post('/api/admin/country/add', adminAuth, async (req, res) => {
+    try {
+        const { code, fa, en, ipv4Addresses, ipv6Addresses } = req.body;
+        
+        if (!code || !fa || !en) {
+            return res.status(400).json({ success: false, error: 'کد کشور، نام فارسی و انگلیسی الزامی است' });
+        }
+        
+        if (code.length !== 2) {
+            return res.status(400).json({ success: false, error: 'کد کشور باید ۲ حرف باشد' });
+        }
+        
+        const countryCode = code.toUpperCase();
+        
+        let ipv4List = [];
+        let ipv6List = [];
+        
+        if (ipv4Addresses) {
+            const lines = ipv4Addresses.split('\n').map(l => l.trim()).filter(l => l);
+            for (const line of lines) {
+                if (!isValidIPv4(line)) {
+                    return res.status(400).json({ success: false, error: `آدرس IPv4 نامعتبر: ${line}` });
+                }
+                ipv4List.push(line);
+            }
+        }
+        
+        if (ipv6Addresses) {
+            const lines = ipv6Addresses.split('\n').map(l => l.trim()).filter(l => l);
+            for (const line of lines) {
+                if (!isValidIPv6(line)) {
+                    return res.status(400).json({ success: false, error: `آدرس IPv6 نامعتبر: ${line}` });
+                }
+                ipv6List.push(line);
+            }
+        }
+        
+        let countries = await KV.get('countries:list', 'json') || [];
+        const existingIndex = countries.findIndex(c => c.code === countryCode);
+        
+        if (existingIndex >= 0) {
+            countries[existingIndex] = { code: countryCode, fa, en };
+        } else {
+            countries.push({ code: countryCode, fa, en });
+        }
+        
+        await KV.put('countries:list', JSON.stringify(countries));
+        
+        await KV.put(`country:${countryCode}:addresses`, JSON.stringify({
+            ipv4: ipv4List,
+            ipv6: ipv6List
+        }));
+        
+        return res.json({ success: true, message: 'کشور ذخیره شد' });
+    } catch (error) {
+        console.error('Add country error:', error);
+        return res.status(500).json({ success: false, error: 'خطای سرور' });
+    }
+});
+
+app.post('/api/admin/country/delete', adminAuth, async (req, res) => {
+    try {
+        const { code } = req.body;
+        
+        if (!code) {
+            return res.status(400).json({ success: false, error: 'کد کشور الزامی است' });
+        }
+        
+        const countryCode = code.toUpperCase();
+        let countries = await KV.get('countries:list', 'json') || [];
+        countries = countries.filter(c => c.code !== countryCode);
+        
+        await KV.put('countries:list', JSON.stringify(countries));
+        await KV.delete(`country:${countryCode}:addresses`);
+        await KV.delete(`country:${countryCode}:dns`);
+        
+        return res.json({ success: true, message: 'کشور حذف شد' });
+    } catch (error) {
+        console.error('Delete country error:', error);
+        return res.status(500).json({ success: false, error: 'خطای سرور' });
+    }
+});
+
+app.post('/api/admin/user/update', adminAuth, async (req, res) => {
+    try {
+        const { telegramId, isVip, isAdmin } = req.body;
+        
+        if (!telegramId) {
+            return res.status(400).json({ success: false, error: 'آیدی کاربر الزامی است' });
+        }
+        
+        const user = await KV.get(`user:${telegramId}`, 'json');
+        
+        if (!user) {
+            return res.status(404).json({ success: false, error: 'کاربر یافت نشد' });
+        }
+        
+        if (typeof isVip === 'boolean') user.isVip = isVip;
+        if (typeof isAdmin === 'boolean') user.isAdmin = isAdmin;
+        
+        await KV.put(`user:${telegramId}`, JSON.stringify(user));
+        
+        return res.json({ success: true, message: 'کاربر بروزرسانی شد', user });
+    } catch (error) {
+        console.error('Update user error:', error);
+        return res.status(500).json({ success: false, error: 'خطای سرور' });
+    }
+});
+
+app.post('/api/admin/user/delete', adminAuth, async (req, res) => {
+    try {
+        const { telegramId } = req.body;
+        
+        if (!telegramId) {
+            return res.status(400).json({ success: false, error: 'آیدی کاربر الزامی است' });
+        }
+        
+        await KV.delete(`user:${telegramId}`);
+        
+        let usersList = await KV.get('users:list', 'json') || [];
+        usersList = usersList.filter(id => id !== telegramId);
+        await KV.put('users:list', JSON.stringify(usersList));
+        
+        return res.json({ success: true, message: 'کاربر حذف شد' });
+    } catch (error) {
+        console.error('Delete user error:', error);
         return res.status(500).json({ success: false, error: 'خطای سرور' });
     }
 });
@@ -692,123 +945,7 @@ app.get('/api/admin/settings', adminAuth, async (req, res) => {
         };
         return res.json({ success: true, settings });
     } catch (error) {
-        return res.status(500).json({ success: false, error: 'خطای سرور' });
-    }
-});
-
-app.post('/api/admin/country/add', adminAuth, async (req, res) => {
-    try {
-        const { code, fa, en, ipv4Addresses, ipv6Addresses, dnsIpv4Primary, dnsIpv4Secondary, dnsIpv6Primary, dnsIpv6Secondary } = req.body;
-
-        if (!code || !fa || !en) {
-            return res.status(400).json({ success: false, error: 'کد کشور، نام فارسی و انگلیسی الزامی است' });
-        }
-
-        const countries = await KV.get('countries:list', 'json') || [];
-        const countryCode = code.toUpperCase();
-
-        const existingIndex = countries.findIndex(c => c.code === countryCode);
-
-        const countryData = { code: countryCode, fa, en };
-
-        if (existingIndex >= 0) {
-            countries[existingIndex] = countryData;
-        } else {
-            countries.push(countryData);
-        }
-
-        await KV.put('countries:list', JSON.stringify(countries));
-
-        if (ipv4Addresses || ipv6Addresses) {
-            const addresses = {
-                ipv4: ipv4Addresses ? ipv4Addresses.split('\n').map(a => a.trim()).filter(a => a) : [],
-                ipv6: ipv6Addresses ? ipv6Addresses.split('\n').map(a => a.trim()).filter(a => a) : []
-            };
-            await KV.put(`country:${countryCode}:addresses`, JSON.stringify(addresses));
-        }
-
-        if (dnsIpv4Primary || dnsIpv6Primary) {
-            const dns = {
-                ipv4: dnsIpv4Primary ? { primary: dnsIpv4Primary, secondary: dnsIpv4Secondary || '' } : null,
-                ipv6: dnsIpv6Primary ? { primary: dnsIpv6Primary, secondary: dnsIpv6Secondary || '' } : null
-            };
-            await KV.put(`country:${countryCode}:dns`, JSON.stringify(dns));
-        }
-
-        return res.json({ success: true, message: 'کشور ذخیره شد' });
-    } catch (error) {
-        console.error('Add country error:', error);
-        return res.status(500).json({ success: false, error: 'خطای سرور' });
-    }
-});
-
-app.post('/api/admin/country/delete', adminAuth, async (req, res) => {
-    try {
-        const { code } = req.body;
-        if (!code) {
-            return res.status(400).json({ success: false, error: 'کد کشور الزامی است' });
-        }
-
-        const countries = await KV.get('countries:list', 'json') || [];
-        const newCountries = countries.filter(c => c.code !== code.toUpperCase());
-        await KV.put('countries:list', JSON.stringify(newCountries));
-
-        await KV.delete(`country:${code.toUpperCase()}:addresses`);
-        await KV.delete(`country:${code.toUpperCase()}:dns`);
-
-        return res.json({ success: true, message: 'کشور حذف شد' });
-    } catch (error) {
-        return res.status(500).json({ success: false, error: 'خطای سرور' });
-    }
-});
-
-app.get('/api/admin/country/:code/addresses', adminAuth, async (req, res) => {
-    try {
-        const code = req.params.code.toUpperCase();
-        const addresses = await KV.get(`country:${code}:addresses`, 'json') || { ipv4: [], ipv6: [] };
-        const dns = await KV.get(`country:${code}:dns`, 'json') || { ipv4: null, ipv6: null };
-        return res.json({ success: true, addresses, dns });
-    } catch (error) {
-        return res.status(500).json({ success: false, error: 'خطای سرور' });
-    }
-});
-
-app.post('/api/admin/user/update', adminAuth, async (req, res) => {
-    try {
-        const { telegramId, isVip, isAdmin } = req.body;
-        if (!telegramId) {
-            return res.status(400).json({ success: false, error: 'آیدی کاربر الزامی است' });
-        }
-
-        const userData = await KV.get(`user:${telegramId}`, 'json');
-        if (!userData) {
-            return res.status(404).json({ success: false, error: 'کاربر یافت نشد' });
-        }
-
-        if (typeof isVip === 'boolean') userData.isVip = isVip;
-        if (typeof isAdmin === 'boolean') userData.isAdmin = isAdmin;
-
-        await KV.put(`user:${telegramId}`, JSON.stringify(userData));
-        return res.json({ success: true, message: 'کاربر بروزرسانی شد', user: userData });
-    } catch (error) {
-        return res.status(500).json({ success: false, error: 'خطای سرور' });
-    }
-});
-
-app.post('/api/admin/user/delete', adminAuth, async (req, res) => {
-    try {
-        const { telegramId } = req.body;
-        if (!telegramId) {
-            return res.status(400).json({ success: false, error: 'آیدی کاربر الزامی است' });
-        }
-
-        await KV.delete(`user:${telegramId}`);
-        const usersList = await KV.get('users:list', 'json') || [];
-        const newList = usersList.filter(id => id !== telegramId);
-        await KV.put('users:list', JSON.stringify(newList));
-
-        return res.json({ success: true, message: 'کاربر حذف شد' });
-    } catch (error) {
+        console.error('Settings error:', error);
         return res.status(500).json({ success: false, error: 'خطای سرور' });
     }
 });
@@ -816,16 +953,19 @@ app.post('/api/admin/user/delete', adminAuth, async (req, res) => {
 app.post('/api/admin/settings/update', adminAuth, async (req, res) => {
     try {
         const { channelId, channelUsername, websiteUrl, maintenanceMode } = req.body;
-        const settings = await KV.get('settings:global', 'json') || {};
-
+        
+        let settings = await KV.get('settings:global', 'json') || {};
+        
         if (channelId !== undefined) settings.channelId = channelId;
         if (channelUsername !== undefined) settings.channelUsername = channelUsername;
         if (websiteUrl !== undefined) settings.websiteUrl = websiteUrl;
         if (maintenanceMode !== undefined) settings.maintenanceMode = maintenanceMode;
-
+        
         await KV.put('settings:global', JSON.stringify(settings));
+        
         return res.json({ success: true, message: 'تنظیمات ذخیره شد', settings });
     } catch (error) {
+        console.error('Update settings error:', error);
         return res.status(500).json({ success: false, error: 'خطای سرور' });
     }
 });
@@ -833,24 +973,34 @@ app.post('/api/admin/settings/update', adminAuth, async (req, res) => {
 app.post('/api/admin/broadcast', adminAuth, async (req, res) => {
     try {
         const { message } = req.body;
+        
         if (!message) {
             return res.status(400).json({ success: false, error: 'پیام الزامی است' });
         }
-
+        
         const usersList = await KV.get('users:list', 'json') || [];
         const botToken = env.BOT_TOKEN;
-
+        
         if (!botToken) {
             return res.status(500).json({ success: false, error: 'توکن ربات تنظیم نشده است' });
         }
-
-        let sent = 0, failed = 0;
-
+        
+        let sent = 0;
+        let failed = 0;
+        
         for (const telegramId of usersList) {
-            const result = await sendTelegramMessage(botToken, telegramId, message);
-            if (result.ok) sent++; else failed++;
+            try {
+                const result = await sendTelegramMessage(botToken, telegramId, message);
+                if (result.ok) {
+                    sent++;
+                } else {
+                    failed++;
+                }
+            } catch {
+                failed++;
+            }
         }
-
+        
         return res.json({ 
             success: true, 
             message: `پیام به ${sent} کاربر ارسال شد، ${failed} ناموفق`,
@@ -858,34 +1008,70 @@ app.post('/api/admin/broadcast', adminAuth, async (req, res) => {
             failed
         });
     } catch (error) {
+        console.error('Broadcast error:', error);
         return res.status(500).json({ success: false, error: 'خطای سرور' });
     }
 });
 
-app.get('*', async (req, res) => {
+app.get('/api/admin/check-kv', adminAuth, async (req, res) => {
     try {
-        const filePath = join(__dirname, 'public', req.path);
-        const stat = await fs.stat(filePath);
-        if (stat.isFile()) {
-            return res.sendFile(filePath);
-        }
-
-        const indexPath = join(__dirname, 'public', 'index.html');
-        const content = await fs.readFile(indexPath, 'utf-8');
-        res.send(content);
+        const testKey = 'health-check';
+        await KV.put(testKey, 'ok');
+        const value = await KV.get(testKey);
+        const connected = value === 'ok';
+        
+        return res.json({ success: true, connected, message: connected ? 'متصل' : 'قطع' });
     } catch (error) {
-        const indexPath = join(__dirname, 'public', 'index.html');
-        try {
-            const content = await fs.readFile(indexPath, 'utf-8');
-            res.send(content);
-        } catch {
-            res.status(404).send('Page not found');
-        }
+        return res.json({ success: true, connected: false, message: 'خطا در اتصال' });
     }
 });
 
-await loadInitialData();
-
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on http://0.0.0.0:${PORT}`);
+app.get('/api/admin/check-bot', adminAuth, async (req, res) => {
+    try {
+        const botToken = env.BOT_TOKEN;
+        
+        if (!botToken) {
+            return res.json({ success: true, connected: false, message: 'توکن تنظیم نشده' });
+        }
+        
+        const response = await fetch(`https://api.telegram.org/bot${botToken}/getMe`);
+        const data = await response.json();
+        
+        if (data.ok) {
+            return res.json({ 
+                success: true, 
+                connected: true, 
+                message: 'متصل',
+                botUsername: data.result.username 
+            });
+        } else {
+            return res.json({ success: true, connected: false, message: 'توکن نامعتبر' });
+        }
+    } catch (error) {
+        return res.json({ success: true, connected: false, message: 'خطا در اتصال' });
+    }
 });
+
+async function ensureDataDir() {
+    const dataDir = join(__dirname, 'data');
+    try {
+        await fs.mkdir(dataDir, { recursive: true });
+    } catch (error) {
+        if (error.code !== 'EEXIST') {
+            console.error('Error creating data directory:', error);
+        }
+    }
+}
+
+async function startServer() {
+    await ensureDataDir();
+    await loadInitialData();
+    await loadSessionsFromFile();
+    await loadUsersFromFile();
+    
+    app.listen(PORT, '0.0.0.0', () => {
+        console.log(`Server running on http://0.0.0.0:${PORT}`);
+    });
+}
+
+startServer();
