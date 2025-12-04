@@ -36,18 +36,16 @@ export async function onRequestPost(context) {
         
         // اگر درخواست از پنل ادمین است، باید بررسی کنیم کاربر ادمین باشد
         if (isAdminPanel) {
-            const userKey = `user:${telegramId}`;
-            const userDataStr = await env.DB.get(userKey);
+            const adminId = env.ADMIN_ID;
             
-            if (!userDataStr) {
+            if (!adminId) {
                 return Response.json({ 
                     success: false, 
-                    error: 'شما دسترسی به پنل مدیریت ندارید' 
-                }, { status: 403 });
+                    error: 'ADMIN_ID تنظیم نشده است' 
+                }, { status: 500 });
             }
             
-            const user = JSON.parse(userDataStr);
-            if (!user.isAdmin) {
+            if (telegramId !== adminId) {
                 return Response.json({ 
                     success: false, 
                     error: 'شما دسترسی به پنل مدیریت ندارید' 
@@ -72,10 +70,16 @@ export async function onRequestPost(context) {
             }, { status: 500 });
         }
         
-        const message = `🔐 <b>کد تایید حساب کاربری</b>\n\n` +
-            `کد تایید شما: <code>${code}</code>\n\n` +
-            `⏱ این کد تا ۵ دقیقه معتبر است.\n` +
-            `⚠️ این کد را در اختیار کسی قرار ندهید.`;
+        // کپشن متفاوت برای ادمین
+        const message = isAdminPanel 
+            ? `👑 <b>کد تایید ورود به پنل مدیریت</b>\n\n` +
+              `کد تایید ادمین: <code>${code}</code>\n\n` +
+              `⏱ این کد تا ۵ دقیقه معتبر است.\n` +
+              `🔒 این کد برای دسترسی به پنل مدیریت است.`
+            : `🔐 <b>کد تایید حساب کاربری</b>\n\n` +
+              `کد تایید شما: <code>${code}</code>\n\n` +
+              `⏱ این کد تا ۵ دقیقه معتبر است.\n` +
+              `⚠️ این کد را در اختیار کسی قرار ندهید.`;
         
         const result = await sendTelegramMessage(botToken, telegramId, message);
         
