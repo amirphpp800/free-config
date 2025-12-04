@@ -8,4 +8,4 @@ id = "c05fa9ee874a402791a621bb4df3db4e"
 preview_id = "YOUR_KV_PREVIEW_NAMESPACE_ID"
 
 [vars]
-WEBSITE_URL = "https://your-site.pages.dev"
+WEBSITE_URL = "https://free-config.pages.dev/"
