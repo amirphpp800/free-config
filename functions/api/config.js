@@ -149,9 +149,28 @@ function pickRandom(arr) {
 
 export async function onRequestGet(context) {
     const url = new URL(context.request.url);
-    const path = url.pathname.replace('/api/config/', '').replace('/api/', '');
+    const path = url.pathname.replace('/api/config/', '');
     
     switch (path) {
+        case 'operators':
+            return Response.json(
+                Object.entries(OPERATORS).map(([id, data]) => ({
+                    id,
+                    title: data.title
+                }))
+            );
+            
+        case 'dns-options':
+            return Response.json([
+                { name: "شکن", ip: "178.22.122.100" },
+                { name: "403", ip: "10.202.10.202" },
+                { name: "رادار", ip: "10.202.10.10" },
+                { name: "الکترو", ip: "78.157.42.100" },
+                { name: "بگذر", ip: "185.51.200.2" },
+                { name: "Cloudflare", ip: "1.1.1.1" },
+                { name: "Google", ip: "8.8.8.8" }
+            ]);
+            
         case 'countries':
             const countries = Object.entries(COUNTRY_DATA).map(([code, data]) => ({
                 code,

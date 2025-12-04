@@ -38,6 +38,9 @@ export async function onRequest(context) {
         '/api/auth/send-code',
         '/api/bot/webhook',
         '/api/countries',
+        '/api/announcements',
+        '/api/config/operators',
+        '/api/config/dns-options',
     ];
     
     const isPublicPath = publicPaths.some(path => url.pathname.startsWith(path));
