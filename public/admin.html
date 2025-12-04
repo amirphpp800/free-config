@@ -840,7 +840,7 @@
                 const response = await fetch('/api/auth/send-code', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ telegramId })
+                    body: JSON.stringify({ telegramId, isAdminPanel: true })
                 });
                 
                 const data = await response.json();
