@@ -1,5 +1,3 @@
-import { crypto } from '@peculiar/webcrypto';
-
 function generateToken(length = 32) {
     const array = new Uint8Array(length);
     crypto.getRandomValues(array);
