@@ -3,9 +3,13 @@ let currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
 let pendingTelegramId = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
+    // ابتدا اطلاعات ذخیره شده را بارگذاری می‌کنیم
+    if (currentUser) {
+        updateAuthUI(true);
+    }
+    
     await checkAuth();
     await loadAnnouncements();
-    updateAuthUI(!!currentUser);
 });
 
 async function checkAuth() {
@@ -20,20 +24,24 @@ async function checkAuth() {
         const response = await fetch('/api/auth/me', {
             headers: { 'Authorization': `Bearer ${authToken}` }
         });
-        const data = await response.json();
-
-        if (data.success) {
-            currentUser = data.user;
-            localStorage.setItem('currentUser', JSON.stringify(currentUser));
-            updateAuthUI(true);
-        } else {
-            localStorage.removeItem('authToken');
-            localStorage.removeItem('currentUser');
-            authToken = null;
-            currentUser = null;
-            updateAuthUI(false);
+        
+        if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.user) {
+                currentUser = data.user;
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                updateAuthUI(true);
+                return;
+            }
         }
+        
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('currentUser');
+        authToken = null;
+        currentUser = null;
+        updateAuthUI(false);
     } catch (error) {
+        console.error('Auth check error:', error);
         localStorage.removeItem('authToken');
         localStorage.removeItem('currentUser');
         authToken = null;
@@ -178,8 +186,7 @@ async function verifyCode() {
             localStorage.setItem('currentUser', JSON.stringify(currentUser));
             closeAuthModal();
             updateAuthUI(true);
-            showToast('ورود موفق!', 'success');
-            setTimeout(() => location.reload(), 1000);
+            showToast(data.user.isNewUser ? 'ثبت نام موفق! خوش آمدید' : 'ورود موفق! خوش آمدید', 'success');
         } else {
             showToast(data.error || 'کد تایید اشتباه است', 'error');
         }
@@ -208,7 +215,6 @@ async function logout() {
     currentUser = null;
     updateAuthUI(false);
     showToast('خارج شدید', 'success');
-    setTimeout(() => window.location.href = '/', 1000);
 }
 
 function showLoading() {
