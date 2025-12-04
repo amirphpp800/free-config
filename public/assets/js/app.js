@@ -672,7 +672,14 @@ class App {
 
     openIpVersionModal(locationId) {
         const location = this.countries.find(c => c.id === locationId);
-        if (!location) return;
+        if (!location) {
+            this.showToast('error', 'کشور یافت نشد');
+            return;
+        }
+
+        if (!location.dns) {
+            location.dns = { ipv4: [], ipv6: [] };
+        }
 
         const hasIpv4 = location.dns.ipv4 && location.dns.ipv4.length > 0;
         const hasIpv6 = location.dns.ipv6 && location.dns.ipv6.length > 0;
@@ -682,30 +689,38 @@ class App {
             return;
         }
 
+        if (!this.selectIpv4Btn || !this.selectIpv6Btn) {
+            this.showToast('error', 'خطا در بارگذاری المان‌ها');
+            return;
+        }
+
         this.selectIpv4Btn.disabled = !hasIpv4;
         this.selectIpv6Btn.disabled = !hasIpv6;
 
         const ipv4Title = this.selectIpv4Btn.querySelector('.ip-version-title');
         const ipv6Title = this.selectIpv6Btn.querySelector('.ip-version-title');
 
-        if (hasIpv4) {
-            ipv4Title.textContent = 'IPv4';
-        } else {
-            ipv4Title.textContent = '';
+        if (ipv4Title) {
+            ipv4Title.textContent = hasIpv4 ? `IPv4 (${location.dns.ipv4.length} موجود)` : 'موجود نیست';
         }
 
-        if (hasIpv6) {
-            ipv6Title.textContent = 'IPv6';
-        } else {
-            ipv6Title.textContent = '';
+        if (ipv6Title) {
+            ipv6Title.textContent = hasIpv6 ? `IPv6 (${location.dns.ipv6.length} موجود)` : 'موجود نیست';
         }
 
-        this.ipVersionModal?.classList.add('active');
+        if (this.ipVersionModal) {
+            this.ipVersionModal.style.display = 'flex';
+            this.ipVersionModal.classList.add('active');
+        }
     }
 
     closeIpVersionModal() {
-        this.ipVersionModal?.classList.remove('active');
+        if (this.ipVersionModal) {
+            this.ipVersionModal.classList.remove('active');
+            this.ipVersionModal.style.display = 'none';
+        }
         this.currentServiceType = null;
+        this.currentLocationId = null;
     }
 
     async handleIpVersionSelect(ipVersion) {
