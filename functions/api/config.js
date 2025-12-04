@@ -180,16 +180,6 @@ export async function onRequestGet(context) {
             }));
             return Response.json(countries);
         
-        case 'operators':
-            const operators = Object.entries(OPERATORS).map(([key, data]) => ({
-                id: key,
-                title: data.title
-            }));
-            return Response.json(operators);
-        
-        case 'dns-options':
-            return Response.json(DNS_OPTIONS);
-        
         default:
             return Response.json({ error: 'Not found' }, { status: 404 });
     }
