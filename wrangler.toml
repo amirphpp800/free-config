@@ -3,8 +3,8 @@ compatibility_date = "2024-01-01"
 pages_build_output_dir = "public"
 
 [[kv_namespaces]]
-binding = "KV"
-id = "YOUR_KV_NAMESPACE_ID"
+binding = "DB"
+id = "c05fa9ee874a402791a621bb4df3db4e"
 preview_id = "YOUR_KV_PREVIEW_NAMESPACE_ID"
 
 [vars]
