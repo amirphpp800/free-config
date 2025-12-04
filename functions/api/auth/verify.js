@@ -1,13 +1,8 @@
 
 function generateToken(length = 32) {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    let token = '';
-    const randomValues = new Uint8Array(length);
-    crypto.getRandomValues(randomValues);
-    for (let i = 0; i < length; i++) {
-        token += chars[randomValues[i] % chars.length];
-    }
-    return token;
+    const array = new Uint8Array(length);
+    crypto.getRandomValues(array);
+    return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
 }
 
 export async function onRequestPost(context) {
@@ -25,17 +20,19 @@ export async function onRequestPost(context) {
         }
         
         const codeKey = `verify:${telegramId}`;
-        const storedData = await env.KV.get(codeKey, 'json');
+        const storedDataStr = await env.DB.get(codeKey);
         
-        if (!storedData) {
+        if (!storedDataStr) {
             return Response.json({ 
                 success: false, 
                 error: 'کد تایید منقضی شده است. لطفا دوباره درخواست کنید' 
             }, { status: 400 });
         }
         
+        const storedData = JSON.parse(storedDataStr);
+        
         if (storedData.attempts >= 3) {
-            await env.KV.delete(codeKey);
+            await env.DB.delete(codeKey);
             return Response.json({ 
                 success: false, 
                 error: 'تعداد تلاش‌های مجاز تمام شد. لطفا دوباره درخواست کنید' 
@@ -44,16 +41,18 @@ export async function onRequestPost(context) {
         
         if (storedData.code !== code) {
             storedData.attempts++;
-            await env.KV.put(codeKey, JSON.stringify(storedData), { expirationTtl: 300 });
+            await env.DB.put(codeKey, JSON.stringify(storedData), { expirationTtl: 300 });
             return Response.json({ 
                 success: false, 
                 error: 'کد تایید اشتباه است' 
             }, { status: 400 });
         }
         
-        await env.KV.delete(codeKey);
+        await env.DB.delete(codeKey);
         
-        let user = await env.KV.get(`user:${telegramId}`, 'json');
+        const userKey = `user:${telegramId}`;
+        const userDataStr = await env.DB.get(userKey);
+        let user = userDataStr ? JSON.parse(userDataStr) : null;
         const isNewUser = !user;
         
         if (isNewUser) {
@@ -64,11 +63,12 @@ export async function onRequestPost(context) {
                 isVip: false,
                 configCount: 0
             };
-            await env.KV.put(`user:${telegramId}`, JSON.stringify(user));
+            await env.DB.put(userKey, JSON.stringify(user));
             
-            const usersList = await env.KV.get('users:list', 'json') || [];
+            const usersListStr = await env.DB.get('users:list') || '[]';
+            const usersList = JSON.parse(usersListStr);
             usersList.push(telegramId);
-            await env.KV.put('users:list', JSON.stringify(usersList));
+            await env.DB.put('users:list', JSON.stringify(usersList));
         }
         
         const token = generateToken();
@@ -80,9 +80,7 @@ export async function onRequestPost(context) {
             expiresAt: Date.now() + (7 * 24 * 60 * 60 * 1000)
         };
         
-        await env.KV.put(`session:${token}`, JSON.stringify(session), {
-            expirationTtl: 7 * 24 * 60 * 60
-        });
+        await env.DB.put(`session:${token}`, JSON.stringify(session));
         
         return Response.json({ 
             success: true, 
