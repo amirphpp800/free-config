@@ -836,21 +836,26 @@ class App {
         const hasIpv6 = location.dns && location.dns.ipv6 && location.dns.ipv6.length >= 2;
 
         if (ipVersion === 'ipv4' && !hasIpv4) {
-            this.showToast('error', 'این کشور آدرس IPv4 ندارد');
+            this.showToast('error', 'این کشور آدرس IPv4 ندارد. لطفا از پنل ادمین آدرس اضافه کنید.');
             this.closeIpVersionModal();
             return;
         } else if (ipVersion === 'ipv6' && !hasIpv6) {
-            this.showToast('error', 'این کشور آدرس IPv6 کافی ندارد');
+            this.showToast('error', 'این کشور آدرس IPv6 کافی ندارد. لطفا از پنل ادمین آدرس اضافه کنید.');
             this.closeIpVersionModal();
             return;
         }
 
         this.closeIpVersionModal();
 
-        if (this.currentServiceType === 'wireguard') {
-            await this.generateWireguard(ipVersion);
-        } else if (this.currentServiceType === 'dns') {
-            await this.generateDns(ipVersion);
+        try {
+            if (this.currentServiceType === 'wireguard') {
+                await this.generateWireguard(ipVersion);
+            } else if (this.currentServiceType === 'dns') {
+                await this.generateDns(ipVersion);
+            }
+        } catch (error) {
+            console.error('خطا در دریافت آدرس:', error);
+            this.showToast('error', 'خطا در دریافت آدرس. لطفا دوباره تلاش کنید.');
         }
     }
 
@@ -869,7 +874,10 @@ class App {
         const tunnelDns = this.wireguardTunnelDns?.value || '';
 
         const token = auth.getToken();
-        if (!token) return;
+        if (!token) {
+            this.showToast('error', 'لطفا ابتدا وارد شوید');
+            return;
+        }
 
         try {
             const response = await fetch('/api/config/generate', {
@@ -892,13 +900,11 @@ class App {
                 throw new Error(data.error || 'خطا در دریافت کانفیگ');
             }
 
-            this.generatedWireguardConfig = data.config;
-
-            if (this.wireguardConfig) {
-                this.wireguardConfig.textContent = data.config;
+            if (!data.config) {
+                throw new Error('هیچ کانفیگی دریافت نشد');
             }
 
-            this.wireguardOutput?.classList.remove('hidden');
+            this.generatedWireguardConfig = data.config;
 
             await this.loadUserLimits();
             await this.loadCountries();
@@ -918,8 +924,8 @@ class App {
             
             const location = this.countries.find(c => c.id === this.selectedWireguardLocation);
             const subtitle = operatorName ? 
-                `کانفیگ WireGuard برای ${location?.name || 'کشور'} (${operatorName})` : 
-                `کانفیگ WireGuard برای ${location?.name || 'کشور'}`;
+                `کانفیگ WireGuard برای ${location?.name || 'کشور'} (${operatorName}) - ${dnsType === 'ipv4' ? 'IPv4' : 'IPv6'}` : 
+                `کانفیگ WireGuard برای ${location?.name || 'کشور'} - ${dnsType === 'ipv4' ? 'IPv4' : 'IPv6'}`;
             
             this.showResultModal('wireguard', {
                 title: 'کانفیگ آماده است! 🎉',
@@ -930,7 +936,8 @@ class App {
             });
 
         } catch (error) {
-            this.showToast('error', error.message);
+            console.error('خطا در دریافت کانفیگ:', error);
+            this.showToast('error', error.message || 'خطا در دریافت کانفیگ');
         }
     }
 
@@ -940,13 +947,16 @@ class App {
             return;
         }
 
-        if (this.userLimits && this.userLimits.dnsRemaining <= 0) {
+        if (this.userLimits && this.userLimits.dnsRemaining <= 0 && !this.userLimits.isAdmin) {
             this.showToast('error', 'محدودیت روزانه شما تمام شده است');
             return;
         }
 
         const token = auth.getToken();
-        if (!token) return;
+        if (!token) {
+            this.showToast('error', 'لطفا ابتدا وارد شوید');
+            return;
+        }
 
         try {
             const response = await fetch('/api/dns/generate', {
@@ -967,17 +977,11 @@ class App {
                 throw new Error(data.error || 'خطا در دریافت DNS');
             }
 
-            this.generatedDns = data.dns;
-
-            if (this.dnsServers) {
-                let displayText = data.dns.join('\n');
-                if (data.caption) {
-                    displayText += '\n\n' + data.caption;
-                }
-                this.dnsServers.textContent = displayText;
+            if (!data.dns || data.dns.length === 0) {
+                throw new Error('هیچ آدرس DNS دریافت نشد');
             }
 
-            this.dnsOutput?.classList.remove('hidden');
+            this.generatedDns = data.dns;
 
             await this.loadUserLimits();
             await this.loadCountries();
@@ -989,14 +993,15 @@ class App {
             this.showResultModal('dns', {
                 title: 'آدرس DNS آماده است! 🎉',
                 icon: '🌐',
-                subtitle: `آدرس DNS برای ${location?.name || 'کشور'}`,
+                subtitle: `آدرس DNS برای ${location?.name || 'کشور'} - ${dnsType === 'ipv4' ? 'IPv4' : 'IPv6'}`,
                 content: dnsHtml,
                 caption: data.caption || '',
                 dns: data.dns
             });
 
         } catch (error) {
-            this.showToast('error', error.message);
+            console.error('خطا در دریافت DNS:', error);
+            this.showToast('error', error.message || 'خطا در دریافت آدرس DNS');
         }
     }
 
