@@ -37,7 +37,7 @@ export async function onRequestPost(context) {
         const code = generateVerifyCode();
         const codeKey = `verify:${telegramId}`;
         
-        await env.KV.put(codeKey, JSON.stringify({
+        await env.DB.put(codeKey, JSON.stringify({
             code,
             createdAt: Date.now(),
             attempts: 0
@@ -47,7 +47,7 @@ export async function onRequestPost(context) {
         if (!botToken) {
             return Response.json({ 
                 success: false, 
-                error: 'توکن ربات تنظیم نشده است' 
+                error: 'توکن ربات تنظیم نشده است. لطفاً با مدیر تماس بگیرید.' 
             }, { status: 500 });
         }
         
@@ -59,6 +59,7 @@ export async function onRequestPost(context) {
         const result = await sendTelegramMessage(botToken, telegramId, message);
         
         if (!result.ok) {
+            console.error('Telegram error:', result);
             return Response.json({ 
                 success: false, 
                 error: 'ارسال کد به تلگرام ناموفق بود. آیا ربات را استارت کرده‌اید؟' 
