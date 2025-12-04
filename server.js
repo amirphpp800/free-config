@@ -61,12 +61,9 @@ const KV = {
 };
 
 const env = {
-    KV,
-    DB: KV,
-    BOT_TOKEN: process.env.BOT_TOKEN || '',
-    WEBSITE_URL: process.env.WEBSITE_URL || `http://localhost:${PORT}`,
-    CHANNEL_ID: process.env.CHANNEL_ID || '',
-    CHANNEL_USERNAME: process.env.CHANNEL_USERNAME || 'ROOTLeaker'
+    BOT_TOKEN: process.env.BOT_TOKEN,
+    ADMIN_ID: process.env.ADMIN_ID || '7240662021',
+    DB: KV
 };
 
 function generateToken(length = 32) {
@@ -79,7 +76,7 @@ function generateVerifyCode() {
 
 async function sendTelegramMessage(botToken, chatId, text) {
     if (!botToken) return { ok: false, description: 'Bot token not set' };
-    
+
     try {
         const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
             method: 'POST',
@@ -112,23 +109,31 @@ app.get('/admin', async (req, res) => {
 app.post('/api/auth/send-code', async (req, res) => {
     try {
         const { telegramId } = req.body;
-        
+
         if (!telegramId || !/^\d{5,15}$/.test(telegramId)) {
             return res.status(400).json({ 
                 success: false, 
                 error: 'آیدی عددی تلگرام نامعتبر است' 
             });
         }
-        
+
+        // Check if the user is an admin and if the admin ID is provided
+        if (telegramId !== env.ADMIN_ID) {
+            return res.status(403).json({ 
+                success: false, 
+                error: 'شما ادمین نیستید و اجازه دسترسی ندارید.' 
+            });
+        }
+
         const code = generateVerifyCode();
         const codeKey = `verify:${telegramId}`;
-        
+
         await KV.put(codeKey, JSON.stringify({
             code,
             createdAt: Date.now(),
             attempts: 0
         }));
-        
+
         const botToken = env.BOT_TOKEN;
         if (!botToken) {
             return res.status(500).json({ 
@@ -136,14 +141,14 @@ app.post('/api/auth/send-code', async (req, res) => {
                 error: 'توکن ربات تنظیم نشده است. لطفاً با مدیر تماس بگیرید.' 
             });
         }
-        
-        const message = `🔐 <b>کد تایید حساب کاربری</b>\n\n` +
+
+        const message = `🔐 <b>کد تایید ادمین</b>\n\n` +
             `کد تایید شما: <code>${code}</code>\n\n` +
             `⏱ این کد تا ۵ دقیقه معتبر است.\n` +
             `⚠️ این کد را در اختیار کسی قرار ندهید.`;
-        
+
         const result = await sendTelegramMessage(botToken, telegramId, message);
-        
+
         if (!result.ok) {
             console.error('Telegram error:', result);
             return res.status(400).json({ 
@@ -151,7 +156,7 @@ app.post('/api/auth/send-code', async (req, res) => {
                 error: 'ارسال کد به تلگرام ناموفق بود. آیا ربات را استارت کرده‌اید؟' 
             });
         }
-        
+
         return res.json({ 
             success: true, 
             message: 'کد تایید به تلگرام شما ارسال شد' 
@@ -168,24 +173,24 @@ app.post('/api/auth/send-code', async (req, res) => {
 app.post('/api/auth/verify', async (req, res) => {
     try {
         const { telegramId, code } = req.body;
-        
+
         if (!telegramId || !code) {
             return res.status(400).json({ 
                 success: false, 
                 error: 'آیدی و کد تایید الزامی است' 
             });
         }
-        
+
         const codeKey = `verify:${telegramId}`;
         const storedData = await KV.get(codeKey, 'json');
-        
+
         if (!storedData) {
             return res.status(400).json({ 
                 success: false, 
                 error: 'کد تایید منقضی شده است. لطفا دوباره درخواست کنید' 
             });
         }
-        
+
         if (storedData.attempts >= 3) {
             await KV.delete(codeKey);
             return res.status(400).json({ 
@@ -193,7 +198,7 @@ app.post('/api/auth/verify', async (req, res) => {
                 error: 'تعداد تلاش‌های مجاز تمام شد. لطفا دوباره درخواست کنید' 
             });
         }
-        
+
         if (storedData.code !== code) {
             storedData.attempts++;
             await KV.put(codeKey, JSON.stringify(storedData));
@@ -202,27 +207,36 @@ app.post('/api/auth/verify', async (req, res) => {
                 error: 'کد تایید اشتباه است' 
             });
         }
-        
+
         await KV.delete(codeKey);
-        
+
         let user = await KV.get(`user:${telegramId}`, 'json');
         const isNewUser = !user;
-        
+
         if (isNewUser) {
             user = {
                 telegramId,
                 createdAt: Date.now(),
-                isAdmin: false,
+                isAdmin: telegramId === env.ADMIN_ID, // Set isAdmin based on ADMIN_ID
                 isVip: false,
                 configCount: 0
             };
             await KV.put(`user:${telegramId}`, JSON.stringify(user));
-            
+
             const usersList = await KV.get('users:list', 'json') || [];
             usersList.push(telegramId);
             await KV.put('users:list', JSON.stringify(usersList));
+        } else {
+            // Ensure admin status is correctly reflected for existing users
+            if (telegramId === env.ADMIN_ID && !user.isAdmin) {
+                user.isAdmin = true;
+                await KV.put(`user:${telegramId}`, JSON.stringify(user));
+            } else if (telegramId !== env.ADMIN_ID && user.isAdmin) {
+                user.isAdmin = false; // Remove admin status if they are no longer the admin
+                await KV.put(`user:${telegramId}`, JSON.stringify(user));
+            }
         }
-        
+
         const token = generateToken();
         const session = {
             telegramId,
@@ -231,9 +245,9 @@ app.post('/api/auth/verify', async (req, res) => {
             createdAt: Date.now(),
             expiresAt: Date.now() + (7 * 24 * 60 * 60 * 1000)
         };
-        
+
         await KV.put(`session:${token}`, JSON.stringify(session));
-        
+
         return res.json({ 
             success: true, 
             token,
@@ -389,7 +403,7 @@ app.get('/api/countries', async (req, res) => {
             en: data.en,
             flag: flagFromCode(code)
         }));
-        
+
         customCountries.forEach(country => {
             if (!allCountries.find(c => c.code === country.code)) {
                 allCountries.push({
@@ -398,7 +412,7 @@ app.get('/api/countries', async (req, res) => {
                 });
             }
         });
-        
+
         return res.json(allCountries);
     } catch (error) {
         console.error('Countries error:', error);
@@ -456,29 +470,29 @@ function pickRandom(arr) {
 app.post('/api/config/generate-wireguard', async (req, res) => {
     try {
         const { country, operator, dns, ipVersion } = req.body;
-        
+
         if (!country) {
             return res.status(400).json({ success: false, error: 'کشور انتخاب نشده است' });
         }
-        
+
         const countryCode = country.toUpperCase();
         const countryData = COUNTRY_DATA[countryCode];
-        
+
         if (!countryData) {
             return res.status(400).json({ success: false, error: 'کشور نامعتبر است' });
         }
-        
+
         const countryAddresses = await KV.get(`country:${countryCode}:addresses`, 'json') || {};
-        
+
         const privateKey = randBase64(32);
         const publicKey = randBase64(32);
         const presharedKey = randBase64(32);
         const mtu = pickRandom(WG_MTUS);
         const selectedDns = dns || pickRandom(DNS_OPTIONS).ip;
-        
+
         let address, allowedIPs, endpoint;
         const port = 51820 + Math.floor(Math.random() * 100);
-        
+
         if (ipVersion === 'ipv6') {
             if (countryAddresses.ipv6 && countryAddresses.ipv6.length > 0) {
                 address = pickRandom(countryAddresses.ipv6);
@@ -498,12 +512,12 @@ app.post('/api/config/generate-wireguard', async (req, res) => {
             allowedIPs = "0.0.0.0/0, ::/0";
             endpoint = `wg-${countryCode.toLowerCase()}.example.com:${port}`;
         }
-        
+
         let operatorInfo = '';
         if (operator && OPERATORS[operator]) {
             operatorInfo = `\n# Operator: ${OPERATORS[operator].title}`;
         }
-        
+
         const config = `[Interface]
 PrivateKey = ${privateKey}
 Address = ${address}
@@ -545,20 +559,20 @@ PersistentKeepalive = 25
 app.post('/api/config/generate-dns', async (req, res) => {
     try {
         const { country, ipVersion } = req.body;
-        
+
         if (!country) {
             return res.status(400).json({ success: false, error: 'کشور انتخاب نشده است' });
         }
-        
+
         const countryCode = country.toUpperCase();
         const countryData = COUNTRY_DATA[countryCode];
-        
+
         if (!countryData) {
             return res.status(400).json({ success: false, error: 'کشور نامعتبر است' });
         }
-        
+
         const countryDns = await KV.get(`country:${countryCode}:dns`, 'json') || {};
-        
+
         let dnsConfig;
         if (ipVersion === 'ipv6') {
             if (countryDns.ipv6) {
@@ -583,7 +597,7 @@ app.post('/api/config/generate-dns', async (req, res) => {
                 };
             }
         }
-        
+
         return res.json({
             success: true,
             country: countryData.fa,
@@ -614,7 +628,7 @@ app.get('/api/admin/stats', adminAuth, async (req, res) => {
         const usersList = await KV.get('users:list', 'json') || [];
         const countries = await KV.get('countries:list', 'json') || [];
         let totalConfigs = 0, vipCount = 0, adminCount = 0;
-        
+
         for (const telegramId of usersList) {
             const userData = await KV.get(`user:${telegramId}`, 'json');
             if (userData) {
@@ -623,7 +637,7 @@ app.get('/api/admin/stats', adminAuth, async (req, res) => {
                 if (userData.isAdmin) adminCount++;
             }
         }
-        
+
         return res.json({
             success: true,
             stats: {
@@ -645,12 +659,12 @@ app.get('/api/admin/users', adminAuth, async (req, res) => {
     try {
         const usersList = await KV.get('users:list', 'json') || [];
         const users = [];
-        
+
         for (const telegramId of usersList) {
             const userData = await KV.get(`user:${telegramId}`, 'json');
             if (userData) users.push(userData);
         }
-        
+
         return res.json({ success: true, users, total: users.length });
     } catch (error) {
         return res.status(500).json({ success: false, error: 'خطای سرور' });
@@ -683,26 +697,26 @@ app.get('/api/admin/settings', adminAuth, async (req, res) => {
 app.post('/api/admin/country/add', adminAuth, async (req, res) => {
     try {
         const { code, fa, en, ipv4Addresses, ipv6Addresses, dnsIpv4Primary, dnsIpv4Secondary, dnsIpv6Primary, dnsIpv6Secondary } = req.body;
-        
+
         if (!code || !fa || !en) {
             return res.status(400).json({ success: false, error: 'کد کشور، نام فارسی و انگلیسی الزامی است' });
         }
-        
+
         const countries = await KV.get('countries:list', 'json') || [];
         const countryCode = code.toUpperCase();
-        
+
         const existingIndex = countries.findIndex(c => c.code === countryCode);
-        
+
         const countryData = { code: countryCode, fa, en };
-        
+
         if (existingIndex >= 0) {
             countries[existingIndex] = countryData;
         } else {
             countries.push(countryData);
         }
-        
+
         await KV.put('countries:list', JSON.stringify(countries));
-        
+
         if (ipv4Addresses || ipv6Addresses) {
             const addresses = {
                 ipv4: ipv4Addresses ? ipv4Addresses.split('\n').map(a => a.trim()).filter(a => a) : [],
@@ -710,7 +724,7 @@ app.post('/api/admin/country/add', adminAuth, async (req, res) => {
             };
             await KV.put(`country:${countryCode}:addresses`, JSON.stringify(addresses));
         }
-        
+
         if (dnsIpv4Primary || dnsIpv6Primary) {
             const dns = {
                 ipv4: dnsIpv4Primary ? { primary: dnsIpv4Primary, secondary: dnsIpv4Secondary || '' } : null,
@@ -718,7 +732,7 @@ app.post('/api/admin/country/add', adminAuth, async (req, res) => {
             };
             await KV.put(`country:${countryCode}:dns`, JSON.stringify(dns));
         }
-        
+
         return res.json({ success: true, message: 'کشور ذخیره شد' });
     } catch (error) {
         console.error('Add country error:', error);
@@ -732,14 +746,14 @@ app.post('/api/admin/country/delete', adminAuth, async (req, res) => {
         if (!code) {
             return res.status(400).json({ success: false, error: 'کد کشور الزامی است' });
         }
-        
+
         const countries = await KV.get('countries:list', 'json') || [];
         const newCountries = countries.filter(c => c.code !== code.toUpperCase());
         await KV.put('countries:list', JSON.stringify(newCountries));
-        
+
         await KV.delete(`country:${code.toUpperCase()}:addresses`);
         await KV.delete(`country:${code.toUpperCase()}:dns`);
-        
+
         return res.json({ success: true, message: 'کشور حذف شد' });
     } catch (error) {
         return res.status(500).json({ success: false, error: 'خطای سرور' });
@@ -763,15 +777,15 @@ app.post('/api/admin/user/update', adminAuth, async (req, res) => {
         if (!telegramId) {
             return res.status(400).json({ success: false, error: 'آیدی کاربر الزامی است' });
         }
-        
+
         const userData = await KV.get(`user:${telegramId}`, 'json');
         if (!userData) {
             return res.status(404).json({ success: false, error: 'کاربر یافت نشد' });
         }
-        
+
         if (typeof isVip === 'boolean') userData.isVip = isVip;
         if (typeof isAdmin === 'boolean') userData.isAdmin = isAdmin;
-        
+
         await KV.put(`user:${telegramId}`, JSON.stringify(userData));
         return res.json({ success: true, message: 'کاربر بروزرسانی شد', user: userData });
     } catch (error) {
@@ -785,12 +799,12 @@ app.post('/api/admin/user/delete', adminAuth, async (req, res) => {
         if (!telegramId) {
             return res.status(400).json({ success: false, error: 'آیدی کاربر الزامی است' });
         }
-        
+
         await KV.delete(`user:${telegramId}`);
         const usersList = await KV.get('users:list', 'json') || [];
         const newList = usersList.filter(id => id !== telegramId);
         await KV.put('users:list', JSON.stringify(newList));
-        
+
         return res.json({ success: true, message: 'کاربر حذف شد' });
     } catch (error) {
         return res.status(500).json({ success: false, error: 'خطای سرور' });
@@ -801,12 +815,12 @@ app.post('/api/admin/settings/update', adminAuth, async (req, res) => {
     try {
         const { channelId, channelUsername, websiteUrl, maintenanceMode } = req.body;
         const settings = await KV.get('settings:global', 'json') || {};
-        
+
         if (channelId !== undefined) settings.channelId = channelId;
         if (channelUsername !== undefined) settings.channelUsername = channelUsername;
         if (websiteUrl !== undefined) settings.websiteUrl = websiteUrl;
         if (maintenanceMode !== undefined) settings.maintenanceMode = maintenanceMode;
-        
+
         await KV.put('settings:global', JSON.stringify(settings));
         return res.json({ success: true, message: 'تنظیمات ذخیره شد', settings });
     } catch (error) {
@@ -820,21 +834,21 @@ app.post('/api/admin/broadcast', adminAuth, async (req, res) => {
         if (!message) {
             return res.status(400).json({ success: false, error: 'پیام الزامی است' });
         }
-        
+
         const usersList = await KV.get('users:list', 'json') || [];
         const botToken = env.BOT_TOKEN;
-        
+
         if (!botToken) {
             return res.status(500).json({ success: false, error: 'توکن ربات تنظیم نشده است' });
         }
-        
+
         let sent = 0, failed = 0;
-        
+
         for (const telegramId of usersList) {
             const result = await sendTelegramMessage(botToken, telegramId, message);
             if (result.ok) sent++; else failed++;
         }
-        
+
         return res.json({ 
             success: true, 
             message: `پیام به ${sent} کاربر ارسال شد، ${failed} ناموفق`,
@@ -853,7 +867,7 @@ app.get('*', async (req, res) => {
         if (stat.isFile()) {
             return res.sendFile(filePath);
         }
-        
+
         const indexPath = join(__dirname, 'public', 'index.html');
         const content = await fs.readFile(indexPath, 'utf-8');
         res.send(content);
