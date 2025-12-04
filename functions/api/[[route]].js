@@ -412,43 +412,32 @@ async function handleGenerateConfig(request, env) {
         return errorResponse('کشور یافت نشد');
     }
 
-    let dnsServers = [];
-
+    // بررسی وجود آدرس‌ها
     if (dnsType === 'ipv4') {
         if (!location.dns || !location.dns.ipv4 || location.dns.ipv4.length === 0) {
             return errorResponse('این کشور آدرس IPv4 ندارد');
-        }
-        
-        dnsServers.push(location.dns.ipv4[0]);
-        
-        location.dns.ipv4 = location.dns.ipv4.slice(1);
-        
-        const countryIndex = countries.findIndex(c => c.id === locationId);
-        if (countryIndex !== -1) {
-            countries[countryIndex] = location;
-            await env.DB.put('countries:list', JSON.stringify(countries));
         }
     } else if (dnsType === 'ipv6') {
         if (!location.dns || !location.dns.ipv6 || location.dns.ipv6.length < 2) {
             return errorResponse('این کشور آدرس IPv6 کافی ندارد');
         }
-        
-        dnsServers.push(location.dns.ipv6[0]);
-        dnsServers.push(location.dns.ipv6[1]);
-        
-        location.dns.ipv6 = location.dns.ipv6.slice(2);
-        
-        const countryIndex = countries.findIndex(c => c.id === locationId);
-        if (countryIndex !== -1) {
-            countries[countryIndex] = location;
-            await env.DB.put('countries:list', JSON.stringify(countries));
-        }
     }
 
+    // دریافت آدرس‌ها
+    let dnsServers = [];
+    if (dnsType === 'ipv4') {
+        dnsServers.push(location.dns.ipv4[0]);
+    } else if (dnsType === 'ipv6') {
+        dnsServers.push(location.dns.ipv6[0]);
+        dnsServers.push(location.dns.ipv6[1]);
+    }
+
+    // تولید کلید خصوصی
     const array = new Uint8Array(32);
     crypto.getRandomValues(array);
     const privateKey = btoa(String.fromCharCode.apply(null, array));
 
+    // ساخت کانفیگ
     const config = `[Interface]
 # تولید شده توسط سرویس گیمینگ
 # مکان: ${location.name}
@@ -457,10 +446,7 @@ PrivateKey = ${privateKey}
 Address = ${dnsType === 'ipv4' ? '10.0.0.2/32' : 'fd00::2/128'}
 DNS = ${dnsServers.join(', ')}`;
 
-    if (!userIsAdmin) {
-        await incrementLimit(env, session.telegramId, 'wireguard');
-    }
-
+    // ذخیره در تاریخچه
     await saveToHistory(env, session.telegramId, 'wireguard', {
         locationId,
         locationName: location.name,
@@ -468,6 +454,25 @@ DNS = ${dnsServers.join(', ')}`;
         dnsServers,
         config
     });
+
+    // افزایش محدودیت
+    if (!userIsAdmin) {
+        await incrementLimit(env, session.telegramId, 'wireguard');
+    }
+
+    // حذف آدرس استفاده شده از لیست
+    if (dnsType === 'ipv4') {
+        location.dns.ipv4 = location.dns.ipv4.slice(1);
+    } else if (dnsType === 'ipv6') {
+        location.dns.ipv6 = location.dns.ipv6.slice(2);
+    }
+
+    // ذخیره تغییرات در KV
+    const countryIndex = countries.findIndex(c => c.id === locationId);
+    if (countryIndex !== -1) {
+        countries[countryIndex] = location;
+        await env.DB.put('countries:list', JSON.stringify(countries));
+    }
 
     return jsonResponse({
         success: true,
@@ -504,50 +509,27 @@ async function handleGenerateDns(request, env) {
         return errorResponse('کشور یافت نشد');
     }
 
-    let dns = [];
-
+    // بررسی وجود آدرس‌ها
     if (dnsType === 'ipv4') {
         if (!location.dns || !location.dns.ipv4 || location.dns.ipv4.length === 0) {
             return errorResponse('این کشور آدرس IPv4 ندارد');
-        }
-        
-        dns.push(location.dns.ipv4[0]);
-        
-        location.dns.ipv4 = location.dns.ipv4.slice(1);
-        
-        const countryIndex = countries.findIndex(c => c.id === locationId);
-        if (countryIndex !== -1) {
-            countries[countryIndex] = location;
-            await env.DB.put('countries:list', JSON.stringify(countries));
         }
     } else if (dnsType === 'ipv6') {
         if (!location.dns || !location.dns.ipv6 || location.dns.ipv6.length < 2) {
             return errorResponse('این کشور آدرس IPv6 کافی ندارد');
         }
-        
+    }
+
+    // دریافت آدرس‌ها
+    let dns = [];
+    if (dnsType === 'ipv4') {
+        dns.push(location.dns.ipv4[0]);
+    } else if (dnsType === 'ipv6') {
         dns.push(location.dns.ipv6[0]);
         dns.push(location.dns.ipv6[1]);
-        
-        location.dns.ipv6 = location.dns.ipv6.slice(2);
-        
-        const countryIndex = countries.findIndex(c => c.id === locationId);
-        if (countryIndex !== -1) {
-            countries[countryIndex] = location;
-            await env.DB.put('countries:list', JSON.stringify(countries));
-        }
     }
 
-    if (!userIsAdmin) {
-        await incrementLimit(env, session.telegramId, 'dns');
-    }
-
-    await saveToHistory(env, session.telegramId, 'dns', {
-        locationId,
-        locationName: location.name,
-        dnsType,
-        dns
-    });
-
+    // ساخت caption
     let caption = null;
     if (dnsType === 'ipv4' && dns.length > 0) {
         caption = `🔧 برای تانل کردن ادرس های پیشنهادی:
@@ -561,6 +543,33 @@ async function handleGenerateDns(request, env) {
 
 💡 نکته: برای بررسی فیلتر، فقط سرورهای ایران را چک کنید (باید 4/4 باشد)
 https://check-host.net/check-ping?host=${dns[0]}`;
+    }
+
+    // ذخیره در تاریخچه
+    await saveToHistory(env, session.telegramId, 'dns', {
+        locationId,
+        locationName: location.name,
+        dnsType,
+        dns
+    });
+
+    // افزایش محدودیت
+    if (!userIsAdmin) {
+        await incrementLimit(env, session.telegramId, 'dns');
+    }
+
+    // حذف آدرس استفاده شده از لیست
+    if (dnsType === 'ipv4') {
+        location.dns.ipv4 = location.dns.ipv4.slice(1);
+    } else if (dnsType === 'ipv6') {
+        location.dns.ipv6 = location.dns.ipv6.slice(2);
+    }
+
+    // ذخیره تغییرات در KV
+    const countryIndex = countries.findIndex(c => c.id === locationId);
+    if (countryIndex !== -1) {
+        countries[countryIndex] = location;
+        await env.DB.put('countries:list', JSON.stringify(countries));
     }
 
     return jsonResponse({
