@@ -2,20 +2,34 @@ let authToken = localStorage.getItem('authToken');
 let currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
 let pendingTelegramId = null;
 
-document.addEventListener('DOMContentLoaded', async () => {
-    // ابتدا اطلاعات ذخیره شده را بارگذاری می‌کنیم
-    if (currentUser) {
-        updateAuthUI(true);
+// تشخیص بازگشت به tab و بررسی session
+document.addEventListener('visibilitychange', async () => {
+    if (!document.hidden) {
+        await checkAuth();
     }
-    
+});
+
+// بررسی session در هر تغییر focus
+window.addEventListener('focus', async () => {
+    await checkAuth();
+});
+
+document.addEventListener('DOMContentLoaded', async () => {
+    // Assuming loadCountries, loadOperators, loadDnsOptions are defined elsewhere or not needed for this snippet's scope
+    // await loadCountries();
+    // await loadOperators();
+    // await loadDnsOptions();
     await checkAuth();
     await loadAnnouncements();
 });
 
 async function checkAuth() {
+    // اگر اطلاعات localStorage داریم، از آن استفاده کنیم
+    if (currentUser && authToken) {
+        updateAuthUI(true);
+    }
+
     if (!authToken) {
-        currentUser = null;
-        localStorage.removeItem('currentUser');
         updateAuthUI(false);
         return;
     }
@@ -24,29 +38,29 @@ async function checkAuth() {
         const response = await fetch('/api/auth/me', {
             headers: { 'Authorization': `Bearer ${authToken}` }
         });
-        
-        if (response.ok) {
-            const data = await response.json();
-            if (data.success && data.user) {
-                currentUser = data.user;
-                localStorage.setItem('currentUser', JSON.stringify(currentUser));
-                updateAuthUI(true);
-                return;
+
+        const data = await response.json();
+
+        if (data.success && data.user) {
+            currentUser = data.user;
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            updateAuthUI(true);
+        } else {
+            // فقط در صورتی که سرور خطا داد، session را پاک کنیم
+            if (response.status === 401) {
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('currentUser');
+                authToken = null;
+                currentUser = null;
+                updateAuthUI(false);
             }
         }
-        
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('currentUser');
-        authToken = null;
-        currentUser = null;
-        updateAuthUI(false);
     } catch (error) {
         console.error('Auth check error:', error);
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('currentUser');
-        authToken = null;
-        currentUser = null;
-        updateAuthUI(false);
+        // در صورت خطای شبکه، از اطلاعات localStorage استفاده کنیم
+        if (currentUser) {
+            updateAuthUI(true);
+        }
     }
 }
 
@@ -59,7 +73,13 @@ function updateAuthUI(isLoggedIn) {
     if (isLoggedIn && currentUser) {
         authButtons?.classList.add('hidden');
         userMenu?.classList.remove('hidden');
-        if (userDisplay) userDisplay.textContent = currentUser.telegramId;
+        if (userDisplay) {
+            userDisplay.textContent = currentUser.telegramId;
+            // اگر کلیک شد به صفحه پروفایل برود
+            userDisplay.style.cursor = 'pointer';
+            userDisplay.onclick = () => window.location.href = '/profile.html';
+        }
+
 
         if (adminBtn && currentUser.isAdmin) {
             adminBtn.classList.remove('hidden');
