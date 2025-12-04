@@ -287,6 +287,21 @@ class AdminPanel {
             return;
         }
 
+        // Validate IP address format
+        if (type === 'ipv4') {
+            const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/;
+            if (!ipv4Regex.test(address)) {
+                this.showToast('error', 'فرمت آدرس IPv4 نامعتبر است');
+                return;
+            }
+        } else if (type === 'ipv6') {
+            const ipv6Regex = /^([0-9a-fA-F]{0,4}:){2,7}[0-9a-fA-F]{0,4}$/;
+            if (!ipv6Regex.test(address)) {
+                this.showToast('error', 'فرمت آدرس IPv6 نامعتبر است');
+                return;
+            }
+        }
+
         if (this.editingCountry.dns[type].includes(address)) {
             this.showToast('error', 'این آدرس قبلا اضافه شده است');
             return;
@@ -349,6 +364,12 @@ class AdminPanel {
             return;
         }
 
+        const saveBtn = document.querySelector('.modal-actions .btn-primary');
+        if (saveBtn) {
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<div class="loading-spinner"></div>';
+        }
+
         try {
             const response = await fetch(`/api/admin/countries/${this.editingCountry.id}`, {
                 method: 'PUT',
@@ -383,6 +404,12 @@ class AdminPanel {
 
         } catch (error) {
             this.showToast('error', error.message);
+        } finally {
+            const saveBtn = document.querySelector('.modal-actions .btn-primary');
+            if (saveBtn) {
+                saveBtn.disabled = false;
+                saveBtn.textContent = 'ذخیره تغییرات';
+            }
         }
     }
 

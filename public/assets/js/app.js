@@ -46,13 +46,39 @@ class App {
         this.currentServiceType = null;
 
         this.loginModal = document.getElementById('login-modal');
+        this.loginModalTitle = document.getElementById('login-modal-title');
         this.loginStep1 = document.getElementById('login-step-1');
+        this.loginStepPassword = document.getElementById('login-step-password');
         this.loginStep2 = document.getElementById('login-step-2');
+        this.loginStepForgot = document.getElementById('login-step-forgot');
         this.telegramIdInput = document.getElementById('telegram-id');
+        this.loginPasswordInput = document.getElementById('login-password');
+        this.checkAccountBtn = document.getElementById('check-account-btn');
+        this.loginPasswordBtn = document.getElementById('login-password-btn');
         this.sendCodeBtn = document.getElementById('send-code-btn');
         this.verifyCodeBtn = document.getElementById('verify-code-btn');
+        this.resetPasswordBtn = document.getElementById('reset-password-btn');
+        this.useCodeBtn = document.getElementById('use-code-btn');
+        this.forgotPasswordBtn = document.getElementById('forgot-password-btn');
+        this.backToStep1FromPassword = document.getElementById('back-to-step-1-from-password');
+        this.backToPasswordStep = document.getElementById('back-to-password-step');
         this.codeInputs = document.querySelectorAll('.code-input');
+        this.resetCodeInputs = document.querySelectorAll('.reset-code-input');
+        this.newPasswordReset = document.getElementById('new-password-reset');
         this.backToStep1Btn = document.getElementById('back-to-step-1');
+        this.currentLoginTelegramId = null;
+        this.userHasPassword = false;
+        
+        this.passwordStatusText = document.getElementById('password-status-text');
+        this.setPasswordForm = document.getElementById('set-password-form');
+        this.changePasswordForm = document.getElementById('change-password-form');
+        this.newPasswordInput = document.getElementById('new-password');
+        this.confirmPasswordInput = document.getElementById('confirm-password');
+        this.savePasswordBtn = document.getElementById('save-password-btn');
+        this.currentPasswordInput = document.getElementById('current-password');
+        this.newPasswordChangeInput = document.getElementById('new-password-change');
+        this.confirmPasswordChangeInput = document.getElementById('confirm-password-change');
+        this.changePasswordBtn = document.getElementById('change-password-btn');
 
         this.adminLoginModal = document.getElementById('admin-login-modal');
         this.adminLoginStep1 = document.getElementById('admin-login-step-1');
@@ -114,6 +140,18 @@ class App {
         this.toast = document.getElementById('toast');
         this.toastIcon = document.getElementById('toast-icon');
         this.toastMessage = document.getElementById('toast-message');
+
+        this.resultModal = document.getElementById('result-modal');
+        this.resultModalTitle = document.getElementById('result-modal-title');
+        this.resultModalIcon = document.getElementById('result-modal-icon');
+        this.resultModalSubtitle = document.getElementById('result-modal-subtitle');
+        this.resultModalContent = document.getElementById('result-modal-content');
+        this.resultModalCaption = document.getElementById('result-modal-caption');
+        this.resultCopyBtn = document.getElementById('result-copy-btn');
+        this.resultDownloadBtn = document.getElementById('result-download-btn');
+        this.resultCloseBtn = document.getElementById('result-close-btn');
+        this.currentResultType = null;
+        this.currentResultData = null;
     }
 
     bindEvents() {
@@ -129,12 +167,61 @@ class App {
             }
         });
 
+        this.checkAccountBtn?.addEventListener('click', () => this.handleCheckAccount());
+        this.loginPasswordBtn?.addEventListener('click', () => this.handlePasswordLogin());
         this.sendCodeBtn?.addEventListener('click', () => this.handleSendCode());
         this.verifyCodeBtn?.addEventListener('click', () => this.handleVerifyCode());
+        this.resetPasswordBtn?.addEventListener('click', () => this.handleResetPassword());
+        this.useCodeBtn?.addEventListener('click', () => this.handleUseCodeInstead());
+        this.forgotPasswordBtn?.addEventListener('click', () => this.handleForgotPassword());
         this.backToStep1Btn?.addEventListener('click', () => this.showLoginStep(1));
+        this.backToStep1FromPassword?.addEventListener('click', () => this.showLoginStep(1));
+        this.backToPasswordStep?.addEventListener('click', () => this.showLoginStep('password'));
+
+        this.savePasswordBtn?.addEventListener('click', () => this.handleSavePassword());
+        this.changePasswordBtn?.addEventListener('click', () => this.handleChangePassword());
 
         this.telegramIdInput?.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') this.handleSendCode();
+            if (e.key === 'Enter') this.handleCheckAccount();
+        });
+
+        this.loginPasswordInput?.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') this.handlePasswordLogin();
+        });
+
+        this.resetCodeInputs.forEach((input, index) => {
+            input.addEventListener('input', (e) => {
+                const value = e.target.value;
+                if (!/^\d*$/.test(value)) {
+                    e.target.value = value.replace(/\D/g, '');
+                    return;
+                }
+                if (value.length === 1 && index < this.resetCodeInputs.length - 1) {
+                    this.resetCodeInputs[index + 1].focus();
+                    this.resetCodeInputs[index + 1].select();
+                }
+            });
+
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Backspace' && !e.target.value && index > 0) {
+                    this.resetCodeInputs[index - 1].focus();
+                    this.resetCodeInputs[index - 1].select();
+                }
+            });
+
+            input.addEventListener('paste', (e) => {
+                e.preventDefault();
+                const pastedData = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '');
+                const digits = pastedData.slice(0, 6).split('');
+                digits.forEach((digit, i) => {
+                    if (this.resetCodeInputs[i]) {
+                        this.resetCodeInputs[i].value = digit;
+                    }
+                });
+                if (digits.length > 0 && this.resetCodeInputs[Math.min(digits.length, 5)]) {
+                    this.resetCodeInputs[Math.min(digits.length, 5)].focus();
+                }
+            });
         });
 
         this.codeInputs.forEach((input, index) => {
@@ -311,6 +398,15 @@ class App {
         this.publishAnnouncementBtn?.addEventListener('click', () => this.publishAnnouncement());
         
         this.announcementTemplate?.addEventListener('change', (e) => this.fillAnnouncementTemplate(e.target.value));
+
+        this.resultModal?.addEventListener('click', (e) => {
+            if (e.target === this.resultModal) {
+                this.closeResultModal();
+            }
+        });
+        this.resultCloseBtn?.addEventListener('click', () => this.closeResultModal());
+        this.resultCopyBtn?.addEventListener('click', () => this.copyResultContent());
+        this.resultDownloadBtn?.addEventListener('click', () => this.downloadResultContent());
     }
 
     switchTab(tab) {
@@ -370,7 +466,6 @@ class App {
             this.mainContent?.classList.remove('hidden');
             this.userBar?.classList.remove('hidden');
 
-            // Apply changes: Use "کاربر" + telegramId and display telegramId directly for userId
             if (this.userName && user.telegramId) {
                 this.userName.textContent = `کاربر ${user.telegramId}`;
             }
@@ -385,8 +480,8 @@ class App {
             }
 
             await this.loadUserLimits();
+            await this.loadPasswordStatus();
 
-            // بازیابی تب ذخیره شده
             const savedTab = localStorage.getItem('activeTab');
             if (savedTab) {
                 this.switchTab(savedTab);
@@ -595,9 +690,13 @@ class App {
             const data = await response.json();
             if (response.ok) {
                 this.countries = data.countries || [];
+            } else {
+                this.showToast('error', 'خطا در بارگذاری کشورها');
+                this.countries = [];
             }
         } catch (error) {
             console.error('Error loading countries:', error);
+            this.showToast('error', 'خطا در اتصال به سرور');
             this.countries = [];
         }
     }
@@ -800,7 +899,6 @@ class App {
             }
 
             this.wireguardOutput?.classList.remove('hidden');
-            this.wireguardOutput?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
             await this.loadUserLimits();
             await this.loadCountries();
@@ -818,11 +916,18 @@ class App {
                 operatorName = operatorNames[operator] || '';
             }
             
-            const message = operatorName ? 
-                `کانفیگ با موفقیت دریافت شد (${operatorName})` : 
-                'کانفیگ با موفقیت دریافت شد';
+            const location = this.countries.find(c => c.id === this.selectedWireguardLocation);
+            const subtitle = operatorName ? 
+                `کانفیگ WireGuard برای ${location?.name || 'کشور'} (${operatorName})` : 
+                `کانفیگ WireGuard برای ${location?.name || 'کشور'}`;
             
-            this.showToast('success', message);
+            this.showResultModal('wireguard', {
+                title: 'کانفیگ آماده است! 🎉',
+                icon: '🔐',
+                subtitle: subtitle,
+                content: data.config,
+                locationId: this.selectedWireguardLocation
+            });
 
         } catch (error) {
             this.showToast('error', error.message);
@@ -873,12 +978,22 @@ class App {
             }
 
             this.dnsOutput?.classList.remove('hidden');
-            this.dnsOutput?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
             await this.loadUserLimits();
             await this.loadCountries();
             this.renderLocations();
-            this.showToast('success', 'DNS با موفقیت دریافت شد');
+            
+            const location = this.countries.find(c => c.id === this.selectedDnsLocation);
+            const dnsHtml = data.dns.map(dns => `<span class="dns-address">${dns}</span>`).join('');
+            
+            this.showResultModal('dns', {
+                title: 'آدرس DNS آماده است! 🎉',
+                icon: '🌐',
+                subtitle: `آدرس DNS برای ${location?.name || 'کشور'}`,
+                content: dnsHtml,
+                caption: data.caption || '',
+                dns: data.dns
+            });
 
         } catch (error) {
             this.showToast('error', error.message);
@@ -914,6 +1029,79 @@ class App {
         } catch (error) {
             this.showToast('error', 'خطا در کپی کردن');
         }
+    }
+
+    showResultModal(type, data) {
+        this.currentResultType = type;
+        this.currentResultData = data;
+
+        if (this.resultModalTitle) {
+            this.resultModalTitle.textContent = data.title;
+        }
+        if (this.resultModalIcon) {
+            this.resultModalIcon.textContent = data.icon;
+        }
+        if (this.resultModalSubtitle) {
+            this.resultModalSubtitle.textContent = data.subtitle;
+        }
+        if (this.resultModalContent) {
+            if (type === 'dns') {
+                this.resultModalContent.innerHTML = data.content;
+            } else {
+                this.resultModalContent.textContent = data.content;
+            }
+        }
+        if (this.resultModalCaption) {
+            this.resultModalCaption.textContent = data.caption || '';
+        }
+
+        if (type === 'wireguard') {
+            this.resultDownloadBtn?.classList.remove('hidden');
+        } else {
+            this.resultDownloadBtn?.classList.add('hidden');
+        }
+
+        if (this.resultModal) {
+            this.resultModal.style.display = 'flex';
+            this.resultModal.classList.add('active');
+        }
+    }
+
+    closeResultModal() {
+        if (this.resultModal) {
+            this.resultModal.classList.remove('active');
+            setTimeout(() => {
+                this.resultModal.style.display = 'none';
+            }, 300);
+        }
+        this.currentResultType = null;
+        this.currentResultData = null;
+    }
+
+    async copyResultContent() {
+        if (!this.currentResultData) return;
+
+        try {
+            let textToCopy = '';
+            if (this.currentResultType === 'wireguard') {
+                textToCopy = this.currentResultData.content;
+            } else if (this.currentResultType === 'dns') {
+                textToCopy = this.currentResultData.dns.join('\n');
+            }
+
+            await navigator.clipboard.writeText(textToCopy);
+            this.showToast('success', 'کپی شد');
+        } catch (error) {
+            this.showToast('error', 'خطا در کپی کردن');
+        }
+    }
+
+    downloadResultContent() {
+        if (!this.currentResultData || this.currentResultType !== 'wireguard') return;
+
+        const filename = `wireguard-${this.currentResultData.locationId || 'config'}.conf`;
+        configGenerator.downloadConfig(this.currentResultData.content, filename);
+        this.showToast('success', 'فایل دانلود شد');
     }
 
     async openAdminPanelWithAuth() {
@@ -1104,23 +1292,51 @@ class App {
     }
 
     showLoginStep(step) {
+        this.loginStep1?.classList.add('hidden');
+        this.loginStepPassword?.classList.add('hidden');
+        this.loginStep2?.classList.add('hidden');
+        this.loginStepForgot?.classList.add('hidden');
+        this.checkAccountBtn?.classList.add('hidden');
+        this.loginPasswordBtn?.classList.add('hidden');
+        this.sendCodeBtn?.classList.add('hidden');
+        this.verifyCodeBtn?.classList.add('hidden');
+        this.resetPasswordBtn?.classList.add('hidden');
+
         if (step === 1) {
             this.loginStep1?.classList.remove('hidden');
-            this.loginStep2?.classList.add('hidden');
-            this.sendCodeBtn?.classList.remove('hidden');
-            this.verifyCodeBtn?.classList.add('hidden');
-        } else {
-            this.loginStep1?.classList.add('hidden');
+            this.checkAccountBtn?.classList.remove('hidden');
+            if (this.loginModalTitle) this.loginModalTitle.textContent = 'ورود به حساب';
+        } else if (step === 'password') {
+            this.loginStepPassword?.classList.remove('hidden');
+            this.loginPasswordBtn?.classList.remove('hidden');
+            if (this.loginModalTitle) this.loginModalTitle.textContent = 'ورود با رمز عبور';
+            this.loginPasswordInput?.focus();
+        } else if (step === 2) {
             this.loginStep2?.classList.remove('hidden');
-            this.sendCodeBtn?.classList.add('hidden');
-            this.verifyCodeBtn?.classList.add('hidden');
+            this.verifyCodeBtn?.classList.remove('hidden');
+            if (this.loginModalTitle) this.loginModalTitle.textContent = 'کد تایید';
+            this.codeInputs[0]?.focus();
+        } else if (step === 'forgot') {
+            this.loginStepForgot?.classList.remove('hidden');
+            this.resetPasswordBtn?.classList.remove('hidden');
+            if (this.loginModalTitle) this.loginModalTitle.textContent = 'بازیابی رمز عبور';
+            this.resetCodeInputs[0]?.focus();
+        } else if (step === 'code') {
+            this.loginStep2?.classList.remove('hidden');
+            this.verifyCodeBtn?.classList.remove('hidden');
+            if (this.loginModalTitle) this.loginModalTitle.textContent = 'کد تایید';
             this.codeInputs[0]?.focus();
         }
     }
 
     resetLoginForm() {
         if (this.telegramIdInput) this.telegramIdInput.value = '';
+        if (this.loginPasswordInput) this.loginPasswordInput.value = '';
+        if (this.newPasswordReset) this.newPasswordReset.value = '';
         this.codeInputs.forEach(input => input.value = '');
+        this.resetCodeInputs.forEach(input => input.value = '');
+        this.currentLoginTelegramId = null;
+        this.userHasPassword = false;
         this.showLoginStep(1);
     }
 
@@ -1132,7 +1348,11 @@ class App {
         return Array.from(this.codeInputs).map(input => input.value).join('');
     }
 
-    async handleSendCode() {
+    getResetCode() {
+        return Array.from(this.resetCodeInputs).map(input => input.value).join('');
+    }
+
+    async handleCheckAccount() {
         const telegramId = this.telegramIdInput?.value.trim();
 
         if (!telegramId || !/^\d{5,15}$/.test(telegramId)) {
@@ -1140,8 +1360,110 @@ class App {
             return;
         }
 
-        this.sendCodeBtn.disabled = true;
-        this.sendCodeBtn.innerHTML = '<div class="loading-spinner"></div>';
+        this.currentLoginTelegramId = telegramId;
+        this.checkAccountBtn.disabled = true;
+        this.checkAccountBtn.innerHTML = '<div class="loading-spinner"></div>';
+
+        try {
+            const result = await auth.checkPasswordStatus(telegramId);
+            this.userHasPassword = result.hasPassword;
+            
+            if (result.hasPassword) {
+                this.showLoginStep('password');
+            } else {
+                await this.handleSendCode();
+            }
+        } catch (error) {
+            await this.handleSendCode();
+        } finally {
+            this.checkAccountBtn.disabled = false;
+            this.checkAccountBtn.textContent = 'ادامه';
+        }
+    }
+
+    async handlePasswordLogin() {
+        const password = this.loginPasswordInput?.value;
+
+        if (!password) {
+            this.showToast('error', 'لطفا رمز عبور را وارد کنید');
+            return;
+        }
+
+        this.loginPasswordBtn.disabled = true;
+        this.loginPasswordBtn.innerHTML = '<div class="loading-spinner"></div>';
+
+        try {
+            await auth.loginWithPassword(this.currentLoginTelegramId, password);
+            this.showToast('success', 'ورود موفقیت‌آمیز');
+            this.closeLoginModal();
+        } catch (error) {
+            this.showToast('error', error.message);
+        } finally {
+            this.loginPasswordBtn.disabled = false;
+            this.loginPasswordBtn.textContent = 'ورود';
+        }
+    }
+
+    async handleUseCodeInstead() {
+        await this.handleSendCode();
+    }
+
+    async handleForgotPassword() {
+        this.forgotPasswordBtn.disabled = true;
+        this.forgotPasswordBtn.innerHTML = '<div class="loading-spinner"></div>';
+
+        try {
+            await auth.requestPasswordReset(this.currentLoginTelegramId);
+            this.showToast('success', 'کد بازیابی به تلگرام شما ارسال شد');
+            this.showLoginStep('forgot');
+        } catch (error) {
+            this.showToast('error', error.message);
+        } finally {
+            this.forgotPasswordBtn.disabled = false;
+            this.forgotPasswordBtn.textContent = 'فراموشی رمز';
+        }
+    }
+
+    async handleResetPassword() {
+        const code = this.getResetCode();
+        const newPassword = this.newPasswordReset?.value;
+
+        if (code.length !== 6) {
+            this.showToast('error', 'لطفا کد ۶ رقمی را وارد کنید');
+            return;
+        }
+
+        if (!newPassword || newPassword.length < 4) {
+            this.showToast('error', 'رمز عبور باید حداقل ۴ کاراکتر باشد');
+            return;
+        }
+
+        this.resetPasswordBtn.disabled = true;
+        this.resetPasswordBtn.innerHTML = '<div class="loading-spinner"></div>';
+
+        try {
+            await auth.resetPassword(this.currentLoginTelegramId, code, newPassword);
+            this.showToast('success', 'رمز عبور با موفقیت تغییر کرد');
+            this.closeLoginModal();
+        } catch (error) {
+            this.showToast('error', error.message);
+            this.resetCodeInputs.forEach(input => input.value = '');
+            this.resetCodeInputs[0]?.focus();
+        } finally {
+            this.resetPasswordBtn.disabled = false;
+            this.resetPasswordBtn.textContent = 'تغییر رمز';
+        }
+    }
+
+    async handleSendCode() {
+        const telegramId = this.currentLoginTelegramId || this.telegramIdInput?.value.trim();
+
+        if (!telegramId || !/^\d{5,15}$/.test(telegramId)) {
+            this.showToast('error', 'لطفا شناسه تلگرام معتبر وارد کنید');
+            return;
+        }
+
+        this.currentLoginTelegramId = telegramId;
 
         try {
             await auth.requestVerification(telegramId);
@@ -1149,14 +1471,11 @@ class App {
             this.showLoginStep(2);
         } catch (error) {
             this.showToast('error', error.message);
-        } finally {
-            this.sendCodeBtn.disabled = false;
-            this.sendCodeBtn.textContent = 'ارسال کد تایید';
         }
     }
 
     async handleVerifyCode() {
-        const telegramId = this.telegramIdInput?.value.trim();
+        const telegramId = this.currentLoginTelegramId || this.telegramIdInput?.value.trim();
         const code = this.getVerificationCode();
 
         if (code.length !== 6) {
@@ -1177,6 +1496,96 @@ class App {
         } finally {
             this.verifyCodeBtn.disabled = false;
             this.verifyCodeBtn.textContent = 'تایید کد';
+        }
+    }
+
+    async handleSavePassword() {
+        const newPassword = this.newPasswordInput?.value;
+        const confirmPassword = this.confirmPasswordInput?.value;
+
+        if (!newPassword || newPassword.length < 4) {
+            this.showToast('error', 'رمز عبور باید حداقل ۴ کاراکتر باشد');
+            return;
+        }
+
+        if (newPassword !== confirmPassword) {
+            this.showToast('error', 'رمز عبور و تکرار آن یکسان نیستند');
+            return;
+        }
+
+        this.savePasswordBtn.disabled = true;
+        this.savePasswordBtn.innerHTML = '<div class="loading-spinner"></div>';
+
+        try {
+            await auth.setPassword(newPassword);
+            this.showToast('success', 'رمز عبور با موفقیت تنظیم شد');
+            this.newPasswordInput.value = '';
+            this.confirmPasswordInput.value = '';
+            await this.loadPasswordStatus();
+        } catch (error) {
+            this.showToast('error', error.message);
+        } finally {
+            this.savePasswordBtn.disabled = false;
+            this.savePasswordBtn.textContent = 'ذخیره رمز عبور';
+        }
+    }
+
+    async handleChangePassword() {
+        const currentPassword = this.currentPasswordInput?.value;
+        const newPassword = this.newPasswordChangeInput?.value;
+        const confirmPassword = this.confirmPasswordChangeInput?.value;
+
+        if (!currentPassword) {
+            this.showToast('error', 'لطفا رمز عبور فعلی را وارد کنید');
+            return;
+        }
+
+        if (!newPassword || newPassword.length < 4) {
+            this.showToast('error', 'رمز عبور جدید باید حداقل ۴ کاراکتر باشد');
+            return;
+        }
+
+        if (newPassword !== confirmPassword) {
+            this.showToast('error', 'رمز عبور جدید و تکرار آن یکسان نیستند');
+            return;
+        }
+
+        this.changePasswordBtn.disabled = true;
+        this.changePasswordBtn.innerHTML = '<div class="loading-spinner"></div>';
+
+        try {
+            await auth.changePassword(currentPassword, newPassword);
+            this.showToast('success', 'رمز عبور با موفقیت تغییر کرد');
+            this.currentPasswordInput.value = '';
+            this.newPasswordChangeInput.value = '';
+            this.confirmPasswordChangeInput.value = '';
+        } catch (error) {
+            this.showToast('error', error.message);
+        } finally {
+            this.changePasswordBtn.disabled = false;
+            this.changePasswordBtn.textContent = 'تغییر رمز عبور';
+        }
+    }
+
+    async loadPasswordStatus() {
+        try {
+            const profile = await auth.getProfile();
+            
+            if (this.passwordStatusText) {
+                if (profile.hasPassword) {
+                    this.passwordStatusText.innerHTML = '<span style="color: var(--success);">✓</span> رمز عبور تنظیم شده است';
+                    this.setPasswordForm?.classList.add('hidden');
+                    this.changePasswordForm?.classList.remove('hidden');
+                } else {
+                    this.passwordStatusText.innerHTML = '<span style="color: var(--warning);">⚠</span> رمز عبور تنظیم نشده است';
+                    this.setPasswordForm?.classList.remove('hidden');
+                    this.changePasswordForm?.classList.add('hidden');
+                }
+            }
+        } catch (error) {
+            if (this.passwordStatusText) {
+                this.passwordStatusText.textContent = 'خطا در بارگذاری';
+            }
         }
     }
 

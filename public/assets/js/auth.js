@@ -48,6 +48,52 @@ class AuthManager {
         return this.session ? this.session.token : null;
     }
 
+    async checkPasswordStatus(telegramId) {
+        const response = await fetch('/api/auth/check-password', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ telegramId })
+        });
+
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to check password status');
+        }
+
+        return data;
+    }
+
+    async loginWithPassword(telegramId, password) {
+        const response = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ telegramId, password })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || 'Login failed');
+        }
+
+        this.saveSession({
+            token: data.token,
+            user: {
+                telegramId: data.telegramId,
+                hasPassword: data.hasPassword,
+                createdAt: data.createdAt
+            },
+            expiresAt: Date.now() + (24 * 60 * 60 * 1000)
+        });
+
+        return data;
+    }
+
     async requestVerification(telegramId) {
         const response = await fetch('/api/auth/request', {
             method: 'POST',
@@ -85,10 +131,116 @@ class AuthManager {
             token: data.token,
             user: {
                 telegramId: data.telegramId,
+                hasPassword: data.hasPassword,
                 createdAt: data.createdAt
             },
             expiresAt: Date.now() + (24 * 60 * 60 * 1000)
         });
+
+        return data;
+    }
+
+    async setPassword(password) {
+        const response = await fetch('/api/profile/set-password', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${this.getToken()}`
+            },
+            body: JSON.stringify({ password })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to set password');
+        }
+
+        if (this.session) {
+            this.session.user.hasPassword = true;
+            this.saveSession(this.session);
+        }
+
+        return data;
+    }
+
+    async changePassword(currentPassword, newPassword) {
+        const response = await fetch('/api/profile/change-password', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${this.getToken()}`
+            },
+            body: JSON.stringify({ currentPassword, newPassword })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to change password');
+        }
+
+        return data;
+    }
+
+    async requestPasswordReset(telegramId) {
+        const response = await fetch('/api/auth/forgot-password', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ telegramId })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to request password reset');
+        }
+
+        return data;
+    }
+
+    async resetPassword(telegramId, code, newPassword) {
+        const response = await fetch('/api/auth/reset-password', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ telegramId, code, newPassword })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to reset password');
+        }
+
+        this.saveSession({
+            token: data.token,
+            user: {
+                telegramId: data.telegramId,
+                hasPassword: true,
+                createdAt: Date.now()
+            },
+            expiresAt: Date.now() + (24 * 60 * 60 * 1000)
+        });
+
+        return data;
+    }
+
+    async getProfile() {
+        const response = await fetch('/api/profile', {
+            headers: {
+                'Authorization': `Bearer ${this.getToken()}`
+            }
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to get profile');
+        }
 
         return data;
     }

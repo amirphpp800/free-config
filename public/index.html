@@ -167,6 +167,48 @@
                     </div>
                 </div>
 
+                <div class="password-section" style="margin-top: 24px; padding: 20px; background: var(--bg-secondary); border-radius: var(--radius-lg); border: 1px solid var(--border-light);">
+                    <h3 class="section-subtitle" style="margin-bottom: 16px;">🔐 مدیریت رمز عبور</h3>
+                    
+                    <div id="password-status" style="margin-bottom: 16px; padding: 12px; border-radius: var(--radius-md); background: var(--bg-tertiary);">
+                        <span id="password-status-text">در حال بارگذاری...</span>
+                    </div>
+
+                    <div id="set-password-form" class="hidden">
+                        <p style="color: var(--text-secondary); margin-bottom: 16px; font-size: var(--font-size-sm);">
+                            با تنظیم رمز عبور، می‌توانید بدون نیاز به کد تایید وارد حساب خود شوید.
+                        </p>
+                        <div class="input-group">
+                            <label class="input-label">رمز عبور جدید</label>
+                            <input type="password" id="new-password" class="input-field" placeholder="حداقل ۴ کاراکتر">
+                        </div>
+                        <div class="input-group">
+                            <label class="input-label">تکرار رمز عبور</label>
+                            <input type="password" id="confirm-password" class="input-field" placeholder="تکرار رمز عبور">
+                        </div>
+                        <button id="save-password-btn" class="btn btn-primary btn-full">ذخیره رمز عبور</button>
+                    </div>
+
+                    <div id="change-password-form" class="hidden">
+                        <p style="color: var(--text-secondary); margin-bottom: 16px; font-size: var(--font-size-sm);">
+                            رمز عبور فعلی خود را تغییر دهید.
+                        </p>
+                        <div class="input-group">
+                            <label class="input-label">رمز عبور فعلی</label>
+                            <input type="password" id="current-password" class="input-field" placeholder="رمز فعلی">
+                        </div>
+                        <div class="input-group">
+                            <label class="input-label">رمز عبور جدید</label>
+                            <input type="password" id="new-password-change" class="input-field" placeholder="حداقل ۴ کاراکتر">
+                        </div>
+                        <div class="input-group">
+                            <label class="input-label">تکرار رمز جدید</label>
+                            <input type="password" id="confirm-password-change" class="input-field" placeholder="تکرار رمز جدید">
+                        </div>
+                        <button id="change-password-btn" class="btn btn-primary btn-full">تغییر رمز عبور</button>
+                    </div>
+                </div>
+
                 <div class="history-section">
                     <h3 class="section-subtitle">تاریخچه دریافت‌ها</h3>
                     <div id="history-list" class="history-list">
@@ -331,7 +373,7 @@
         </section>
 
         <footer class="footer">
-            <p>سرویس گیمینگ &copy; 2024</p>
+            <p>سرویس گیمینگ &copy; 2025</p>
             <p style="margin-top: 12px;">
                 <a href="https://t.me/jojo85_robot" target="_blank" style="color: var(--accent); text-decoration: none; margin: 0 8px;">🤖 ربات تلگرام</a>
                 |
@@ -344,13 +386,13 @@
         <div class="modal-content">
             <div class="modal-header">
                 <div class="modal-handle"></div>
-                <h3 class="modal-title">ورود با تلگرام</h3>
+                <h3 class="modal-title" id="login-modal-title">ورود به حساب</h3>
             </div>
 
             <div class="modal-body">
                 <div id="login-step-1">
                     <p style="color: var(--text-secondary); margin-bottom: 24px; text-align: center;">
-                        شناسه عددی تلگرام خود را وارد کنید تا کد تایید برای شما ارسال شود.
+                        شناسه عددی تلگرام خود را وارد کنید
                     </p>
 
                     <div class="input-group">
@@ -384,6 +426,36 @@
                     </div>
                 </div>
 
+                <div id="login-step-password" class="hidden">
+                    <p style="color: var(--text-secondary); margin-bottom: 16px; text-align: center;">
+                        رمز عبور خود را وارد کنید
+                    </p>
+
+                    <div class="input-group">
+                        <label class="input-label" for="login-password">رمز عبور</label>
+                        <input 
+                            type="password" 
+                            id="login-password" 
+                            class="input-field" 
+                            placeholder="رمز عبور"
+                            autocomplete="current-password"
+                        >
+                    </div>
+
+                    <div style="display: flex; gap: 12px; margin-top: 16px;">
+                        <button id="use-code-btn" class="btn btn-ghost" style="flex: 1;">
+                            ورود با کد تایید
+                        </button>
+                        <button id="forgot-password-btn" class="btn btn-ghost" style="flex: 1;">
+                            فراموشی رمز
+                        </button>
+                    </div>
+
+                    <button id="back-to-step-1-from-password" class="btn btn-ghost btn-full" style="margin-top: 12px;">
+                        ← بازگشت
+                    </button>
+                </div>
+
                 <div id="login-step-2" class="hidden">
                     <p style="color: var(--text-secondary); margin-bottom: 16px; text-align: center;">
                         کد 6 رقمی ارسال شده به تلگرام را وارد کنید
@@ -402,14 +474,53 @@
                         ← بازگشت
                     </button>
                 </div>
+
+                <div id="login-step-forgot" class="hidden">
+                    <p style="color: var(--text-secondary); margin-bottom: 16px; text-align: center;">
+                        کد بازیابی به تلگرام شما ارسال شد. کد و رمز جدید را وارد کنید.
+                    </p>
+
+                    <div class="verification-code" style="margin-bottom: 16px;">
+                        <input type="text" class="reset-code-input" maxlength="1" inputmode="numeric" pattern="[0-9]" data-index="0">
+                        <input type="text" class="reset-code-input" maxlength="1" inputmode="numeric" pattern="[0-9]" data-index="1">
+                        <input type="text" class="reset-code-input" maxlength="1" inputmode="numeric" pattern="[0-9]" data-index="2">
+                        <input type="text" class="reset-code-input" maxlength="1" inputmode="numeric" pattern="[0-9]" data-index="3">
+                        <input type="text" class="reset-code-input" maxlength="1" inputmode="numeric" pattern="[0-9]" data-index="4">
+                        <input type="text" class="reset-code-input" maxlength="1" inputmode="numeric" pattern="[0-9]" data-index="5">
+                    </div>
+
+                    <div class="input-group">
+                        <label class="input-label" for="new-password-reset">رمز عبور جدید</label>
+                        <input 
+                            type="password" 
+                            id="new-password-reset" 
+                            class="input-field" 
+                            placeholder="رمز جدید (حداقل ۴ کاراکتر)"
+                            autocomplete="new-password"
+                        >
+                    </div>
+
+                    <button id="back-to-password-step" class="btn btn-ghost btn-full" style="margin-top: 12px;">
+                        ← بازگشت
+                    </button>
+                </div>
             </div>
 
             <div class="modal-footer">
-                <button id="send-code-btn" class="btn btn-primary btn-full">
+                <button id="check-account-btn" class="btn btn-primary btn-full">
+                    ادامه
+                </button>
+                <button id="login-password-btn" class="btn btn-primary btn-full hidden">
+                    ورود
+                </button>
+                <button id="send-code-btn" class="btn btn-primary btn-full hidden">
                     ارسال کد تایید
                 </button>
                 <button id="verify-code-btn" class="btn btn-primary btn-full hidden">
                     تایید کد
+                </button>
+                <button id="reset-password-btn" class="btn btn-primary btn-full hidden">
+                    تغییر رمز
                 </button>
             </div>
         </div>
@@ -502,6 +613,36 @@
                 </button>
                 <button id="admin-verify-code-btn" class="btn btn-primary btn-full hidden">
                     تایید کد
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="result-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-handle"></div>
+                <h3 id="result-modal-title" class="modal-title">نتیجه</h3>
+            </div>
+
+            <div class="modal-body">
+                <div id="result-modal-icon" class="result-icon">✅</div>
+                <p id="result-modal-subtitle" class="result-subtitle"></p>
+                <div id="result-modal-content" class="result-content"></div>
+                <div id="result-modal-caption" class="result-caption"></div>
+            </div>
+
+            <div class="modal-footer">
+                <div class="result-actions">
+                    <button id="result-copy-btn" class="btn btn-secondary">
+                        📋 کپی
+                    </button>
+                    <button id="result-download-btn" class="btn btn-primary hidden">
+                        ⬇️ دانلود
+                    </button>
+                </div>
+                <button id="result-close-btn" class="btn btn-ghost btn-full" style="margin-top: 12px;">
+                    بستن
                 </button>
             </div>
         </div>
