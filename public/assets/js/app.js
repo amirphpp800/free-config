@@ -719,22 +719,16 @@ class App {
         }
 
         const hasIpv4 = location.dns && location.dns.ipv4 && location.dns.ipv4.length > 0;
-        const hasIpv6 = location.dns && location.dns.ipv6 && location.dns.ipv6.length > 0;
+        const hasIpv6 = location.dns && location.dns.ipv6 && location.dns.ipv6.length >= 2;
 
         if (ipVersion === 'ipv4' && !hasIpv4) {
-            if (hasIpv6 && confirm('این کشور آدرس IPv4 ندارد. آیا می‌خواهید از IPv6 استفاده کنید؟')) {
-                ipVersion = 'ipv6';
-            } else {
-                this.closeIpVersionModal();
-                return;
-            }
+            this.showToast('error', 'این کشور آدرس IPv4 ندارد');
+            this.closeIpVersionModal();
+            return;
         } else if (ipVersion === 'ipv6' && !hasIpv6) {
-            if (hasIpv4 && confirm('این کشور آدرس IPv6 ندارد. آیا می‌خواهید از IPv4 استفاده کنید؟')) {
-                ipVersion = 'ipv4';
-            } else {
-                this.closeIpVersionModal();
-                return;
-            }
+            this.showToast('error', 'این کشور آدرس IPv6 کافی ندارد');
+            this.closeIpVersionModal();
+            return;
         }
 
         this.closeIpVersionModal();
