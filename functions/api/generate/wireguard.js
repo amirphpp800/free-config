@@ -99,6 +99,20 @@ export async function onRequestPost(context) {
 
         const countryInfo = countries.find(c => c.code === country) || { code: country, name: country };
         
+        // بررسی موجودی
+        if (ipType === 'ipv4' && (!countryInfo.ipv4 || countryInfo.ipv4.length === 0)) {
+            return new Response(JSON.stringify({ error: 'موجودی IPv4 برای این کشور تمام شده است' }), {
+                status: 400,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
+        if (ipType === 'ipv6' && (!countryInfo.ipv6 || countryInfo.ipv6.length === 0)) {
+            return new Response(JSON.stringify({ error: 'موجودی IPv6 برای این کشور تمام شده است' }), {
+                status: 400,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
+        
         // DNS از لیست انتخابی کاربر
         const selectedDNS = DNS_SERVERS[dns] || DNS_SERVERS.cloudflare_primary;
         
@@ -206,6 +220,17 @@ Endpoint = ${endpoint}
 AllowedIPs = 0.0.0.0/0, ::/0
 PersistentKeepalive = 25`;
 
+        // مصرف IP و به‌روزرسانی موجودی
+        let consumedIPv4 = null;
+        let consumedIPv6 = null;
+        
+        if (ipType === 'ipv4' && countryInfo.ipv4 && countryInfo.ipv4.length > 0) {
+            consumedIPv4 = countryInfo.ipv4.shift();
+        }
+        if (ipType === 'ipv6' && countryInfo.ipv6 && countryInfo.ipv6.length > 0) {
+            consumedIPv6 = countryInfo.ipv6.shift();
+        }
+        
         const historyItem = {
             id: generateId(),
             type: 'wireguard',
@@ -214,10 +239,15 @@ PersistentKeepalive = 25`;
             operator: operator,
             dns: dns,
             config: config,
+            consumedIPv4: consumedIPv4,
+            consumedIPv6: consumedIPv6,
             createdAt: new Date().toISOString()
         };
 
         if (env.DB) {
+            // به‌روزرسانی موجودی کشورها در KV
+            await env.DB.put('countries', JSON.stringify(countries));
+            
             if (ipType === 'ipv4_ipv6') {
                 usage.wireguard_dual++;
             } else {
