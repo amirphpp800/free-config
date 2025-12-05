@@ -72,46 +72,55 @@ export async function onRequestPost(context) {
         let usedIpv6 = [];
         
         if (ipType === 'ipv6') {
-            if (countryInfo.ipv6 && countryInfo.ipv6.length > 0) {
-                usedIpv6 = [countryInfo.ipv6[Math.floor(Math.random() * countryInfo.ipv6.length)]];
-                address = `${usedIpv6[0]}/128`;
-            } else {
-                const hexSegments = [];
-                for (let i = 0; i < 4; i++) {
-                    hexSegments.push(Math.floor(Math.random() * 65536).toString(16));
-                }
-                address = `fd00:${hexSegments.join(':')}::1/128`;
+            if (!countryInfo.ipv6 || countryInfo.ipv6.length === 0) {
+                return new Response(JSON.stringify({ 
+                    error: 'موجودی IPv6 برای این کشور وجود ندارد'
+                }), {
+                    status: 400,
+                    headers: { 'Content-Type': 'application/json' }
+                });
             }
+            usedIpv6 = [countryInfo.ipv6[Math.floor(Math.random() * countryInfo.ipv6.length)]];
+            address = `${usedIpv6[0]}/128`;
         } else if (ipType === 'ipv4_ipv6') {
-            if (countryInfo.ipv4 && countryInfo.ipv4.length > 0) {
-                usedIpv4 = countryInfo.ipv4[Math.floor(Math.random() * countryInfo.ipv4.length)];
-            } else {
-                usedIpv4 = `10.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 254) + 1}`;
+            if (!countryInfo.ipv4 || countryInfo.ipv4.length === 0) {
+                return new Response(JSON.stringify({ 
+                    error: 'موجودی IPv4 برای این کشور وجود ندارد'
+                }), {
+                    status: 400,
+                    headers: { 'Content-Type': 'application/json' }
+                });
+            }
+            if (!countryInfo.ipv6 || countryInfo.ipv6.length === 0) {
+                return new Response(JSON.stringify({ 
+                    error: 'موجودی IPv6 برای این کشور وجود ندارد'
+                }), {
+                    status: 400,
+                    headers: { 'Content-Type': 'application/json' }
+                });
             }
             
-            if (countryInfo.ipv6 && countryInfo.ipv6.length >= 2) {
+            usedIpv4 = countryInfo.ipv4[Math.floor(Math.random() * countryInfo.ipv4.length)];
+            
+            if (countryInfo.ipv6.length >= 2) {
                 const shuffled = [...countryInfo.ipv6].sort(() => Math.random() - 0.5);
                 usedIpv6 = [shuffled[0], shuffled[1]];
-            } else if (countryInfo.ipv6 && countryInfo.ipv6.length === 1) {
-                usedIpv6 = [countryInfo.ipv6[0]];
             } else {
-                const hex1 = [];
-                const hex2 = [];
-                for (let i = 0; i < 4; i++) {
-                    hex1.push(Math.floor(Math.random() * 65536).toString(16));
-                    hex2.push(Math.floor(Math.random() * 65536).toString(16));
-                }
-                usedIpv6 = [`fd00:${hex1.join(':')}::1`, `fd00:${hex2.join(':')}::2`];
+                usedIpv6 = [countryInfo.ipv6[0]];
             }
             
             address = `${usedIpv4}/32, ${usedIpv6.map(ip => `${ip}/128`).join(', ')}`;
         } else {
-            if (countryInfo.ipv4 && countryInfo.ipv4.length > 0) {
-                usedIpv4 = countryInfo.ipv4[Math.floor(Math.random() * countryInfo.ipv4.length)];
-                address = `${usedIpv4}/32`;
-            } else {
-                address = `10.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 254) + 1}/32`;
+            if (!countryInfo.ipv4 || countryInfo.ipv4.length === 0) {
+                return new Response(JSON.stringify({ 
+                    error: 'موجودی IPv4 برای این کشور وجود ندارد'
+                }), {
+                    status: 400,
+                    headers: { 'Content-Type': 'application/json' }
+                });
             }
+            usedIpv4 = countryInfo.ipv4[Math.floor(Math.random() * countryInfo.ipv4.length)];
+            address = `${usedIpv4}/32`;
         }
 
         const endpoint = `${country}.vpn.example.com:51820`;

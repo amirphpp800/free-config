@@ -110,8 +110,8 @@ const App = {
                     <p class="confirm-message">${message}</p>
                 </div>
                 <div class="modal-footer">
-                    <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()">انصراف</button>
-                    <button class="btn btn-primary" id="confirm-action-btn">تأیید</button>
+                    <button class="btn btn-danger" onclick="this.closest('.modal-overlay').remove()">انصراف</button>
+                    <button class="btn btn-success" id="confirm-action-btn">تأیید</button>
                 </div>
             </div>
         `;

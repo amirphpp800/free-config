@@ -186,6 +186,17 @@ const Admin = {
     },
 
     renderAnnouncements() {
+        const templates = [
+            '🎉 سرویس جدید راه‌اندازی شد! از امکانات جدید استفاده کنید',
+            '🔧 سرویس در حال بهینه‌سازی است. ممکن است کندی مختصری را تجربه کنید',
+            '⚠️ به دلیل تعمیرات، سرویس به صورت موقت در دسترس نیست',
+            '✨ نسخه جدید با قابلیت‌های بیشتر منتشر شد',
+            '📢 لطفاً قبل از استفاده، آموزش‌ها را مطالعه کنید',
+            '🎊 با تشکر از استفاده شما! بیش از 1000 کاربر فعال',
+            '🔔 برای دریافت آخرین اخبار، در کانال تلگرام ما عضو شوید',
+            '💡 نکته: برای بهترین سرعت، از DNS Cloudflare استفاده کنید'
+        ];
+
         return `
             <div class="card animate-fadeIn">
                 <h3 class="card-title mb-16">اعلانات فعال</h3>
@@ -205,8 +216,21 @@ const Admin = {
                 <div class="divider"></div>
 
                 <div class="input-group">
-                    <label class="input-label">اعلان جدید</label>
+                    <label class="input-label">تمپلیت‌های آماده</label>
+                    <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px;">
+                        ${templates.map((template, i) => `
+                            <button class="btn btn-sm btn-outline" style="text-align: right; white-space: normal; height: auto; padding: 10px 12px;"
+                                onclick="Admin.state.newAnnouncement = '${template.replace(/'/g, "\\'")}'; document.getElementById('announcement-input').value = '${template.replace(/'/g, "\\'")}'; document.getElementById('announcement-input').focus();">
+                                ${template}
+                            </button>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label">اعلان جدید (یا از تمپلیت بالا انتخاب کنید)</label>
                     <textarea 
+                        id="announcement-input"
                         class="input" 
                         rows="3" 
                         placeholder="متن اعلان..."
@@ -239,13 +263,13 @@ const Admin = {
             </div>
         `;
         document.body.appendChild(modal);
-        
+
         if (!options.preventClose) {
             modal.onclick = (e) => {
                 if (e.target === modal) modal.remove();
             };
         }
-        
+
         return modal;
     },
 
@@ -421,10 +445,10 @@ const Admin = {
         const tabs = document.querySelectorAll('.address-tab');
         tabs.forEach(tab => tab.classList.remove('active'));
         event.target.classList.add('active');
-        
+
         this.state.selectedAddresses = [];
         this.updateSelectedCount();
-        
+
         const container = document.getElementById('address-list-container');
         container.innerHTML = this.renderAddressList(country[type] || [], type);
     },
@@ -564,7 +588,7 @@ const Admin = {
 
             Toast.show('آدرس حذف شد', 'success');
             await this.init();
-            
+
             const countryIndex = this.state.countries.findIndex(c => c.code === countryCode);
             if (countryIndex > -1) {
                 this.showManageAddressesModal(countryIndex);
@@ -656,8 +680,8 @@ const Admin = {
                 <p class="confirm-message">${message}</p>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="Admin.closeModal()">انصراف</button>
-                <button class="btn btn-danger" id="confirm-btn">تأیید و حذف</button>
+                <button class="btn btn-danger" onclick="Admin.closeModal()">انصراف</button>
+                <button class="btn btn-success" onclick="Admin.tempConfirmAction()">تأیید</button>
             </div>
         `);
 

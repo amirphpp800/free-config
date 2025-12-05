@@ -26,6 +26,14 @@ const Generator = {
         App.render();
     },
 
+    canGenerate() {
+        const selectedCountry = this.state.countries.find(c => c.code === this.state.country);
+        if (!selectedCountry) return false;
+        return this.getCountryAvailability(selectedCountry, this.state.ipType);
+    },
+
+
+
     selectCountry(code) {
         this.state.country = code;
         App.render();
@@ -45,6 +53,17 @@ const Generator = {
         `;
     },
 
+    getCountryAvailability(country, ipType) {
+        if (ipType === 'ipv4') {
+            return country.ipv4 && country.ipv4.length > 0;
+        } else if (ipType === 'ipv6') {
+            return country.ipv6 && country.ipv6.length > 0;
+        } else if (ipType === 'ipv4_ipv6') {
+            return country.ipv4 && country.ipv4.length > 0 && country.ipv6 && country.ipv6.length > 0;
+        }
+        return false;
+    },
+
     renderForm() {
         const isWireGuard = this.state.type === 'wireguard';
         const countries = this.state.countries.length ? this.state.countries : CONFIG.COUNTRIES;
@@ -59,13 +78,18 @@ const Generator = {
                     <label class="input-label">انتخاب کشور</label>
                     ${countries.length ? `
                         <div class="country-grid">
-                            ${countries.map(c => `
-                                <div class="country-card ${this.state.country === c.code ? 'active' : ''}" 
-                                    onclick="Generator.selectCountry('${c.code}')">
-                                    <img src="${c.flag}" alt="${c.name}" class="country-flag">
-                                    <div class="country-name">${c.name}</div>
-                                </div>
-                            `).join('')}
+                            ${countries.map(c => {
+                                const isAvailable = this.getCountryAvailability(c, this.state.ipType);
+                                return `
+                                    <div class="country-card ${this.state.country === c.code ? 'active' : ''} ${!isAvailable ? 'disabled' : ''}" 
+                                        onclick="${isAvailable ? `Generator.selectCountry('${c.code}')` : ''}"
+                                        style="${!isAvailable ? 'opacity: 0.5; cursor: not-allowed;' : ''}">
+                                        <img src="${c.flag}" alt="${c.name}" class="country-flag">
+                                        <div class="country-name">${c.name}</div>
+                                        ${!isAvailable ? '<div style="font-size: 10px; color: var(--accent-red); margin-top: 4px;">موجود نیست</div>' : ''}
+                                    </div>
+                                `;
+                            }).join('')}
                         </div>
                     ` : `
                         <div class="empty-state" style="padding: 20px;">
@@ -132,9 +156,9 @@ const Generator = {
                 ` : ''}
 
                 <button 
-                    class="btn btn-primary ${this.state.loading || !this.state.country ? 'disabled' : ''}"
+                    class="btn btn-primary ${this.state.loading || !this.state.country || !this.canGenerate() ? 'disabled' : ''}"
                     onclick="Generator.generate()"
-                    ${this.state.loading || !this.state.country ? 'disabled' : ''}
+                    ${this.state.loading || !this.state.country || !this.canGenerate() ? 'disabled' : ''}
                 >
                     ${this.state.loading ? '⏳ در حال تولید...' : `✨ تولید ${isWireGuard ? 'کانفیگ' : 'DNS'}`}
                 </button>
