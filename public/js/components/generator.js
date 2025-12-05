@@ -113,13 +113,16 @@ const Generator = {
                             <div class="country-grid">
                                 ${countries.map(c => {
                                     const hasIPv4 = c.ipv4 && c.ipv4.length > 0;
+                                    const ipv4Count = c.ipv4?.length || 0;
                                     return `
                                         <div class="country-card ${this.state.countryIPv4 === c.code ? 'active' : ''} ${!hasIPv4 ? 'disabled' : ''}" 
                                             onclick="${hasIPv4 ? `Generator.selectCountryIPv4('${c.code}')` : ''}"
                                             style="${!hasIPv4 ? 'opacity: 0.5; cursor: not-allowed;' : ''}">
                                             <img src="${c.flag}" alt="${c.name}" class="country-flag">
                                             <div class="country-name">${c.name}</div>
-                                            ${!hasIPv4 ? '<div style="font-size: 10px; color: var(--accent-red); margin-top: 4px;">IPv4 موجود نیست</div>' : ''}
+                                            <div class="inventory-badge">
+                                                <span class="inv-item ${ipv4Count > 0 ? 'available' : 'empty'}">v4: ${ipv4Count}</span>
+                                            </div>
                                         </div>
                                     `;
                                 }).join('')}
@@ -133,13 +136,16 @@ const Generator = {
                             <div class="country-grid">
                                 ${countries.map(c => {
                                     const hasIPv6 = c.ipv6 && c.ipv6.length > 0;
+                                    const ipv6Count = c.ipv6?.length || 0;
                                     return `
                                         <div class="country-card ${this.state.countryIPv6 === c.code ? 'active' : ''} ${!hasIPv6 ? 'disabled' : ''}" 
                                             onclick="${hasIPv6 ? `Generator.selectCountryIPv6('${c.code}')` : ''}"
                                             style="${!hasIPv6 ? 'opacity: 0.5; cursor: not-allowed;' : ''}">
                                             <img src="${c.flag}" alt="${c.name}" class="country-flag">
                                             <div class="country-name">${c.name}</div>
-                                            ${!hasIPv6 ? '<div style="font-size: 10px; color: var(--accent-red); margin-top: 4px;">IPv6 موجود نیست</div>' : ''}
+                                            <div class="inventory-badge">
+                                                <span class="inv-item ${ipv6Count > 0 ? 'available' : 'empty'}">v6: ${ipv6Count}</span>
+                                            </div>
                                         </div>
                                     `;
                                 }).join('')}
@@ -153,13 +159,18 @@ const Generator = {
                             <div class="country-grid">
                                 ${countries.map(c => {
                                     const isAvailable = this.getCountryAvailability(c, this.state.ipType);
+                                    const ipv4Count = c.ipv4?.length || 0;
+                                    const ipv6Count = c.ipv6?.length || 0;
                                     return `
                                         <div class="country-card ${this.state.country === c.code ? 'active' : ''} ${!isAvailable ? 'disabled' : ''}" 
                                             onclick="${isAvailable ? `Generator.selectCountry('${c.code}')` : ''}"
                                             style="${!isAvailable ? 'opacity: 0.5; cursor: not-allowed;' : ''}">
                                             <img src="${c.flag}" alt="${c.name}" class="country-flag">
                                             <div class="country-name">${c.name}</div>
-                                            ${!isAvailable ? '<div style="font-size: 10px; color: var(--accent-red); margin-top: 4px;">موجود نیست</div>' : ''}
+                                            <div class="inventory-badge">
+                                                <span class="inv-item ${ipv4Count > 0 ? 'available' : 'empty'}">v4: ${ipv4Count}</span>
+                                                <span class="inv-item ${ipv6Count > 0 ? 'available' : 'empty'}">v6: ${ipv6Count}</span>
+                                            </div>
                                         </div>
                                     `;
                                 }).join('')}
@@ -249,38 +260,44 @@ const Generator = {
         const isWireGuard = this.state.type === 'wireguard';
         const isDNS = !isWireGuard;
         
-        // استخراج IP از کانفیگ
         let ip = '';
         if (isDNS) {
-            // برای DNS، IP در خط اول است
-            ip = result.config.split('\n')[0] || '';
+            ip = result.config?.split('\n')[0] || result.dns || '';
         } else {
-            // برای WireGuard، IP در خط Endpoint است
-            const endpointLine = result.config.split('\n').find(line => line.includes('Endpoint'));
-            if (endpointLine) {
-                ip = endpointLine.split('=')[1]?.trim().split(':')[0] || '';
+            ip = result.consumedIPv4 || result.consumedIPv6 || '';
+            if (!ip) {
+                const addressLine = result.config.split('\n').find(line => line.includes('Address'));
+                if (addressLine) {
+                    ip = addressLine.split('=')[1]?.trim().split('/')[0] || '';
+                }
             }
         }
 
-        // محاسبه موجودی باقیمانده
-        const selectedCountry = this.state.countries.find(c => c.code === this.state.country);
-        let remainingIPs = 0;
-        let ipv4RemainingText = '';
-        let ipv6RemainingText = '';
+        let inventoryHtml = '';
+        const inv = result.inventory;
         
-        if (selectedCountry) {
-            if (this.state.ipType === 'ipv4') {
-                remainingIPs = selectedCountry.ipv4?.length || 0;
-            } else if (this.state.ipType === 'ipv6') {
-                remainingIPs = selectedCountry.ipv6?.length || 0;
-            } else if (this.state.ipType === 'ipv4_ipv6') {
-                const ipv4Country = this.state.countries.find(c => c.code === this.state.countryIPv4);
-                const ipv6Country = this.state.countries.find(c => c.code === this.state.countryIPv6);
-                
-                if (ipv4Country && ipv6Country) {
-                    ipv4RemainingText = `${ipv4Country.flag} ${ipv4Country.name}: ${ipv4Country.ipv4?.length || 0} IPv4`;
-                    ipv6RemainingText = `${ipv6Country.flag} ${ipv6Country.name}: ${ipv6Country.ipv6?.length || 0} IPv6`;
-                }
+        if (isWireGuard && inv) {
+            if (this.state.ipType === 'ipv4_ipv6' && inv.ipv4Country && inv.ipv6Country) {
+                inventoryHtml = `
+                    <div class="card" style="margin-bottom: 16px; background: rgba(10, 132, 255, 0.1); border-color: var(--accent-blue);">
+                        <h4 style="font-size: 14px; margin-bottom: 8px; color: var(--text-secondary);">📊 موجودی باقی‌مانده:</h4>
+                        <div style="font-size: 14px; font-weight: 600; color: var(--accent-blue); line-height: 1.8;">
+                            <img src="${inv.ipv4Country.flag}" style="width: 20px; height: 14px; vertical-align: middle; margin-left: 4px;"> ${inv.ipv4Country.name}: ${inv.ipv4Country.remaining} IPv4<br>
+                            <img src="${inv.ipv6Country.flag}" style="width: 20px; height: 14px; vertical-align: middle; margin-left: 4px;"> ${inv.ipv6Country.name}: ${inv.ipv6Country.remaining} IPv6
+                        </div>
+                    </div>
+                `;
+            } else if (inv.country) {
+                const remainingCount = this.state.ipType === 'ipv4' ? inv.country.remainingIPv4 : inv.country.remainingIPv6;
+                const ipTypeLabel = this.state.ipType === 'ipv4' ? 'IPv4' : 'IPv6';
+                inventoryHtml = `
+                    <div class="card" style="margin-bottom: 16px; background: rgba(10, 132, 255, 0.1); border-color: var(--accent-blue);">
+                        <h4 style="font-size: 14px; margin-bottom: 8px; color: var(--text-secondary);">📊 موجودی باقی‌مانده ${inv.country.name}:</h4>
+                        <div style="font-size: 20px; font-weight: 700; color: var(--accent-blue);">
+                            ${remainingCount} ${ipTypeLabel}
+                        </div>
+                    </div>
+                `;
             }
         }
 
@@ -300,22 +317,7 @@ const Generator = {
                         </div>
                     </div>
 
-                    ${this.state.ipType === 'ipv4_ipv6' && ipv4RemainingText && ipv6RemainingText ? `
-                        <div class="card" style="margin-bottom: 16px; background: rgba(10, 132, 255, 0.1); border-color: var(--accent-blue);">
-                            <h4 style="font-size: 14px; margin-bottom: 8px; color: var(--text-secondary);">📊 موجودی باقی‌مانده:</h4>
-                            <div style="font-size: 14px; font-weight: 600; color: var(--accent-blue); line-height: 1.8;">
-                                ${ipv4RemainingText}<br>
-                                ${ipv6RemainingText}
-                            </div>
-                        </div>
-                    ` : `
-                        <div class="card" style="margin-bottom: 16px; background: rgba(10, 132, 255, 0.1); border-color: var(--accent-blue);">
-                            <h4 style="font-size: 14px; margin-bottom: 8px; color: var(--text-secondary);">📊 موجودی باقی‌مانده ${result.country?.name}:</h4>
-                            <div style="font-size: 20px; font-weight: 700; color: var(--accent-blue);">
-                                ${remainingIPs} عدد
-                            </div>
-                        </div>
-                    `}
+                    ${inventoryHtml}
 
                     ${isDNS ? `
                         <div class="card" style="margin-bottom: 16px;">
@@ -378,6 +380,67 @@ const Generator = {
         Toast.show('آدرس کپی شد', 'success');
     },
 
+    showLimitModal(resetTimer, resetTimestamp) {
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay';
+        modal.id = 'limit-modal';
+        
+        const updateTimer = () => {
+            const timerEl = document.getElementById('limit-timer');
+            if (timerEl && resetTimestamp) {
+                const remaining = resetTimestamp - Date.now();
+                if (remaining <= 0) {
+                    modal.remove();
+                    location.reload();
+                } else {
+                    const hours = Math.floor(remaining / (1000 * 60 * 60));
+                    const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+                    const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
+                    timerEl.textContent = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                }
+            }
+        };
+        
+        modal.innerHTML = `
+            <div class="modal">
+                <div class="modal-header">
+                    <h3 class="modal-title">⚠️ محدودیت روزانه</h3>
+                    <button class="modal-close" onclick="document.getElementById('limit-modal').remove()">×</button>
+                </div>
+                <div class="modal-body" style="text-align: center;">
+                    <div style="font-size: 48px; margin-bottom: 16px;">⏰</div>
+                    <div style="font-size: 16px; color: var(--accent-red); margin-bottom: 16px;">
+                        شما به محدودیت روزانه رسیدید
+                    </div>
+                    <div style="font-size: 14px; color: var(--text-secondary); margin-bottom: 16px;">
+                        زمان باقی‌مانده تا ریست محدودیت:
+                    </div>
+                    <div id="limit-timer" style="font-size: 36px; font-weight: 700; color: var(--accent-blue); font-family: monospace; direction: ltr; background: rgba(10, 132, 255, 0.1); padding: 16px; border-radius: 12px;">
+                        00:00:00
+                    </div>
+                    <div style="margin-top: 16px; font-size: 13px; color: var(--text-secondary);">
+                        بعد از ۲۴ ساعت می‌توانید ۳ کانفیگ جدید دریافت کنید
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="document.getElementById('limit-modal').remove()">
+                        بستن
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        modal.onclick = (e) => {
+            if (e.target === modal) {
+                modal.remove();
+            }
+        };
+        
+        updateTimer();
+        setInterval(updateTimer, 1000);
+    },
+
     async generate() {
         this.state.loading = true;
         App.render();
@@ -405,18 +468,49 @@ const Generator = {
 
             this.state.result = result;
             this.state.loading = false;
+            
+            if (result.inventory) {
+                const inv = result.inventory;
+                if (inv.ipv4Country) {
+                    const country = this.state.countries.find(c => c.code === inv.ipv4Country.code);
+                    if (country && country.ipv4) {
+                        country.ipv4 = country.ipv4.slice(1);
+                    }
+                }
+                if (inv.ipv6Country) {
+                    const country = this.state.countries.find(c => c.code === inv.ipv6Country.code);
+                    if (country && country.ipv6) {
+                        country.ipv6 = country.ipv6.slice(1);
+                    }
+                }
+                if (inv.country) {
+                    const country = this.state.countries.find(c => c.code === inv.country.code);
+                    if (country) {
+                        if (this.state.ipType === 'ipv4' && country.ipv4) {
+                            country.ipv4 = country.ipv4.slice(1);
+                        } else if (this.state.ipType === 'ipv6' && country.ipv6) {
+                            country.ipv6 = country.ipv6.slice(1);
+                        }
+                    }
+                }
+            }
+            
             App.render();
             
-            // نمایش مودال نتیجه
             setTimeout(() => {
                 this.showResultModal();
             }, 100);
             
             Toast.show('کانفیگ با موفقیت تولید شد', 'success');
         } catch (error) {
-            Toast.show(error.message, 'error');
             this.state.loading = false;
             App.render();
+            
+            if (error.resetTimestamp || error.resetTimer) {
+                this.showLimitModal(error.resetTimer, error.resetTimestamp);
+            } else {
+                Toast.show(error.message, 'error');
+            }
         }
     },
 
@@ -430,8 +524,8 @@ const Generator = {
     downloadConfig() {
         if (this.state.result?.config) {
             const filename = this.state.type === 'wireguard' 
-                ? `wireguard-${this.state.country}.conf`
-                : `dns-${this.state.country}.txt`;
+                ? `${this.state.country.toLowerCase()}.conf`
+                : `${this.state.country.toLowerCase()}.txt`;
             Utils.downloadFile(this.state.result.config, filename);
             Toast.show('دانلود شروع شد', 'success');
         }

@@ -1291,3 +1291,46 @@
         width: 100%;
     }
 }
+
+.inventory-badge {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 8px;
+    padding: 6px 8px;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.inv-item {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 6px;
+    border-radius: 4px;
+    direction: ltr;
+}
+
+.inv-item.available {
+    background: rgba(48, 209, 88, 0.2);
+    color: var(--accent-green);
+}
+
+.inv-item.empty {
+    background: rgba(255, 69, 58, 0.2);
+    color: var(--accent-red);
+}
+
+.country-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.country-card.active .inventory-badge {
+    background: rgba(10, 132, 255, 0.15);
+    border-color: rgba(10, 132, 255, 0.3);
+}

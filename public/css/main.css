@@ -15,11 +15,15 @@
     --border-color: #38383a;
     --separator: #38383a;
     --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.5);
+    --shadow-glow-blue: 0 4px 20px rgba(10, 132, 255, 0.3);
+    --shadow-glow-green: 0 4px 20px rgba(48, 209, 88, 0.3);
     --radius-sm: 8px;
     --radius-md: 12px;
     --radius-lg: 16px;
     --radius-xl: 24px;
     --transition: all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+    --transition-fast: all 0.15s cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
 * {

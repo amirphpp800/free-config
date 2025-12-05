@@ -9,10 +9,16 @@ const Dashboard = {
         this.state.loading = true;
         try {
             const [usageRes, announcementsRes] = await Promise.all([
-                API.getUsage().catch(() => ({ wireguard: 0, dns: 0 })),
+                API.getUsage().catch(() => ({ usage: { wireguard: 0, dns: 0 }, limit: 3, isLimited: false })),
                 API.getAnnouncements().catch(() => ({ announcements: [] }))
             ]);
-            this.state.usage = usageRes;
+            this.state.usage = {
+                wireguard: usageRes.usage?.wireguard || 0,
+                dns: usageRes.usage?.dns || 0,
+                limit: usageRes.limit || 3,
+                isLimited: usageRes.isLimited || false,
+                resetTimestamp: usageRes.resetTimestamp || null
+            };
             this.state.announcements = announcementsRes.announcements || [];
         } catch (error) {
             console.error('Dashboard init error:', error);
@@ -67,19 +73,63 @@ const Dashboard = {
         `;
     },
 
+    timerInterval: null,
+
+    startResetTimer() {
+        if (this.timerInterval) {
+            clearInterval(this.timerInterval);
+        }
+        
+        this.timerInterval = setInterval(() => {
+            const timerEl = document.getElementById('reset-timer');
+            if (timerEl && this.state.usage && this.state.usage.resetTimestamp) {
+                const remaining = this.state.usage.resetTimestamp - Date.now();
+                if (remaining <= 0) {
+                    clearInterval(this.timerInterval);
+                    location.reload();
+                } else {
+                    const hours = Math.floor(remaining / (1000 * 60 * 60));
+                    const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+                    const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
+                    timerEl.textContent = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                }
+            }
+        }, 1000);
+    },
+
     renderUsageStats() {
-        const usage = this.state.usage || { wireguard: 0, dns: 0 };
-        const wgPercent = (usage.wireguard / CONFIG.DAILY_LIMITS.wireguard) * 100;
-        const dnsPercent = (usage.dns / CONFIG.DAILY_LIMITS.dns) * 100;
+        const usage = this.state.usage || { wireguard: 0, dns: 0, limit: 3 };
+        const limit = usage.limit || CONFIG.DAILY_LIMITS.wireguard;
+        const wgPercent = (usage.wireguard / limit) * 100;
+        const dnsPercent = (usage.dns / limit) * 100;
+        const isLimited = usage.isLimited || (usage.wireguard >= limit);
+
+        if (isLimited && usage.resetTimestamp) {
+            setTimeout(() => this.startResetTimer(), 100);
+        }
 
         return `
             <div class="card animate-slideInUp stagger-1">
                 <h3 class="card-title mb-16">مصرف امروز</h3>
                 
+                ${isLimited ? `
+                    <div class="limit-warning" style="background: rgba(255, 69, 58, 0.1); border: 1px solid var(--accent-red); border-radius: 12px; padding: 16px; margin-bottom: 16px; text-align: center;">
+                        <div style="font-size: 14px; color: var(--accent-red); margin-bottom: 8px;">
+                            ⚠️ محدودیت روزانه فعال شد
+                        </div>
+                        <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 12px;">
+                            زمان باقی‌مانده تا ریست محدودیت:
+                        </div>
+                        <div id="reset-timer" style="font-size: 28px; font-weight: 700; color: var(--accent-red); font-family: monospace; direction: ltr;">
+                            00:00:00
+                        </div>
+                    </div>
+                ` : ''}
+                
                 <div class="mb-16">
                     <div class="usage-info">
                         <span class="usage-label">🔐 WireGuard</span>
-                        <span class="usage-value">${Utils.toPersianNumber(usage.wireguard)} از ${Utils.toPersianNumber(CONFIG.DAILY_LIMITS.wireguard)}</span>
+                        <span class="usage-value">${Utils.toPersianNumber(usage.wireguard)} از ${Utils.toPersianNumber(limit)}</span>
                     </div>
                     <div class="progress-bar">
                         <div class="progress-fill" style="width: ${Math.min(wgPercent, 100)}%; background: ${wgPercent >= 100 ? 'var(--accent-red)' : 'var(--accent-blue)'}"></div>
@@ -89,7 +139,7 @@ const Dashboard = {
                 <div>
                     <div class="usage-info">
                         <span class="usage-label">🌐 DNS</span>
-                        <span class="usage-value">${Utils.toPersianNumber(usage.dns)} از ${Utils.toPersianNumber(CONFIG.DAILY_LIMITS.dns)}</span>
+                        <span class="usage-value">${Utils.toPersianNumber(usage.dns)} از ${Utils.toPersianNumber(limit)}</span>
                     </div>
                     <div class="progress-bar">
                         <div class="progress-fill" style="width: ${Math.min(dnsPercent, 100)}%; background: ${dnsPercent >= 100 ? 'var(--accent-red)' : 'var(--accent-green)'}"></div>

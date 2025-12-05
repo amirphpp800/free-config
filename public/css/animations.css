@@ -109,14 +109,17 @@
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-lg);
-    padding: 14px 20px;
-    display: flex;
+    padding: 12px 20px;
+    display: inline-flex;
     align-items: center;
     gap: 12px;
     box-shadow: var(--shadow);
     z-index: 2000;
     animation: slideInDown 0.3s ease, fadeOut 0.3s ease 2.7s forwards;
-    max-width: 90%;
+    max-width: 400px;
+    min-width: 280px;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
 }
 
 .toast-success { 
@@ -137,13 +140,13 @@
 }
 
 .toast-icon {
-    width: 24px;
-    height: 24px;
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 700;
     flex-shrink: 0;
     animation: checkmarkPop 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
@@ -186,6 +189,9 @@
 .toast-message {
     font-size: 14px;
     font-weight: 500;
+    line-height: 1.4;
+    flex: 1;
+    text-align: right;
 }
 
 .skeleton {

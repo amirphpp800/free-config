@@ -18,7 +18,10 @@ const API = {
             const data = await response.json();
             
             if (!response.ok) {
-                throw new Error(data.error || 'خطا در برقراری ارتباط');
+                const error = new Error(data.error || 'خطا در برقراری ارتباط');
+                if (data.resetTimestamp) error.resetTimestamp = data.resetTimestamp;
+                if (data.resetTimer) error.resetTimer = data.resetTimer;
+                throw error;
             }
             
             return data;
