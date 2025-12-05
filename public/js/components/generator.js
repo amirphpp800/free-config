@@ -34,21 +34,21 @@ const Generator = {
 
     canGenerate() {
         const isWireGuard = this.state.type === 'wireguard';
-        
+
         if (isWireGuard && this.state.ipType === 'ipv4_ipv6') {
             if (!this.state.countryIPv4 || !this.state.countryIPv6) return false;
-            
+
             const countryIPv4 = this.state.countries.find(c => c.code === this.state.countryIPv4);
             const countryIPv6 = this.state.countries.find(c => c.code === this.state.countryIPv6);
-            
+
             if (!countryIPv4 || !countryIPv6) return false;
-            
-            return (countryIPv4.ipv4 && countryIPv4.ipv4.length > 0) && 
+
+            return (countryIPv4.ipv4 && countryIPv4.ipv4.length > 0) &&
                    (countryIPv6.ipv6 && countryIPv6.ipv6.length > 0);
         }
-        
+
         if (!this.state.country) return false;
-        
+
         const selectedCountry = this.state.countries.find(c => c.code === this.state.country);
         if (!selectedCountry) return false;
         return this.getCountryAvailability(selectedCountry, this.state.ipType);
@@ -73,7 +73,7 @@ const Generator = {
 
     render() {
         const isWireGuard = this.state.type === 'wireguard';
-        
+
         return `
             ${Header.render(isWireGuard ? 'تولید WireGuard' : 'تولید DNS', true, false)}
             <div class="page" style="padding-bottom: 80px;">
@@ -115,7 +115,7 @@ const Generator = {
                                     const hasIPv4 = c.ipv4 && c.ipv4.length > 0;
                                     const ipv4Count = c.ipv4?.length || 0;
                                     return `
-                                        <div class="country-card ${this.state.countryIPv4 === c.code ? 'active' : ''} ${!hasIPv4 ? 'disabled' : ''}" 
+                                        <div class="country-card ${this.state.countryIPv4 === c.code ? 'active' : ''} ${!hasIPv4 ? 'disabled' : ''}"
                                             onclick="${hasIPv4 ? `Generator.selectCountryIPv4('${c.code}')` : ''}"
                                             style="${!hasIPv4 ? 'opacity: 0.5; cursor: not-allowed;' : ''}">
                                             <img src="${c.flag}" alt="${c.name}" class="country-flag">
@@ -138,7 +138,7 @@ const Generator = {
                                     const hasIPv6 = c.ipv6 && c.ipv6.length > 0;
                                     const ipv6Count = c.ipv6?.length || 0;
                                     return `
-                                        <div class="country-card ${this.state.countryIPv6 === c.code ? 'active' : ''} ${!hasIPv6 ? 'disabled' : ''}" 
+                                        <div class="country-card ${this.state.countryIPv6 === c.code ? 'active' : ''} ${!hasIPv6 ? 'disabled' : ''}"
                                             onclick="${hasIPv6 ? `Generator.selectCountryIPv6('${c.code}')` : ''}"
                                             style="${!hasIPv6 ? 'opacity: 0.5; cursor: not-allowed;' : ''}">
                                             <img src="${c.flag}" alt="${c.name}" class="country-flag">
@@ -162,7 +162,7 @@ const Generator = {
                                     const ipv4Count = c.ipv4?.length || 0;
                                     const ipv6Count = c.ipv6?.length || 0;
                                     return `
-                                        <div class="country-card ${this.state.country === c.code ? 'active' : ''} ${!isAvailable ? 'disabled' : ''}" 
+                                        <div class="country-card ${this.state.country === c.code ? 'active' : ''} ${!isAvailable ? 'disabled' : ''}"
                                             onclick="${isAvailable ? `Generator.selectCountry('${c.code}')` : ''}"
                                             style="${!isAvailable ? 'opacity: 0.5; cursor: not-allowed;' : ''}">
                                             <img src="${c.flag}" alt="${c.name}" class="country-flag">
@@ -188,7 +188,7 @@ const Generator = {
                     <div class="radio-group">
                         ${isWireGuard ? `
                             <div class="radio-option">
-                                <input type="radio" name="ipType" id="ipv4" value="ipv4" 
+                                <input type="radio" name="ipType" id="ipv4" value="ipv4"
                                     ${this.state.ipType === 'ipv4' ? 'checked' : ''}
                                     onchange="Generator.state.ipType = 'ipv4'; App.render();">
                                 <label for="ipv4">IPv4</label>
@@ -201,7 +201,7 @@ const Generator = {
                             </div>
                         ` : `
                             <div class="radio-option">
-                                <input type="radio" name="ipType" id="ipv4" value="ipv4" 
+                                <input type="radio" name="ipType" id="ipv4" value="ipv4"
                                     ${this.state.ipType === 'ipv4' ? 'checked' : ''}
                                     onchange="Generator.state.ipType = 'ipv4'; App.render();">
                                 <label for="ipv4">IPv4</label>
@@ -240,7 +240,7 @@ const Generator = {
                     </div>
                 ` : ''}
 
-                <button 
+                <button
                     class="btn btn-primary ${this.state.loading || !this.state.country || !this.canGenerate() ? 'disabled' : ''}"
                     onclick="Generator.generate()"
                     ${this.state.loading || !this.state.country || !this.canGenerate() ? 'disabled' : ''}
@@ -259,7 +259,7 @@ const Generator = {
         const result = this.state.result;
         const isWireGuard = this.state.type === 'wireguard';
         const isDNS = !isWireGuard;
-        
+
         let ip = '';
         if (isDNS) {
             ip = result.config?.split('\n')[0] || result.dns || '';
@@ -275,7 +275,7 @@ const Generator = {
 
         let inventoryHtml = '';
         const inv = result.inventory;
-        
+
         if (isWireGuard && inv) {
             if (this.state.ipType === 'ipv4_ipv6' && inv.ipv4Country && inv.ipv6Country) {
                 inventoryHtml = `
@@ -346,13 +346,13 @@ const Generator = {
                             📋 کپی کانفیگ
                         </button>
                         <button class="btn btn-secondary" onclick="Generator.downloadConfig()">
-                            ⬇️ دانلود
+                            ⬇️دانلود
                         </button>
                     `}
                 </div>
             </div>
         `;
-        
+
         document.body.appendChild(modal);
         modal.onclick = (e) => {
             if (e.target === modal) {
@@ -384,7 +384,7 @@ const Generator = {
         const modal = document.createElement('div');
         modal.className = 'modal-overlay';
         modal.id = 'limit-modal';
-        
+
         const updateTimer = () => {
             const timerEl = document.getElementById('limit-timer');
             if (timerEl && resetTimestamp) {
@@ -400,7 +400,7 @@ const Generator = {
                 }
             }
         };
-        
+
         modal.innerHTML = `
             <div class="modal">
                 <div class="modal-header">
@@ -429,14 +429,14 @@ const Generator = {
                 </div>
             </div>
         `;
-        
+
         document.body.appendChild(modal);
         modal.onclick = (e) => {
             if (e.target === modal) {
                 modal.remove();
             }
         };
-        
+
         updateTimer();
         setInterval(updateTimer, 1000);
     },
@@ -468,7 +468,7 @@ const Generator = {
 
             this.state.result = result;
             this.state.loading = false;
-            
+
             if (result.inventory) {
                 const inv = result.inventory;
                 if (inv.ipv4Country) {
@@ -494,18 +494,22 @@ const Generator = {
                     }
                 }
             }
-            
+
+            if (result.isLimited && result.resetTimer) {
+                Toast.show(`محدودیت روزانه: ${result.resetTimer.hours} ساعت و ${result.resetTimer.minutes} دقیقه تا ریست`, 'warning');
+            }
+
+            // Refresh usage stats
+            if (Dashboard.state) {
+                const usage = await API.getUsage().catch(() => null);
+                Dashboard.state.usage = usage;
+            }
+
             App.render();
-            
-            setTimeout(() => {
-                this.showResultModal();
-            }, 100);
-            
-            Toast.show('کانفیگ با موفقیت تولید شد', 'success');
         } catch (error) {
             this.state.loading = false;
             App.render();
-            
+
             if (error.resetTimestamp || error.resetTimer) {
                 this.showLimitModal(error.resetTimer, error.resetTimestamp);
             } else {
@@ -523,7 +527,7 @@ const Generator = {
 
     downloadConfig() {
         if (this.state.result?.config) {
-            const filename = this.state.type === 'wireguard' 
+            const filename = this.state.type === 'wireguard'
                 ? `${this.state.country.toLowerCase()}.conf`
                 : `${this.state.country.toLowerCase()}.txt`;
             Utils.downloadFile(this.state.result.config, filename);

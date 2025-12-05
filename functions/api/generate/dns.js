@@ -25,6 +25,11 @@ export async function onRequestPost(context) {
             const usageData = await env.DB.get(usageKey);
             if (usageData) {
                 usage = JSON.parse(usageData);
+                
+                // Initialize resetTimestamp if not exists
+                if (!usage.resetTimestamp) {
+                    usage.resetTimestamp = Date.now() + (24 * 60 * 60 * 1000);
+                }
             }
         }
 

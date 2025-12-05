@@ -1,3 +1,4 @@
+
 export async function onRequestGet(context) {
     const { request, env } = context;
 
@@ -13,14 +14,27 @@ export async function onRequestGet(context) {
         const today = new Date().toISOString().split('T')[0];
         const usageKey = `usage:${user.telegramId}:${today}`;
         
-        let usage = { wireguard: 0, dns: 0 };
+        let usage = { wireguard: 0, dns: 0, limit: 3 };
 
         if (env.DB) {
             const usageData = await env.DB.get(usageKey);
             if (usageData) {
                 usage = JSON.parse(usageData);
             }
+            
+            // Initialize resetTimestamp if not exists
+            if (!usage.resetTimestamp) {
+                usage.resetTimestamp = Date.now() + (24 * 60 * 60 * 1000);
+                await env.DB.put(usageKey, JSON.stringify(usage), { expirationTtl: 86400 });
+            }
         }
+
+        // Add limit field
+        usage.limit = 3;
+        
+        // Check if user is limited
+        const isLimited = !user.isAdmin && (usage.wireguard >= 3 || usage.dns >= 3);
+        usage.isLimited = isLimited;
 
         return new Response(JSON.stringify(usage), {
             headers: { 'Content-Type': 'application/json' }

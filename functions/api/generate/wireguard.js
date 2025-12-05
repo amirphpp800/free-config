@@ -60,6 +60,11 @@ export async function onRequestPost(context) {
                 usage = JSON.parse(usageData);
                 if (usage.wireguard_dual === undefined) usage.wireguard_dual = 0;
             }
+            
+            // Initialize resetTimestamp if not exists
+            if (!usage.resetTimestamp) {
+                usage.resetTimestamp = Date.now() + (24 * 60 * 60 * 1000);
+            }
         }
 
         if (!user.isAdmin) {

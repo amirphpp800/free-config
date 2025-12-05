@@ -527,21 +527,6 @@
     font-weight: 500;
 }
 
-.progress-bar {
-    width: 100%;
-    height: 6px;
-    background: var(--bg-tertiary);
-    border-radius: 3px;
-    overflow: hidden;
-}
-
-.progress-fill {
-    height: 100%;
-    background: var(--accent-blue);
-    border-radius: 3px;
-    transition: width 0.3s ease;
-}
-
 .usage-info {
     display: flex;
     justify-content: space-between;
@@ -825,7 +810,7 @@
     bottom: 0;
     opacity: 0.03;
     pointer-events: none;
-    background-image: 
+    background-image:
         radial-gradient(circle at 25% 25%, var(--accent-blue) 1px, transparent 1px),
         radial-gradient(circle at 75% 75%, var(--accent-purple) 1px, transparent 1px);
     background-size: 50px 50px;
@@ -1215,6 +1200,13 @@
     flex-wrap: wrap;
 }
 
+.address-actions .btn {
+    flex: 1;
+    min-width: fit-content;
+    padding: 10px 12px;
+    font-size: 13px;
+}
+
 .confirm-message {
     font-size: 15px;
     color: var(--text-secondary);
@@ -1254,19 +1246,89 @@
     color: var(--text-secondary);
 }
 
+/* Usage Stats */
+.usage-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.usage-item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.usage-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.usage-label {
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.usage-count {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--primary);
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background: var(--bg-tertiary);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary), var(--accent));
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.usage-remaining {
+    font-size: 12px;
+    color: var(--text-secondary);
+    text-align: right;
+}
+
+.reset-timer {
+    padding: 12px;
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-md);
+    text-align: center;
+    font-size: 14px;
+    margin-top: 8px;
+}
+
+.timer-value {
+    font-weight: 600;
+    color: var(--primary);
+}
+
+/* Announcements */
+.announcements {
+}
+
 @media (max-width: 768px) {
     .countries-grid {
         grid-template-columns: 1fr;
     }
-    
+
     .country-admin-actions {
         flex-direction: column;
     }
-    
+
     .country-admin-actions .btn {
         width: 100%;
     }
-    
+
     .container-wide {
         padding: 0 16px;
     }
@@ -1277,16 +1339,16 @@
         flex-direction: column;
         text-align: center;
     }
-    
+
     .country-admin-flag {
         width: 80px;
         height: 60px;
     }
-    
+
     .address-actions {
         flex-direction: column;
     }
-    
+
     .address-actions .btn {
         width: 100%;
     }

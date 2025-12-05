@@ -2,24 +2,24 @@ const Dashboard = {
     state: {
         usage: null,
         announcements: [],
-        loading: true
+        loading: true,
+        resetTimer: null // Add resetTimer to state
     },
 
     async init() {
         this.state.loading = true;
         try {
-            const [usageRes, announcementsRes] = await Promise.all([
-                API.getUsage().catch(() => ({ usage: { wireguard: 0, dns: 0 }, limit: 3, isLimited: false })),
-                API.getAnnouncements().catch(() => ({ announcements: [] }))
+            const [announcements, usage] = await Promise.all([
+                API.getAnnouncements(),
+                API.getUsage().catch(() => null) // Fetch usage data
             ]);
-            this.state.usage = {
-                wireguard: usageRes.usage?.wireguard || 0,
-                dns: usageRes.usage?.dns || 0,
-                limit: usageRes.limit || 3,
-                isLimited: usageRes.isLimited || false,
-                resetTimestamp: usageRes.resetTimestamp || null
-            };
-            this.state.announcements = announcementsRes.announcements || [];
+            this.state.announcements = announcements.announcements || [];
+            this.state.usage = usage; // Store usage data
+
+            // Start timer if user is limited
+            if (usage?.isLimited && usage?.resetTimestamp) {
+                this.startResetTimer(usage.resetTimestamp); // Pass resetTimestamp to startResetTimer
+            }
         } catch (error) {
             console.error('Dashboard init error:', error);
         } finally {
@@ -37,8 +37,8 @@ const Dashboard = {
             <div class="page" style="padding-bottom: 80px;">
                 <div class="container">
                     ${this.renderAnnouncements()}
-                    ${this.renderWelcome(user)}
                     ${this.renderUsageStats()}
+                    ${this.renderWelcome(user)}
                     ${await this.renderQuickActions()}
                     ${isAdmin ? this.renderAdminAccess() : ''}
                 </div>
@@ -49,7 +49,7 @@ const Dashboard = {
 
     renderAnnouncements() {
         if (!this.state.announcements.length) return '';
-        
+
         return this.state.announcements.map(a => `
             <div class="announcement-banner animate-slideInDown">
                 <div class="announcement-text">${Utils.escapeHtml(a.text)}</div>
@@ -73,19 +73,19 @@ const Dashboard = {
         `;
     },
 
-    timerInterval: null,
-
-    startResetTimer() {
-        if (this.timerInterval) {
-            clearInterval(this.timerInterval);
+    // Updated startResetTimer to accept a timestamp
+    startResetTimer(resetTimestamp) {
+        if (this.state.resetTimer) {
+            clearInterval(this.state.resetTimer);
         }
-        
-        this.timerInterval = setInterval(() => {
+
+        this.state.resetTimer = setInterval(() => {
             const timerEl = document.getElementById('reset-timer');
-            if (timerEl && this.state.usage && this.state.usage.resetTimestamp) {
-                const remaining = this.state.usage.resetTimestamp - Date.now();
+            if (timerEl && resetTimestamp) {
+                const remaining = resetTimestamp - Date.now();
                 if (remaining <= 0) {
-                    clearInterval(this.timerInterval);
+                    clearInterval(this.state.resetTimer);
+                    this.state.resetTimer = null; // Clear the interval ID
                     location.reload();
                 } else {
                     const hours = Math.floor(remaining / (1000 * 60 * 60));
@@ -93,6 +93,9 @@ const Dashboard = {
                     const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
                     timerEl.textContent = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
                 }
+            } else if (!timerEl) { // If timer element is not found, clear interval
+                clearInterval(this.state.resetTimer);
+                this.state.resetTimer = null;
             }
         }, 1000);
     },
@@ -104,15 +107,14 @@ const Dashboard = {
         const dnsPercent = (usage.dns / limit) * 100;
         const isLimited = usage.isLimited || (usage.wireguard >= limit);
 
-        if (isLimited && usage.resetTimestamp) {
-            setTimeout(() => this.startResetTimer(), 100);
-        }
+        // Ensure timer starts if needed, but only once. The init function should handle this.
+        // This part is now handled in init() for better control.
 
         return `
             <div class="card animate-slideInUp stagger-1">
                 <h3 class="card-title mb-16">مصرف امروز</h3>
-                
-                ${isLimited ? `
+
+                ${isLimited && usage.resetTimestamp ? `
                     <div class="limit-warning" style="background: rgba(255, 69, 58, 0.1); border: 1px solid var(--accent-red); border-radius: 12px; padding: 16px; margin-bottom: 16px; text-align: center;">
                         <div style="font-size: 14px; color: var(--accent-red); margin-bottom: 8px;">
                             ⚠️ محدودیت روزانه فعال شد
@@ -125,7 +127,7 @@ const Dashboard = {
                         </div>
                     </div>
                 ` : ''}
-                
+
                 <div class="mb-16">
                     <div class="usage-info">
                         <span class="usage-label">🔐 WireGuard</span>
