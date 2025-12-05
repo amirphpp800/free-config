@@ -56,15 +56,25 @@ export async function onRequestPost(context) {
         const dnsInfo = DNS_SERVERS[dns] || DNS_SERVERS.cloudflare;
 
         let selectedIp = '';
+        let consumedIPs = [];
+        
         if (ipType === 'ipv6') {
-            if (countryInfo.ipv6 && countryInfo.ipv6.length > 0) {
-                selectedIp = countryInfo.ipv6[Math.floor(Math.random() * countryInfo.ipv6.length)];
+            if (countryInfo.ipv6 && countryInfo.ipv6.length >= 2) {
+                // انتخاب دو آدرس IPv6 تصادفی
+                const shuffled = [...countryInfo.ipv6].sort(() => Math.random() - 0.5);
+                consumedIPs = [shuffled[0], shuffled[1]];
+                selectedIp = consumedIPs.join('\n');
+            } else if (countryInfo.ipv6 && countryInfo.ipv6.length === 1) {
+                consumedIPs = [countryInfo.ipv6[0]];
+                selectedIp = consumedIPs[0];
             } else {
-                selectedIp = '2606:4700:4700::1111';
+                selectedIp = '2606:4700:4700::1111\n2606:4700:4700::1001';
             }
         } else {
             if (countryInfo.ipv4 && countryInfo.ipv4.length > 0) {
-                selectedIp = countryInfo.ipv4[Math.floor(Math.random() * countryInfo.ipv4.length)];
+                const ip = countryInfo.ipv4[Math.floor(Math.random() * countryInfo.ipv4.length)];
+                consumedIPs = [ip];
+                selectedIp = ip;
             } else {
                 selectedIp = dnsInfo.primary;
             }
@@ -101,9 +111,13 @@ export async function onRequestPost(context) {
 
             // Update country inventory in KV
             if (ipType === 'ipv4') {
-                if (countryInfo.ipv4 && countryInfo.ipv4.includes(selectedIp)) {
-                    const ipIndex = countryInfo.ipv4.indexOf(selectedIp);
-                    countryInfo.ipv4.splice(ipIndex, 1);
+                if (consumedIPs.length > 0 && countryInfo.ipv4) {
+                    consumedIPs.forEach(ip => {
+                        const ipIndex = countryInfo.ipv4.indexOf(ip);
+                        if (ipIndex > -1) {
+                            countryInfo.ipv4.splice(ipIndex, 1);
+                        }
+                    });
                     const countryIndex = countries.findIndex(c => c.code === countryInfo.code);
                     if (countryIndex > -1) {
                         countries[countryIndex].ipv4 = countryInfo.ipv4;
@@ -111,9 +125,13 @@ export async function onRequestPost(context) {
                     await env.DB.put('countries', JSON.stringify(countries));
                 }
             } else if (ipType === 'ipv6') {
-                if (countryInfo.ipv6 && countryInfo.ipv6.includes(selectedIp)) {
-                    const ipIndex = countryInfo.ipv6.indexOf(selectedIp);
-                    countryInfo.ipv6.splice(ipIndex, 1);
+                if (consumedIPs.length > 0 && countryInfo.ipv6) {
+                    consumedIPs.forEach(ip => {
+                        const ipIndex = countryInfo.ipv6.indexOf(ip);
+                        if (ipIndex > -1) {
+                            countryInfo.ipv6.splice(ipIndex, 1);
+                        }
+                    });
                     const countryIndex = countries.findIndex(c => c.code === countryInfo.code);
                     if (countryIndex > -1) {
                         countries[countryIndex].ipv6 = countryInfo.ipv6;
