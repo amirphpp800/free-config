@@ -245,7 +245,10 @@ const Generator = {
                     onclick="Generator.generate()"
                     ${this.state.loading || !this.state.country || !this.canGenerate() ? 'disabled' : ''}
                 >
-                    ${this.state.loading ? '⏳ در حال تولید...' : `✨ تولید ${isWireGuard ? 'کانفیگ' : 'DNS'}`}
+                    ${this.state.loading 
+                        ? (isWireGuard ? '⏳ در حال تولید...' : '🔍 در حال یافتن بهترین سرور...') 
+                        : (isWireGuard ? '✨ تولید کانفیگ' : '🌐 دریافت سرور')
+                    }
                 </button>
             </div>
         `;
@@ -310,9 +313,9 @@ const Generator = {
                     <button class="modal-close" onclick="Generator.closeResultModal(this)">×</button>
                 </div>
                 <div class="modal-body">
-                    <div class="card" style="margin-bottom: 16px; background: rgba(48, 209, 88, 0.1); border-color: var(--accent-green); cursor: pointer;" onclick="Generator.copyIP('${ip}', this)">
-                        <h4 style="font-size: 14px; margin-bottom: 8px; color: var(--text-secondary);">🌐 آدرس اختصاصی شما (کلیک کنید):</h4>
-                        <div style="font-family: monospace; font-size: 16px; font-weight: 600; color: var(--accent-green); word-break: break-all;">
+                    <div class="card" style="margin-bottom: 16px; padding: 12px; background: rgba(48, 209, 88, 0.1); border-color: var(--accent-green); cursor: pointer;" onclick="Generator.copyIP('${ip}', this)">
+                        <h4 style="font-size: 13px; margin-bottom: 6px; color: var(--text-secondary);">🌐 آدرس اختصاصی شما (کلیک کنید):</h4>
+                        <div style="font-family: monospace; font-size: 15px; font-weight: 600; color: var(--accent-green); word-break: break-all;">
                             ${ip}
                         </div>
                     </div>
