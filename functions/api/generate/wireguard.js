@@ -196,8 +196,8 @@ export async function onRequestPost(context) {
             // برای IPv4+IPv6: هم آدرس‌های IPv4 و هم IPv6 اپراتور
             const operatorIPv4 = operatorData.addresses.join(', ');
             const operatorIPv6 = operatorData.addressesV6.join(', ');
-            const formattedIpv4 = usedIpv4.includes('/') ? usedIpv4 : `${usedIpv4}/32`;
-            const formattedIpv6Dual = usedIpv6.map(ip => ip.includes('/') ? ip : `${ip}/128`).join(', ');
+            // const formattedIpv4 = usedIpv4.includes('/') ? usedIpv4 : `${usedIpv4}/32`;
+            // const formattedIpv6Dual = usedIpv6.map(ip => ip.includes('/') ? ip : `${ip}/128`).join(', ');
             address = `${formattedIpv4}, ${operatorIPv4}, ${formattedIpv6Dual}, ${operatorIPv6}`;
             
             // DNS: یک IPv4 از کشور IPv4 + دو IPv6 از کشور IPv6 + DNS انتخابی
