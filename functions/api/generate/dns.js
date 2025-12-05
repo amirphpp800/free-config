@@ -1,14 +1,3 @@
-const COUNTRIES = [
-    { code: 'de', name: 'آلمان', flag: '🇩🇪' },
-    { code: 'nl', name: 'هلند', flag: '🇳🇱' },
-    { code: 'us', name: 'آمریکا', flag: '🇺🇸' },
-    { code: 'uk', name: 'انگلستان', flag: '🇬🇧' },
-    { code: 'fr', name: 'فرانسه', flag: '🇫🇷' },
-    { code: 'fi', name: 'فنلاند', flag: '🇫🇮' },
-    { code: 'se', name: 'سوئد', flag: '🇸🇪' },
-    { code: 'ca', name: 'کانادا', flag: '🇨🇦' }
-];
-
 const DNS_SERVERS = {
     cloudflare: { name: 'Cloudflare', primary: '1.1.1.1', secondary: '1.0.0.1', doh: 'https://cloudflare-dns.com/dns-query' },
     google: { name: 'Google', primary: '8.8.8.8', secondary: '8.8.4.4', doh: 'https://dns.google/dns-query' },
@@ -31,7 +20,7 @@ export async function onRequestPost(context) {
         const today = new Date().toISOString().split('T')[0];
         const usageKey = `usage:${user.telegramId}:${today}`;
         
-        let usage = { wireguard: 0, dns: 0 };
+        let usage = { wireguard: 0, dns: 0, wireguard_dual: 0 };
         if (env.DB) {
             const usageData = await env.DB.get(usageKey);
             if (usageData) {
@@ -39,7 +28,7 @@ export async function onRequestPost(context) {
             }
         }
 
-        if (usage.dns >= 3) {
+        if (!user.isAdmin && usage.dns >= 3) {
             return new Response(JSON.stringify({ 
                 error: 'محدودیت روزانه: شما امروز ۳ کانفیگ DNS تولید کرده‌اید'
             }), {
@@ -50,17 +39,41 @@ export async function onRequestPost(context) {
 
         const { country, ipType, operator, dns } = await request.json();
 
-        const countryInfo = COUNTRIES.find(c => c.code === country) || COUNTRIES[0];
+        let countries = [];
+        if (env.DB) {
+            const countriesData = await env.DB.get('countries');
+            if (countriesData) {
+                countries = JSON.parse(countriesData);
+            }
+        }
+
+        const countryInfo = countries.find(c => c.code === country) || { code: country, name: country };
         const dnsInfo = DNS_SERVERS[dns] || DNS_SERVERS.cloudflare;
+
+        let selectedIp = '';
+        if (ipType === 'ipv6') {
+            if (countryInfo.ipv6 && countryInfo.ipv6.length > 0) {
+                selectedIp = countryInfo.ipv6[Math.floor(Math.random() * countryInfo.ipv6.length)];
+            } else {
+                selectedIp = '2606:4700:4700::1111';
+            }
+        } else {
+            if (countryInfo.ipv4 && countryInfo.ipv4.length > 0) {
+                selectedIp = countryInfo.ipv4[Math.floor(Math.random() * countryInfo.ipv4.length)];
+            } else {
+                selectedIp = dnsInfo.primary;
+            }
+        }
 
         let config;
         if (ipType === 'ipv6') {
-            config = `# DNS Configuration for ${countryInfo.name}
+            config = `${selectedIp}
+# DNS Configuration for ${countryInfo.name}
 # Provider: ${dnsInfo.name}
 # Operator: ${operator}
 # Type: IPv6
 
-Primary DNS: 2606:4700:4700::1111
+Primary DNS: ${selectedIp}
 Secondary DNS: 2606:4700:4700::1001
 
 DoH (DNS over HTTPS):
@@ -75,12 +88,13 @@ dns.cloudflare.com
 # iOS/macOS Configuration Profile:
 # Use mobileconfig generator with above settings`;
         } else {
-            config = `# DNS Configuration for ${countryInfo.name}
+            config = `${selectedIp}
+# DNS Configuration for ${countryInfo.name}
 # Provider: ${dnsInfo.name}
 # Operator: ${operator}
 # Type: IPv4
 
-Primary DNS: ${dnsInfo.primary}
+Primary DNS: ${selectedIp}
 Secondary DNS: ${dnsInfo.secondary}
 
 DoH (DNS over HTTPS):
@@ -90,11 +104,11 @@ DoT (DNS over TLS):
 ${dns === 'cloudflare' ? '1dot1dot1dot1.cloudflare-dns.com' : 'dns.google'}
 
 # Windows:
-netsh interface ip set dns "Ethernet" static ${dnsInfo.primary}
+netsh interface ip set dns "Ethernet" static ${selectedIp}
 netsh interface ip add dns "Ethernet" ${dnsInfo.secondary} index=2
 
 # Linux:
-echo "nameserver ${dnsInfo.primary}" | sudo tee /etc/resolv.conf
+echo "nameserver ${selectedIp}" | sudo tee /etc/resolv.conf
 echo "nameserver ${dnsInfo.secondary}" | sudo tee -a /etc/resolv.conf`;
         }
 

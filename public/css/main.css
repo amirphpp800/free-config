@@ -84,9 +84,21 @@ body {
     width: 100%;
 }
 
+.container-wide {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+    width: 100%;
+}
+
 .page {
     padding: 20px 0;
     animation: fadeIn 0.3s ease;
+}
+
+.page-fullscreen {
+    padding: 24px 0;
+    min-height: calc(100vh - 80px);
 }
 
 h1, h2, h3, h4, h5, h6 {

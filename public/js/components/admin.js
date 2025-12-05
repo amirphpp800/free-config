@@ -6,7 +6,9 @@ const Admin = {
         countries: [],
         announcements: [],
         loading: true,
-        newAnnouncement: ''
+        newAnnouncement: '',
+        selectedCountry: null,
+        selectedAddresses: []
     },
 
     async init() {
@@ -14,11 +16,11 @@ const Admin = {
         try {
             const [statsRes, countriesRes, announcementsRes] = await Promise.all([
                 API.adminGetStats().catch(() => ({})),
-                API.getCountries().catch(() => ({ countries: CONFIG.COUNTRIES })),
+                API.getCountries().catch(() => ({ countries: [] })),
                 API.getAnnouncements().catch(() => ({ announcements: [] }))
             ]);
             this.state.stats = statsRes;
-            this.state.countries = countriesRes.countries || CONFIG.COUNTRIES;
+            this.state.countries = countriesRes.countries || [];
             this.state.announcements = announcementsRes.announcements || [];
         } catch (error) {
             console.error('Admin init error:', error);
@@ -33,7 +35,7 @@ const Admin = {
         if (!user?.isAdmin) {
             return `
                 <div class="page">
-                    <div class="container">
+                    <div class="container-wide">
                         <div class="empty-state">
                             <div class="empty-state-icon">🚫</div>
                             <h3 class="empty-state-title">دسترسی محدود</h3>
@@ -48,9 +50,9 @@ const Admin = {
         }
 
         return `
-            ${Header.render('پنل مدیریت', true, false)}
-            <div class="page">
-                <div class="container">
+            ${Header.render('پنل مدیریت', true, true)}
+            <div class="page page-fullscreen">
+                <div class="container-wide">
                     ${this.renderTabs()}
                     ${this.renderContent()}
                 </div>
@@ -128,36 +130,57 @@ const Admin = {
 
     renderCountries() {
         return `
-            <div class="card animate-fadeIn">
-                <h3 class="card-title mb-16">مدیریت کشورها</h3>
+            <div class="countries-header">
+                <h3 class="section-title">مدیریت کشورها</h3>
+                <button class="btn btn-primary btn-sm" onclick="Admin.showAddCountryModal()">
+                    ➕ افزودن کشور
+                </button>
+            </div>
 
-                ${this.state.countries.map((c, i) => `
-                    <div class="list-item">
-                        <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
-                            <img src="${c.flag}" alt="${c.name}" class="country-flag-admin">
-                            <div>
-                                <div>${c.name}</div>
-                                <div class="text-secondary" style="font-size: 12px;">
-                                    IPv4: ${c.ipv4?.length || 0} | IPv6: ${c.ipv6?.length || 0}
-                                </div>
+            <div class="countries-grid animate-fadeIn">
+                ${this.state.countries.length ? this.state.countries.map((c, i) => `
+                    <div class="country-admin-card">
+                        <div class="country-admin-header">
+                            <img src="${c.flag || `https://flagcdn.com/w320/${c.code.toLowerCase()}.png`}" 
+                                 alt="${c.name}" class="country-admin-flag"
+                                 onerror="this.src='https://via.placeholder.com/80x60?text=${c.code}'">
+                            <div class="country-admin-info">
+                                <h4 class="country-admin-name">${c.name}</h4>
+                                <span class="country-admin-code">${c.code.toUpperCase()}</span>
                             </div>
                         </div>
-                        <div style="display: flex; gap: 8px;">
-                            <button class="btn btn-sm btn-secondary" onclick="Admin.editCountry(${i})">
-                                ✏️
+                        <div class="country-admin-stats">
+                            <div class="country-stat">
+                                <span class="country-stat-value">${Utils.toPersianNumber(c.ipv4?.length || 0)}</span>
+                                <span class="country-stat-label">IPv4</span>
+                            </div>
+                            <div class="country-stat">
+                                <span class="country-stat-value">${Utils.toPersianNumber(c.ipv6?.length || 0)}</span>
+                                <span class="country-stat-label">IPv6</span>
+                            </div>
+                        </div>
+                        <div class="country-admin-actions">
+                            <button class="btn btn-sm btn-secondary" onclick="Admin.showEditCountryModal(${i})" title="ویرایش">
+                                ✏️ ویرایش
                             </button>
-                            <button class="btn btn-sm btn-danger" onclick="Admin.deleteCountry(${i})">
+                            <button class="btn btn-sm btn-secondary" onclick="Admin.showAddAddressModal(${i})" title="افزودن آدرس">
+                                ➕ آدرس
+                            </button>
+                            <button class="btn btn-sm btn-secondary" onclick="Admin.showManageAddressesModal(${i})" title="مدیریت آدرس‌ها">
+                                📋 مدیریت
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="Admin.confirmDeleteCountry(${i})" title="حذف">
                                 🗑️
                             </button>
                         </div>
                     </div>
-                `).join('')}
-
-                <div class="divider"></div>
-
-                <button class="btn btn-primary" onclick="Admin.addCountry()">
-                    ➕ افزودن کشور جدید
-                </button>
+                `).join('') : `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🌍</div>
+                        <h3 class="empty-state-title">هیچ کشوری وجود ندارد</h3>
+                        <p class="empty-state-text">برای شروع، یک کشور اضافه کنید</p>
+                    </div>
+                `}
             </div>
         `;
     },
@@ -173,7 +196,7 @@ const Admin = {
                             <div>${Utils.escapeHtml(a.text)}</div>
                             <div class="text-secondary" style="font-size: 12px;">${Utils.formatDateShort(a.createdAt)}</div>
                         </div>
-                        <button class="btn btn-sm btn-danger" onclick="Admin.deleteAnnouncement('${a.id}')">
+                        <button class="btn btn-sm btn-danger" onclick="Admin.confirmDeleteAnnouncement('${a.id}')">
                             🗑️
                         </button>
                     </div>
@@ -204,105 +227,449 @@ const Admin = {
         App.render();
     },
 
-    addCountry() {
-        this.showCountryModal();
-    },
-
-    editCountry(index) {
-        this.showCountryModal(index);
-    },
-
-    showCountryModal(editIndex = null) {
-        const country = editIndex !== null ? this.state.countries[editIndex] : null;
-        const isEdit = country !== null;
+    showModal(content, options = {}) {
+        const existing = document.querySelector('.modal-overlay');
+        if (existing) existing.remove();
 
         const modal = document.createElement('div');
         modal.className = 'modal-overlay';
         modal.innerHTML = `
-            <div class="modal">
-                <div class="modal-header">
-                    <h3 class="modal-title">${isEdit ? 'ویرایش کشور' : 'افزودن کشور جدید'}</h3>
-                    <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button>
-                </div>
-                <div class="modal-body">
-                    <div class="input-group">
-                        <label class="input-label">کد کشور (مثال: de)</label>
-                        <input type="text" class="input" id="country-code" value="${country?.code || ''}" ${isEdit ? 'disabled' : ''}>
-                    </div>
-                    <div class="input-group">
-                        <label class="input-label">نام کشور به فارسی</label>
-                        <input type="text" class="input" id="country-name" value="${country?.name || ''}">
-                    </div>
-                    <div class="input-group">
-                        <label class="input-label">آدرس تصویر پرچم (URL)</label>
-                        <input type="text" class="input" id="country-flag" value="${country?.flag || ''}">
-                    </div>
-                    <div class="input-group">
-                        <label class="input-label">آدرس‌های IPv4 (هر خط یک آدرس)</label>
-                        <textarea class="input" id="country-ipv4" rows="4" placeholder="192.168.1.1&#10;192.168.1.2">${(country?.ipv4 || []).join('\n')}</textarea>
-                        <div class="text-secondary" style="font-size: 12px; margin-top: 4px;">
-                            هر کاربر یک آدرس IPv4 دریافت می‌کند
-                        </div>
-                    </div>
-                    <div class="input-group">
-                        <label class="input-label">آدرس‌های IPv6 (هر خط یک آدرس)</label>
-                        <textarea class="input" id="country-ipv6" rows="4" placeholder="2001:db8::1&#10;2001:db8::2">${(country?.ipv6 || []).join('\n')}</textarea>
-                        <div class="text-secondary" style="font-size: 12px; margin-top: 4px;">
-                            هر کاربر دو آدرس IPv6 دریافت می‌کند
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()">
-                        انصراف
-                    </button>
-                    <button class="btn btn-primary" onclick="Admin.saveCountryFromModal(${editIndex})">
-                        ${isEdit ? 'ذخیره تغییرات' : 'افزودن کشور'}
-                    </button>
-                </div>
+            <div class="modal ${options.wide ? 'modal-wide' : ''}">
+                ${content}
             </div>
         `;
         document.body.appendChild(modal);
+        
+        if (!options.preventClose) {
+            modal.onclick = (e) => {
+                if (e.target === modal) modal.remove();
+            };
+        }
+        
+        return modal;
     },
 
-    saveCountryFromModal(editIndex) {
+    closeModal() {
+        const modal = document.querySelector('.modal-overlay');
+        if (modal) modal.remove();
+    },
+
+    showAddCountryModal() {
+        this.showModal(`
+            <div class="modal-header">
+                <h3 class="modal-title">➕ افزودن کشور جدید</h3>
+                <button class="modal-close" onclick="Admin.closeModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="input-group">
+                    <label class="input-label">کد کشور (مثال: de, us, ir)</label>
+                    <input type="text" class="input" id="country-code" placeholder="de" maxlength="3">
+                    <div class="text-secondary" style="font-size: 12px; margin-top: 4px;">
+                        پرچم کشور به صورت خودکار از flagcdn.com دریافت می‌شود
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label class="input-label">نام کشور به فارسی</label>
+                    <input type="text" class="input" id="country-name" placeholder="آلمان">
+                </div>
+                <div class="input-group">
+                    <label class="input-label">آدرس‌های IPv4 (هر خط یک آدرس)</label>
+                    <textarea class="input" id="country-ipv4" rows="4" placeholder="192.168.1.1&#10;192.168.1.2"></textarea>
+                </div>
+                <div class="input-group">
+                    <label class="input-label">آدرس‌های IPv6 (هر خط یک آدرس)</label>
+                    <textarea class="input" id="country-ipv6" rows="4" placeholder="2001:db8::1&#10;2001:db8::2"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="Admin.closeModal()">انصراف</button>
+                <button class="btn btn-primary" onclick="Admin.saveNewCountry()">افزودن کشور</button>
+            </div>
+        `);
+    },
+
+    showEditCountryModal(index) {
+        const country = this.state.countries[index];
+        if (!country) return;
+
+        this.showModal(`
+            <div class="modal-header">
+                <h3 class="modal-title">✏️ ویرایش کشور ${country.name}</h3>
+                <button class="modal-close" onclick="Admin.closeModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="country-preview">
+                    <img src="${country.flag || `https://flagcdn.com/w320/${country.code.toLowerCase()}.png`}" 
+                         alt="${country.name}" class="country-preview-flag">
+                </div>
+                <div class="input-group">
+                    <label class="input-label">کد کشور</label>
+                    <input type="text" class="input" id="edit-country-code" value="${country.code}" maxlength="3">
+                </div>
+                <div class="input-group">
+                    <label class="input-label">نام کشور به فارسی</label>
+                    <input type="text" class="input" id="edit-country-name" value="${country.name}">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="Admin.closeModal()">انصراف</button>
+                <button class="btn btn-primary" onclick="Admin.saveEditCountry(${index})">ذخیره تغییرات</button>
+            </div>
+        `);
+    },
+
+    showAddAddressModal(index) {
+        const country = this.state.countries[index];
+        if (!country) return;
+
+        this.showModal(`
+            <div class="modal-header">
+                <h3 class="modal-title">➕ افزودن آدرس به ${country.name}</h3>
+                <button class="modal-close" onclick="Admin.closeModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="input-group">
+                    <label class="input-label">نوع آدرس</label>
+                    <div class="radio-group">
+                        <div class="radio-option">
+                            <input type="radio" name="addressType" id="type-ipv4" value="ipv4" checked>
+                            <label for="type-ipv4">IPv4</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="radio" name="addressType" id="type-ipv6" value="ipv6">
+                            <label for="type-ipv6">IPv6</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label class="input-label">آدرس‌ها (هر خط یک آدرس)</label>
+                    <textarea class="input" id="new-addresses" rows="6" placeholder="آدرس‌های جدید را وارد کنید..."></textarea>
+                    <div class="text-secondary" style="font-size: 12px; margin-top: 4px;">
+                        آدرس‌های تکراری به صورت خودکار حذف می‌شوند
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="Admin.closeModal()">انصراف</button>
+                <button class="btn btn-primary" onclick="Admin.addAddressesToCountry('${country.code}')">افزودن آدرس‌ها</button>
+            </div>
+        `);
+    },
+
+    showManageAddressesModal(index) {
+        const country = this.state.countries[index];
+        if (!country) return;
+
+        this.state.selectedCountry = country;
+        this.state.selectedAddresses = [];
+
+        this.showModal(`
+            <div class="modal-header">
+                <h3 class="modal-title">📋 مدیریت آدرس‌های ${country.name}</h3>
+                <button class="modal-close" onclick="Admin.closeModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="address-tabs">
+                    <button class="address-tab active" onclick="Admin.switchAddressTab('ipv4', ${index})">
+                        IPv4 (${country.ipv4?.length || 0})
+                    </button>
+                    <button class="address-tab" onclick="Admin.switchAddressTab('ipv6', ${index})">
+                        IPv6 (${country.ipv6?.length || 0})
+                    </button>
+                </div>
+                <div id="address-list-container">
+                    ${this.renderAddressList(country.ipv4 || [], 'ipv4')}
+                </div>
+                <div class="address-actions mt-16">
+                    <button class="btn btn-sm btn-secondary" onclick="Admin.selectAllAddresses()">انتخاب همه</button>
+                    <button class="btn btn-sm btn-secondary" onclick="Admin.deselectAllAddresses()">لغو انتخاب</button>
+                    <button class="btn btn-sm btn-danger" onclick="Admin.deleteSelectedAddresses('${country.code}')" id="delete-selected-btn" disabled>
+                        🗑️ حذف انتخاب شده‌ها (<span id="selected-count">0</span>)
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="Admin.closeModal()">بستن</button>
+            </div>
+        `, { wide: true });
+    },
+
+    renderAddressList(addresses, type) {
+        if (!addresses.length) {
+            return '<p class="text-secondary text-center" style="padding: 20px;">هیچ آدرسی وجود ندارد</p>';
+        }
+
+        return `
+            <div class="address-list" data-type="${type}">
+                ${addresses.map((addr, i) => `
+                    <div class="address-item">
+                        <label class="address-checkbox">
+                            <input type="checkbox" value="${addr}" onchange="Admin.toggleAddressSelection('${addr}')">
+                            <span class="address-text">${addr}</span>
+                        </label>
+                        <button class="btn-icon-small btn-danger" onclick="Admin.deleteSingleAddress('${this.state.selectedCountry?.code}', '${type}', '${addr}')">
+                            ×
+                        </button>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    },
+
+    switchAddressTab(type, index) {
+        const country = this.state.countries[index];
+        const tabs = document.querySelectorAll('.address-tab');
+        tabs.forEach(tab => tab.classList.remove('active'));
+        event.target.classList.add('active');
+        
+        this.state.selectedAddresses = [];
+        this.updateSelectedCount();
+        
+        const container = document.getElementById('address-list-container');
+        container.innerHTML = this.renderAddressList(country[type] || [], type);
+    },
+
+    toggleAddressSelection(addr) {
+        const index = this.state.selectedAddresses.indexOf(addr);
+        if (index > -1) {
+            this.state.selectedAddresses.splice(index, 1);
+        } else {
+            this.state.selectedAddresses.push(addr);
+        }
+        this.updateSelectedCount();
+    },
+
+    selectAllAddresses() {
+        const checkboxes = document.querySelectorAll('.address-list input[type="checkbox"]');
+        this.state.selectedAddresses = [];
+        checkboxes.forEach(cb => {
+            cb.checked = true;
+            this.state.selectedAddresses.push(cb.value);
+        });
+        this.updateSelectedCount();
+    },
+
+    deselectAllAddresses() {
+        const checkboxes = document.querySelectorAll('.address-list input[type="checkbox"]');
+        checkboxes.forEach(cb => cb.checked = false);
+        this.state.selectedAddresses = [];
+        this.updateSelectedCount();
+    },
+
+    updateSelectedCount() {
+        const countEl = document.getElementById('selected-count');
+        const btn = document.getElementById('delete-selected-btn');
+        if (countEl) countEl.textContent = this.state.selectedAddresses.length;
+        if (btn) btn.disabled = this.state.selectedAddresses.length === 0;
+    },
+
+    async saveNewCountry() {
         const code = document.getElementById('country-code').value.trim().toLowerCase();
         const name = document.getElementById('country-name').value.trim();
-        const flag = `https://flagcdn.com/w320/${code}.png`;
         const ipv4Text = document.getElementById('country-ipv4').value.trim();
         const ipv6Text = document.getElementById('country-ipv6').value.trim();
 
         if (!code || !name) {
-            Toast.show('لطفاً تمام فیلدها را پر کنید', 'error');
+            Toast.show('لطفاً کد و نام کشور را وارد کنید', 'error');
             return;
         }
 
-        const ipv4 = ipv4Text.split('\n').map(ip => ip.trim()).filter(ip => ip);
-        const ipv6 = ipv6Text.split('\n').map(ip => ip.trim()).filter(ip => ip);
-
-        const countryData = { code, name, flag, ipv4, ipv6 };
-
-        if (editIndex !== null) {
-            this.state.countries[editIndex] = countryData;
-        } else {
-            this.state.countries.push(countryData);
+        if (this.state.countries.find(c => c.code === code)) {
+            Toast.show('این کد کشور قبلاً وجود دارد', 'error');
+            return;
         }
 
-        document.querySelector('.modal-overlay').remove();
-        this.saveCountries();
+        const ipv4 = [...new Set(ipv4Text.split('\n').map(ip => ip.trim()).filter(ip => ip))];
+        const ipv6 = [...new Set(ipv6Text.split('\n').map(ip => ip.trim()).filter(ip => ip))];
+
+        const newCountry = {
+            code,
+            name,
+            flag: `https://flagcdn.com/w320/${code}.png`,
+            ipv4,
+            ipv6
+        };
+
+        this.state.countries.push(newCountry);
+        await this.saveCountries();
+        this.closeModal();
+        Toast.show('کشور با موفقیت اضافه شد', 'success');
     },
 
-    deleteCountry(index) {
-        if (confirm('آیا از حذف این کشور اطمینان دارید؟')) {
-            this.state.countries.splice(index, 1);
-            this.saveCountries();
+    async saveEditCountry(index) {
+        const code = document.getElementById('edit-country-code').value.trim().toLowerCase();
+        const name = document.getElementById('edit-country-name').value.trim();
+
+        if (!code || !name) {
+            Toast.show('لطفاً کد و نام کشور را وارد کنید', 'error');
+            return;
         }
+
+        const oldCode = this.state.countries[index].code;
+        if (code !== oldCode && this.state.countries.find(c => c.code === code)) {
+            Toast.show('این کد کشور قبلاً وجود دارد', 'error');
+            return;
+        }
+
+        this.state.countries[index].code = code;
+        this.state.countries[index].name = name;
+        this.state.countries[index].flag = `https://flagcdn.com/w320/${code}.png`;
+
+        await this.saveCountries();
+        this.closeModal();
+        Toast.show('کشور با موفقیت ویرایش شد', 'success');
+    },
+
+    async addAddressesToCountry(countryCode) {
+        const addressType = document.querySelector('input[name="addressType"]:checked').value;
+        const addressesText = document.getElementById('new-addresses').value.trim();
+
+        if (!addressesText) {
+            Toast.show('لطفاً آدرس‌ها را وارد کنید', 'error');
+            return;
+        }
+
+        const addresses = addressesText.split('\n').map(a => a.trim()).filter(a => a);
+
+        try {
+            const res = await API.request('/admin/countries', {
+                method: 'POST',
+                body: JSON.stringify({
+                    action: 'addAddresses',
+                    countryCode,
+                    addresses,
+                    addressType
+                })
+            });
+
+            this.closeModal();
+            Toast.show(`${res.addedCount} آدرس اضافه شد${res.duplicatesRemoved > 0 ? ` (${res.duplicatesRemoved} تکراری حذف شد)` : ''}`, 'success');
+            await this.init();
+        } catch (error) {
+            Toast.show(error.message, 'error');
+        }
+    },
+
+    async deleteSingleAddress(countryCode, addressType, address) {
+        try {
+            await API.request('/admin/countries', {
+                method: 'POST',
+                body: JSON.stringify({
+                    action: 'removeAddresses',
+                    countryCode,
+                    addresses: [address],
+                    addressType
+                })
+            });
+
+            Toast.show('آدرس حذف شد', 'success');
+            await this.init();
+            
+            const countryIndex = this.state.countries.findIndex(c => c.code === countryCode);
+            if (countryIndex > -1) {
+                this.showManageAddressesModal(countryIndex);
+            }
+        } catch (error) {
+            Toast.show(error.message, 'error');
+        }
+    },
+
+    async deleteSelectedAddresses(countryCode) {
+        if (!this.state.selectedAddresses.length) return;
+
+        const addressType = document.querySelector('.address-list')?.dataset.type || 'ipv4';
+
+        this.showConfirmModal(
+            'حذف آدرس‌ها',
+            `آیا از حذف ${this.state.selectedAddresses.length} آدرس اطمینان دارید؟`,
+            async () => {
+                try {
+                    await API.request('/admin/countries', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            action: 'removeAddresses',
+                            countryCode,
+                            addresses: this.state.selectedAddresses,
+                            addressType
+                        })
+                    });
+
+                    Toast.show('آدرس‌ها حذف شدند', 'success');
+                    this.state.selectedAddresses = [];
+                    await this.init();
+                    this.closeModal();
+                } catch (error) {
+                    Toast.show(error.message, 'error');
+                }
+            }
+        );
+    },
+
+    confirmDeleteCountry(index) {
+        const country = this.state.countries[index];
+        this.showConfirmModal(
+            'حذف کشور',
+            `آیا از حذف کشور "${country.name}" و تمام آدرس‌های آن اطمینان دارید؟`,
+            async () => {
+                try {
+                    await API.request('/admin/countries', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            action: 'deleteCountry',
+                            countryCode: country.code
+                        })
+                    });
+
+                    Toast.show('کشور حذف شد', 'success');
+                    await this.init();
+                } catch (error) {
+                    Toast.show(error.message, 'error');
+                }
+            }
+        );
+    },
+
+    confirmDeleteAnnouncement(id) {
+        this.showConfirmModal(
+            'حذف اعلان',
+            'آیا از حذف این اعلان اطمینان دارید؟',
+            async () => {
+                try {
+                    await API.adminDeleteAnnouncement(id);
+                    Toast.show('اعلان حذف شد', 'success');
+                    this.state.announcements = this.state.announcements.filter(a => a.id !== id);
+                    App.render();
+                } catch (error) {
+                    Toast.show(error.message, 'error');
+                }
+            }
+        );
+    },
+
+    showConfirmModal(title, message, onConfirm) {
+        this.showModal(`
+            <div class="modal-header">
+                <h3 class="modal-title">⚠️ ${title}</h3>
+                <button class="modal-close" onclick="Admin.closeModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <p class="confirm-message">${message}</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="Admin.closeModal()">انصراف</button>
+                <button class="btn btn-danger" id="confirm-btn">تأیید و حذف</button>
+            </div>
+        `);
+
+        document.getElementById('confirm-btn').onclick = () => {
+            this.closeModal();
+            onConfirm();
+        };
     },
 
     async saveCountries() {
         try {
             await API.adminUpdateCountries(this.state.countries);
-            Toast.show('کشورها ذخیره شدند', 'success');
             App.render();
         } catch (error) {
             Toast.show(error.message, 'error');
@@ -320,19 +687,6 @@ const Admin = {
             Toast.show('اعلان اضافه شد', 'success');
             this.state.newAnnouncement = '';
             await this.init();
-        } catch (error) {
-            Toast.show(error.message, 'error');
-        }
-    },
-
-    async deleteAnnouncement(id) {
-        if (!confirm('آیا از حذف این اعلان اطمینان دارید؟')) return;
-
-        try {
-            await API.adminDeleteAnnouncement(id);
-            Toast.show('اعلان حذف شد', 'success');
-            this.state.announcements = this.state.announcements.filter(a => a.id !== id);
-            App.render();
         } catch (error) {
             Toast.show(error.message, 'error');
         }

@@ -81,13 +81,50 @@ const App = {
     },
 
     logout() {
-        if (confirm('آیا می‌خواهید خارج شوید؟')) {
-            Storage.logout();
-            Auth.reset();
-            this.currentPage = 'auth';
-            this.render();
-            Toast.show('با موفقیت خارج شدید', 'success');
-        }
+        this.showConfirmModal(
+            'خروج از حساب',
+            'آیا می‌خواهید از حساب کاربری خود خارج شوید؟',
+            () => {
+                Storage.logout();
+                Auth.reset();
+                this.currentPage = 'auth';
+                this.render();
+                Toast.show('با موفقیت خارج شدید', 'success');
+            }
+        );
+    },
+
+    showConfirmModal(title, message, onConfirm) {
+        const existing = document.querySelector('.modal-overlay');
+        if (existing) existing.remove();
+
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay';
+        modal.innerHTML = `
+            <div class="modal">
+                <div class="modal-header">
+                    <h3 class="modal-title">⚠️ ${title}</h3>
+                    <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button>
+                </div>
+                <div class="modal-body">
+                    <p class="confirm-message">${message}</p>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()">انصراف</button>
+                    <button class="btn btn-primary" id="confirm-action-btn">تأیید</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+
+        modal.onclick = (e) => {
+            if (e.target === modal) modal.remove();
+        };
+
+        document.getElementById('confirm-action-btn').onclick = () => {
+            modal.remove();
+            onConfirm();
+        };
     }
 };
 

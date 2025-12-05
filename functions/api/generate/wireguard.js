@@ -1,14 +1,3 @@
-const COUNTRIES = [
-    { code: 'de', name: 'آلمان', flag: '🇩🇪' },
-    { code: 'nl', name: 'هلند', flag: '🇳🇱' },
-    { code: 'us', name: 'آمریکا', flag: '🇺🇸' },
-    { code: 'uk', name: 'انگلستان', flag: '🇬🇧' },
-    { code: 'fr', name: 'فرانسه', flag: '🇫🇷' },
-    { code: 'fi', name: 'فنلاند', flag: '🇫🇮' },
-    { code: 'se', name: 'سوئد', flag: '🇸🇪' },
-    { code: 'ca', name: 'کانادا', flag: '🇨🇦' }
-];
-
 const DNS_SERVERS = {
     cloudflare: '1.1.1.1',
     google: '8.8.8.8',
@@ -28,52 +17,101 @@ export async function onRequestPost(context) {
             });
         }
 
+        const { country, ipType, operator, dns } = await request.json();
+
         const today = new Date().toISOString().split('T')[0];
         const usageKey = `usage:${user.telegramId}:${today}`;
         
-        let usage = { wireguard: 0, dns: 0 };
+        let usage = { wireguard: 0, dns: 0, wireguard_dual: 0 };
         if (env.DB) {
             const usageData = await env.DB.get(usageKey);
             if (usageData) {
                 usage = JSON.parse(usageData);
+                if (usage.wireguard_dual === undefined) usage.wireguard_dual = 0;
             }
         }
 
-        if (usage.wireguard >= 3) {
-            return new Response(JSON.stringify({ 
-                error: 'محدودیت روزانه: شما امروز ۳ کانفیگ WireGuard تولید کرده‌اید'
-            }), {
-                status: 429,
-                headers: { 'Content-Type': 'application/json' }
-            });
+        if (!user.isAdmin) {
+            if (ipType === 'ipv4_ipv6') {
+                if (usage.wireguard_dual >= 1) {
+                    return new Response(JSON.stringify({ 
+                        error: 'محدودیت روزانه: شما امروز ۱ کانفیگ IPv4+IPv6 تولید کرده‌اید'
+                    }), {
+                        status: 429,
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                }
+            } else {
+                if (usage.wireguard >= 3) {
+                    return new Response(JSON.stringify({ 
+                        error: 'محدودیت روزانه: شما امروز ۳ کانفیگ WireGuard تولید کرده‌اید'
+                    }), {
+                        status: 429,
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                }
+            }
         }
 
-        const { country, ipType, operator, dns } = await request.json();
+        let countries = [];
+        if (env.DB) {
+            const countriesData = await env.DB.get('countries');
+            if (countriesData) {
+                countries = JSON.parse(countriesData);
+            }
+        }
 
-        const countryInfo = COUNTRIES.find(c => c.code === country) || COUNTRIES[0];
+        const countryInfo = countries.find(c => c.code === country) || { code: country, name: country };
         const dnsServer = DNS_SERVERS[dns] || DNS_SERVERS.cloudflare;
 
         const privateKey = generateRandomKey();
-        const publicKey = generateRandomKey();
         const peerPublicKey = generateRandomKey();
         
         let address;
+        let usedIpv4 = null;
+        let usedIpv6 = [];
+        
         if (ipType === 'ipv6') {
-            const hexSegments = [];
-            for (let i = 0; i < 4; i++) {
-                hexSegments.push(Math.floor(Math.random() * 65536).toString(16));
+            if (countryInfo.ipv6 && countryInfo.ipv6.length > 0) {
+                usedIpv6 = [countryInfo.ipv6[Math.floor(Math.random() * countryInfo.ipv6.length)]];
+                address = `${usedIpv6[0]}/128`;
+            } else {
+                const hexSegments = [];
+                for (let i = 0; i < 4; i++) {
+                    hexSegments.push(Math.floor(Math.random() * 65536).toString(16));
+                }
+                address = `fd00:${hexSegments.join(':')}::1/128`;
             }
-            address = `fd00:${hexSegments.join(':')}::1/128`;
         } else if (ipType === 'ipv4_ipv6') {
-            const hexSegments = [];
-            for (let i = 0; i < 4; i++) {
-                hexSegments.push(Math.floor(Math.random() * 65536).toString(16));
+            if (countryInfo.ipv4 && countryInfo.ipv4.length > 0) {
+                usedIpv4 = countryInfo.ipv4[Math.floor(Math.random() * countryInfo.ipv4.length)];
+            } else {
+                usedIpv4 = `10.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 254) + 1}`;
             }
-            const ipv4 = `10.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 254) + 1}/32`;
-            const ipv6 = `fd00:${hexSegments.join(':')}::1/128`;
-            address = `${ipv4}, ${ipv6}`;
+            
+            if (countryInfo.ipv6 && countryInfo.ipv6.length >= 2) {
+                const shuffled = [...countryInfo.ipv6].sort(() => Math.random() - 0.5);
+                usedIpv6 = [shuffled[0], shuffled[1]];
+            } else if (countryInfo.ipv6 && countryInfo.ipv6.length === 1) {
+                usedIpv6 = [countryInfo.ipv6[0]];
+            } else {
+                const hex1 = [];
+                const hex2 = [];
+                for (let i = 0; i < 4; i++) {
+                    hex1.push(Math.floor(Math.random() * 65536).toString(16));
+                    hex2.push(Math.floor(Math.random() * 65536).toString(16));
+                }
+                usedIpv6 = [`fd00:${hex1.join(':')}::1`, `fd00:${hex2.join(':')}::2`];
+            }
+            
+            address = `${usedIpv4}/32, ${usedIpv6.map(ip => `${ip}/128`).join(', ')}`;
         } else {
-            address = `10.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 254) + 1}/32`;
+            if (countryInfo.ipv4 && countryInfo.ipv4.length > 0) {
+                usedIpv4 = countryInfo.ipv4[Math.floor(Math.random() * countryInfo.ipv4.length)];
+                address = `${usedIpv4}/32`;
+            } else {
+                address = `10.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 254) + 1}/32`;
+            }
         }
 
         const endpoint = `${country}.vpn.example.com:51820`;
@@ -102,7 +140,11 @@ PersistentKeepalive = 25`;
         };
 
         if (env.DB) {
-            usage.wireguard++;
+            if (ipType === 'ipv4_ipv6') {
+                usage.wireguard_dual++;
+            } else {
+                usage.wireguard++;
+            }
             await env.DB.put(usageKey, JSON.stringify(usage), { expirationTtl: 86400 });
 
             const historyKey = `history:${user.telegramId}`;
