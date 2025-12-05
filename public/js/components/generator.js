@@ -265,7 +265,7 @@ const Generator = {
 
         let ip = '';
         if (isDNS) {
-            ip = result.config?.split('\n')[0] || result.dns || '';
+            ip = result.config || result.dns || '';
         } else {
             ip = result.consumedIPv4 || result.consumedIPv6 || '';
             if (!ip) {
@@ -314,8 +314,8 @@ const Generator = {
                 </div>
                 <div class="modal-body">
                     <div class="card" style="margin-bottom: 16px; padding: 12px; background: rgba(48, 209, 88, 0.1); border-color: var(--accent-green); cursor: pointer;" onclick="Generator.copyIP('${ip}', this)">
-                        <h4 style="font-size: 13px; margin-bottom: 6px; color: var(--text-secondary);">🌐 آدرس اختصاصی شما (کلیک کنید):</h4>
-                        <div style="font-family: monospace; font-size: 15px; font-weight: 600; color: var(--accent-green); word-break: break-all;">
+                        <h4 style="font-size: 13px; margin-bottom: 6px; color: var(--text-secondary);">🌐 آدرس${ip.includes('\n') ? 'های' : ''} اختصاصی شما (کلیک کنید):</h4>
+                        <div style="font-family: monospace; font-size: 15px; font-weight: 600; color: var(--accent-green); word-break: break-all; white-space: pre-line;">
                             ${ip}
                         </div>
                     </div>
