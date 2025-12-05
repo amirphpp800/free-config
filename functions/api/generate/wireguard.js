@@ -117,40 +117,6 @@ export async function onRequestPost(context) {
             });
         }
         
-        // DNS از لیست انتخابی کاربر
-        const selectedDNS = DNS_SERVERS[dns] || DNS_SERVERS.cloudflare_primary;
-        
-        let dnsServers;
-        if (ipType === 'ipv4_ipv6') {
-            // برای IPv4+IPv6: یک IPv4 کشور + دو IPv6 کشور + DNS انتخابی
-            let countryDNSv4 = '1.1.1.1';
-            if (ipv4Country.ipv4 && ipv4Country.ipv4.length > 0) {
-                countryDNSv4 = ipv4Country.ipv4[0];
-            }
-            
-            let countryDNSv6 = [];
-            if (ipv6Country.ipv6 && ipv6Country.ipv6.length >= 2) {
-                countryDNSv6 = [ipv6Country.ipv6[0], ipv6Country.ipv6[1]];
-            } else if (ipv6Country.ipv6 && ipv6Country.ipv6.length === 1) {
-                countryDNSv6 = [ipv6Country.ipv6[0]];
-            }
-            
-            if (countryDNSv6.length > 0) {
-                dnsServers = `${countryDNSv4}, ${countryDNSv6.join(', ')}, ${selectedDNS}`;
-            } else {
-                dnsServers = `${countryDNSv4}, ${selectedDNS}`;
-            }
-        } else {
-            // DNS از کشور (اولین IPv4 کشور)
-            let countryDNS = '1.1.1.1';
-            if (countryInfo.ipv4 && countryInfo.ipv4.length > 0) {
-                countryDNS = countryInfo.ipv4[0];
-            }
-            
-            // ترکیب دو DNS
-            dnsServers = `${countryDNS}, ${selectedDNS}`;
-        }
-        
         // آدرس‌های اپراتور
         const operatorData = OPERATORS[operator] || OPERATORS.mci;
 
@@ -162,6 +128,19 @@ export async function onRequestPost(context) {
         let usedIpv6 = [];
         let ipv4Country = countryInfo;
         let ipv6Country = countryInfo;
+        
+        // دریافت کشورها برای IPv4+IPv6
+        if (ipType === 'ipv4_ipv6' && countryIPv4 && countryIPv6) {
+            const foundIPv4Country = countries.find(c => c.code === countryIPv4);
+            const foundIPv6Country = countries.find(c => c.code === countryIPv6);
+            
+            if (foundIPv4Country) ipv4Country = foundIPv4Country;
+            if (foundIPv6Country) ipv6Country = foundIPv6Country;
+        }
+        
+        // DNS از لیست انتخابی کاربر
+        const selectedDNS = DNS_SERVERS[dns] || DNS_SERVERS.cloudflare_primary;
+        let dnsServers;
         
         if (ipType === 'ipv6') {
             if (!countryInfo.ipv6 || countryInfo.ipv6.length === 0) {
@@ -183,15 +162,11 @@ export async function onRequestPost(context) {
             const operatorAddresses = operatorData.addresses.join(', ');
             const formattedIpv6 = usedIpv6.map(ip => ip.includes('/') ? ip : `${ip}/128`).join(', ');
             address = `${formattedIpv6}, ${operatorAddresses}`;
-        } else if (ipType === 'ipv4_ipv6') {
-            if (countryIPv4 && countryIPv6) {
-                const foundIPv4Country = countries.find(c => c.code === countryIPv4);
-                const foundIPv6Country = countries.find(c => c.code === countryIPv6);
-                
-                if (foundIPv4Country) ipv4Country = foundIPv4Country;
-                if (foundIPv6Country) ipv6Country = foundIPv6Country;
-            }
             
+            // DNS: فقط DNS انتخابی
+            dnsServers = selectedDNS;
+            
+        } else if (ipType === 'ipv4_ipv6') {
             if (!ipv4Country.ipv4 || ipv4Country.ipv4.length === 0) {
                 return new Response(JSON.stringify({ 
                     error: `موجودی IPv4 برای کشور ${ipv4Country.name || ipv4Country.code} وجود ندارد`
@@ -224,6 +199,22 @@ export async function onRequestPost(context) {
             const formattedIpv4 = usedIpv4.includes('/') ? usedIpv4 : `${usedIpv4}/32`;
             const formattedIpv6Dual = usedIpv6.map(ip => ip.includes('/') ? ip : `${ip}/128`).join(', ');
             address = `${formattedIpv4}, ${operatorIPv4}, ${formattedIpv6Dual}, ${operatorIPv6}`;
+            
+            // DNS: یک IPv4 از کشور IPv4 + دو IPv6 از کشور IPv6 + DNS انتخابی
+            let countryDNSv4 = ipv4Country.ipv4[0];
+            let countryDNSv6 = [];
+            if (ipv6Country.ipv6.length >= 2) {
+                countryDNSv6 = [ipv6Country.ipv6[0], ipv6Country.ipv6[1]];
+            } else if (ipv6Country.ipv6.length === 1) {
+                countryDNSv6 = [ipv6Country.ipv6[0]];
+            }
+            
+            if (countryDNSv6.length > 0) {
+                dnsServers = `${countryDNSv4}, ${countryDNSv6.join(', ')}, ${selectedDNS}`;
+            } else {
+                dnsServers = `${countryDNSv4}, ${selectedDNS}`;
+            }
+            
         } else {
             // برای IPv4: فقط آدرس‌های IPv4 اپراتور
             if (!countryInfo.ipv4 || countryInfo.ipv4.length === 0) {
@@ -239,6 +230,9 @@ export async function onRequestPost(context) {
             const operatorAddresses = operatorData.addresses.join(', ');
             const formattedIpv4Single = usedIpv4.includes('/') ? usedIpv4 : `${usedIpv4}/32`;
             address = `${formattedIpv4Single}, ${operatorAddresses}`;
+            
+            // DNS: اولین IPv4 کشور + DNS انتخابی
+            dnsServers = `${countryInfo.ipv4[0]}, ${selectedDNS}`;
         }
 
         const endpoint = `${country}.vpn.example.com:51820`;
