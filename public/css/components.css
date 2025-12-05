@@ -567,13 +567,13 @@
 }
 
 .country-card:hover {
-    border-color: var(--accent-blue);
-    background: rgba(10, 132, 255, 0.05);
+    border-color: var(--accent-green);
+    background: rgba(48, 209, 88, 0.05);
 }
 
 .country-card.active {
-    border-color: var(--accent-blue);
-    background: rgba(10, 132, 255, 0.1);
+    border-color: var(--accent-green);
+    background: rgba(48, 209, 88, 0.1);
 }
 
 .country-flag {

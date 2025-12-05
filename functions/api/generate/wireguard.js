@@ -146,11 +146,17 @@ export async function onRequestPost(context) {
                     headers: { 'Content-Type': 'application/json' }
                 });
             }
-            usedIpv6 = [countryInfo.ipv6[Math.floor(Math.random() * countryInfo.ipv6.length)]];
+            if (countryInfo.ipv6.length >= 2) {
+                const shuffled = [...countryInfo.ipv6].sort(() => Math.random() - 0.5);
+                usedIpv6 = [shuffled[0], shuffled[1]];
+            } else {
+                usedIpv6 = [countryInfo.ipv6[0]];
+            }
             
             // اضافه کردن آدرس‌های IPv6 اپراتور
             const operatorAddresses = operatorData.addressesV6.join(', ');
-            address = `${usedIpv6[0]}/128, ${operatorAddresses}`;
+            const formattedIpv6 = usedIpv6.map(ip => ip.includes('/') ? ip : `${ip}/128`).join(', ');
+            address = `${formattedIpv6}, ${operatorAddresses}`;
         } else if (ipType === 'ipv4_ipv6') {
             if (countryIPv4 && countryIPv6) {
                 const foundIPv4Country = countries.find(c => c.code === countryIPv4);
@@ -189,7 +195,9 @@ export async function onRequestPost(context) {
             // اضافه کردن آدرس‌های IPv4 و IPv6 اپراتور
             const operatorIPv4 = operatorData.addresses.join(', ');
             const operatorIPv6 = operatorData.addressesV6.join(', ');
-            address = `${usedIpv4}/32, ${operatorIPv4}, ${usedIpv6.map(ip => `${ip}/128`).join(', ')}, ${operatorIPv6}`;
+            const formattedIpv4 = usedIpv4.includes('/') ? usedIpv4 : `${usedIpv4}/32`;
+            const formattedIpv6Dual = usedIpv6.map(ip => ip.includes('/') ? ip : `${ip}/128`).join(', ');
+            address = `${formattedIpv4}, ${operatorIPv4}, ${formattedIpv6Dual}, ${operatorIPv6}`;
         } else {
             if (!countryInfo.ipv4 || countryInfo.ipv4.length === 0) {
                 return new Response(JSON.stringify({ 
@@ -203,7 +211,8 @@ export async function onRequestPost(context) {
             
             // اضافه کردن آدرس‌های IPv4 اپراتور
             const operatorAddresses = operatorData.addresses.join(', ');
-            address = `${usedIpv4}/32, ${operatorAddresses}`;
+            const formattedIpv4Single = usedIpv4.includes('/') ? usedIpv4 : `${usedIpv4}/32`;
+            address = `${formattedIpv4Single}, ${operatorAddresses}`;
         }
 
         const endpoint = `${country}.vpn.example.com:51820`;
@@ -212,13 +221,7 @@ export async function onRequestPost(context) {
 PrivateKey = ${privateKey}
 Address = ${address}
 DNS = ${dnsServers}
-MTU = 1280
-
-[Peer]
-PublicKey = ${peerPublicKey}
-Endpoint = ${endpoint}
-AllowedIPs = 0.0.0.0/0, ::/0
-PersistentKeepalive = 25`;
+MTU = 1280`;
 
         // مصرف IP و به‌روزرسانی موجودی
         let consumedIPv4 = null;
@@ -301,10 +304,12 @@ PersistentKeepalive = 25`;
                     countries[countryIndex].ipv4 = countryInfo.ipv4;
                 }
             } else if (ipType === 'ipv6') {
-                const ipIndex = countryInfo.ipv6.indexOf(usedIpv6[0]);
-                if (ipIndex > -1) {
-                    countryInfo.ipv6.splice(ipIndex, 1);
-                }
+                usedIpv6.forEach(ip => {
+                    const ipIndex = countryInfo.ipv6.indexOf(ip);
+                    if (ipIndex > -1) {
+                        countryInfo.ipv6.splice(ipIndex, 1);
+                    }
+                });
                 const countryIndex = countries.findIndex(c => c.code === countryInfo.code);
                 if (countryIndex > -1) {
                     countries[countryIndex].ipv6 = countryInfo.ipv6;
@@ -369,12 +374,26 @@ PersistentKeepalive = 25`;
 }
 
 function generateRandomKey() {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-    let key = '';
-    for (let i = 0; i < 43; i++) {
-        key += chars.charAt(Math.floor(Math.random() * chars.length));
+    const bytes = new Uint8Array(32);
+    crypto.getRandomValues(bytes);
+    
+    bytes[0] &= 248;
+    bytes[31] &= 127;
+    bytes[31] |= 64;
+    
+    const base64Chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+    let result = '';
+    const len = bytes.length;
+    for (let i = 0; i < len; i += 3) {
+        const a = bytes[i];
+        const b = i + 1 < len ? bytes[i + 1] : 0;
+        const c = i + 2 < len ? bytes[i + 2] : 0;
+        result += base64Chars[a >> 2];
+        result += base64Chars[((a & 3) << 4) | (b >> 4)];
+        result += base64Chars[((b & 15) << 2) | (c >> 6)];
+        result += base64Chars[c & 63];
     }
-    return key + '=';
+    return result.slice(0, 43) + '=';
 }
 
 function generateId() {

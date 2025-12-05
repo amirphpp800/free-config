@@ -23,11 +23,6 @@ const Auth = {
                         ${this.renderStep()}
                     </div>
 
-                    <div class="auth-footer">
-                        <a href="https://t.me/ROOTLeaker" target="_blank" class="channel-link">
-                            📢 کانال تلگرام: @ROOTLeaker
-                        </a>
-                    </div>
                 </div>
             </div>
         `;
