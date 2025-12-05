@@ -48,13 +48,7 @@ const Dashboard = {
     },
 
     renderAnnouncements() {
-        if (!this.state.announcements.length) return '';
-
-        return this.state.announcements.map(a => `
-            <div class="announcement-banner animate-slideInDown">
-                <div class="announcement-text">${Utils.escapeHtml(a.text)}</div>
-            </div>
-        `).join('');
+        return '';
     },
 
     renderWelcome(user) {
