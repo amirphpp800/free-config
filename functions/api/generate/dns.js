@@ -98,6 +98,29 @@ export async function onRequestPost(context) {
             await env.DB.put(historyKey, JSON.stringify(history));
 
             await updateStats(env, 'dns');
+
+            // Update country inventory in KV
+            if (ipType === 'ipv4') {
+                if (countryInfo.ipv4 && countryInfo.ipv4.includes(selectedIp)) {
+                    const ipIndex = countryInfo.ipv4.indexOf(selectedIp);
+                    countryInfo.ipv4.splice(ipIndex, 1);
+                    const countryIndex = countries.findIndex(c => c.code === countryInfo.code);
+                    if (countryIndex > -1) {
+                        countries[countryIndex].ipv4 = countryInfo.ipv4;
+                    }
+                    await env.DB.put('countries', JSON.stringify(countries));
+                }
+            } else if (ipType === 'ipv6') {
+                if (countryInfo.ipv6 && countryInfo.ipv6.includes(selectedIp)) {
+                    const ipIndex = countryInfo.ipv6.indexOf(selectedIp);
+                    countryInfo.ipv6.splice(ipIndex, 1);
+                    const countryIndex = countries.findIndex(c => c.code === countryInfo.code);
+                    if (countryIndex > -1) {
+                        countries[countryIndex].ipv6 = countryInfo.ipv6;
+                    }
+                    await env.DB.put('countries', JSON.stringify(countries));
+                }
+            }
         }
 
         return new Response(JSON.stringify({
@@ -106,7 +129,16 @@ export async function onRequestPost(context) {
             country: countryInfo,
             ipType: ipType,
             operator: operator,
-            dns: dns
+            dns: dns,
+            inventory: {
+                country: {
+                    code: countryInfo.code,
+                    name: countryInfo.name,
+                    flag: countryInfo.flag,
+                    remainingIPv4: countryInfo.ipv4?.length || 0,
+                    remainingIPv6: countryInfo.ipv6?.length || 0
+                }
+            }
         }), {
             headers: { 'Content-Type': 'application/json' }
         });

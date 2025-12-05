@@ -461,54 +461,64 @@ const Generator = {
 
             let result;
             if (this.state.type === 'wireguard') {
-                result = await API.generateWireGuard(options);
+                const response = await API.request('/generate/wireguard', {
+                    method: 'POST',
+                    body: JSON.stringify(options)
+                });
+
+                if (response.error) {
+                    throw new Error(response.error);
+                }
+
+                this.state.result = response;
+                this.state.loading = false;
+
+                // Update usage
+                const usage = await API.request('/user/usage');
+                if (usage && !usage.error) {
+                    Dashboard.state.usage = usage;
+                }
+
+                // Update country inventory
+                const countries = await API.request('/countries');
+                if (countries && !countries.error) {
+                    Dashboard.state.countries = countries;
+                }
+
+                this.showResultModal();
+                App.render();
             } else {
-                result = await API.generateDNS(options);
-            }
+                const response = await API.request('/generate/dns', {
+                    method: 'POST',
+                    body: JSON.stringify(options)
+                });
 
-            this.state.result = result;
-            this.state.loading = false;
+                if (response.error) {
+                    throw new Error(response.error);
+                }
 
-            if (result.inventory) {
-                const inv = result.inventory;
-                if (inv.ipv4Country) {
-                    const country = this.state.countries.find(c => c.code === inv.ipv4Country.code);
-                    if (country && country.ipv4) {
-                        country.ipv4 = country.ipv4.slice(1);
+                this.state.result = response;
+                this.state.loading = false;
+
+                // Update usage
+                const usage = await API.request('/user/usage');
+                if (usage && !usage.error) {
+                    Dashboard.state.usage = usage;
+                }
+
+                // Update country inventory
+                if (response.inventory && response.inventory.country) {
+                    const countries = await API.request('/countries');
+                    if (countries && !countries.error) {
+                        Dashboard.state.countries = countries;
                     }
                 }
-                if (inv.ipv6Country) {
-                    const country = this.state.countries.find(c => c.code === inv.ipv6Country.code);
-                    if (country && country.ipv6) {
-                        country.ipv6 = country.ipv6.slice(1);
-                    }
-                }
-                if (inv.country) {
-                    const country = this.state.countries.find(c => c.code === inv.country.code);
-                    if (country) {
-                        if (this.state.ipType === 'ipv4' && country.ipv4) {
-                            country.ipv4 = country.ipv4.slice(1);
-                        } else if (this.state.ipType === 'ipv6' && country.ipv6) {
-                            country.ipv6 = country.ipv6.slice(1);
-                        }
-                    }
-                }
+
+                // Show result modal
+                this.showResultModal();
+
+                App.render();
             }
-
-            if (result.isLimited && result.resetTimer) {
-                Toast.show(`محدودیت روزانه: ${result.resetTimer.hours} ساعت و ${result.resetTimer.minutes} دقیقه تا ریست`, 'warning');
-            }
-
-            // Refresh usage stats
-            if (Dashboard.state) {
-                const usage = await API.getUsage().catch(() => null);
-                Dashboard.state.usage = usage;
-            }
-
-            // Show result modal
-            this.showResultModal();
-
-            App.render();
         } catch (error) {
             this.state.loading = false;
             App.render();

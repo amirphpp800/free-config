@@ -236,6 +236,81 @@ PersistentKeepalive = 25`;
             await env.DB.put(historyKey, JSON.stringify(history));
 
             await updateStats(env, 'wireguard');
+
+            // Update country inventory in KV
+            if (ipType === 'ipv4_ipv6') {
+                // Remove consumed IPv4 from ipv4Country
+                const ipv4Index = ipv4Country.ipv4.indexOf(usedIpv4);
+                if (ipv4Index > -1) {
+                    ipv4Country.ipv4.splice(ipv4Index, 1);
+                }
+                // Remove consumed IPv6s from ipv6Country
+                usedIpv6.forEach(ip => {
+                    const ipv6Index = ipv6Country.ipv6.indexOf(ip);
+                    if (ipv6Index > -1) {
+                        ipv6Country.ipv6.splice(ipv6Index, 1);
+                    }
+                });
+                
+                // Update both countries if different
+                for (const c of countries) {
+                    if (c.code === ipv4Country.code) {
+                        c.ipv4 = ipv4Country.ipv4;
+                    }
+                    if (c.code === ipv6Country.code) {
+                        c.ipv6 = ipv6Country.ipv6;
+                    }
+                }
+            } else if (ipType === 'ipv4') {
+                const ipIndex = countryInfo.ipv4.indexOf(usedIpv4);
+                if (ipIndex > -1) {
+                    countryInfo.ipv4.splice(ipIndex, 1);
+                }
+                const countryIndex = countries.findIndex(c => c.code === countryInfo.code);
+                if (countryIndex > -1) {
+                    countries[countryIndex].ipv4 = countryInfo.ipv4;
+                }
+            } else if (ipType === 'ipv6') {
+                const ipIndex = countryInfo.ipv6.indexOf(usedIpv6[0]);
+                if (ipIndex > -1) {
+                    countryInfo.ipv6.splice(ipIndex, 1);
+                }
+                const countryIndex = countries.findIndex(c => c.code === countryInfo.code);
+                if (countryIndex > -1) {
+                    countries[countryIndex].ipv6 = countryInfo.ipv6;
+                }
+            }
+            
+            await env.DB.put('countries', JSON.stringify(countries));
+        }
+
+        // Prepare inventory info for response
+        let inventoryInfo = {};
+        if (ipType === 'ipv4_ipv6') {
+            inventoryInfo = {
+                ipv4Country: {
+                    code: ipv4Country.code,
+                    name: ipv4Country.name,
+                    flag: ipv4Country.flag,
+                    remaining: ipv4Country.ipv4.length
+                },
+                ipv6Country: {
+                    code: ipv6Country.code,
+                    name: ipv6Country.name,
+                    flag: ipv6Country.flag,
+                    remaining: ipv6Country.ipv6.length
+                }
+            };
+        } else {
+            inventoryInfo = {
+                country: {
+                    code: countryInfo.code,
+                    name: countryInfo.name,
+                    flag: countryInfo.flag,
+                    remainingIPv4: countryInfo.ipv4?.length || 0,
+                    remainingIPv6: countryInfo.ipv6?.length || 0
+                }
+            };
         }
 
         return new Response(JSON.stringify({
@@ -246,7 +321,10 @@ PersistentKeepalive = 25`;
             ipv6Country: ipType === 'ipv4_ipv6' ? ipv6Country : null,
             ipType: ipType,
             operator: operator,
-            dns: dns
+            dns: dns,
+            inventory: inventoryInfo,
+            consumedIPv4: usedIpv4,
+            consumedIPv6: usedIpv6
         }), {
             headers: { 'Content-Type': 'application/json' }
         });
