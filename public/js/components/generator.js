@@ -505,6 +505,9 @@ const Generator = {
                 Dashboard.state.usage = usage;
             }
 
+            // Show result modal
+            this.showResultModal();
+
             App.render();
         } catch (error) {
             this.state.loading = false;
