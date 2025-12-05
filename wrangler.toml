@@ -4,7 +4,7 @@ pages_build_output_dir = "public"
 
 [[kv_namespaces]]
 binding = "DB"
-id = "b9e29d68f7f743cc8a72129bffc234e1"
+id = "b63d42970be2458d990dde266a300444"
 preview_id = "YOUR_KV_PREVIEW_NAMESPACE_ID"
 
 [vars]
