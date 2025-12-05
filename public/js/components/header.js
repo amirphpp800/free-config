@@ -12,6 +12,9 @@ const Header = {
                     <h1 class="header-title">${title}</h1>
                     <div class="header-actions">
                         ${showLogout ? `
+                            <button class="btn btn-icon btn-secondary" onclick="Header.showProfileModal()" title="پروفایل">
+                                <span>👤</span>
+                            </button>
                             <button class="btn btn-icon btn-secondary" onclick="Header.showAnnouncementsModal()" title="اعلانات">
                                 <span>📢</span>
                             </button>
@@ -23,6 +26,41 @@ const Header = {
                 </div>
             </header>
         `;
+    },
+
+    showProfileModal() {
+        const user = Storage.getUser();
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay';
+        modal.innerHTML = `
+            <div class="modal">
+                <div class="modal-header">
+                    <h3 class="modal-title">👤 پروفایل کاربری</h3>
+                    <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button>
+                </div>
+                <div class="modal-body">
+                    <div class="profile-info">
+                        <div class="profile-item">
+                            <div class="profile-label">شناسه تلگرام</div>
+                            <div class="profile-value">${user?.telegramId ? Utils.toPersianNumber(user.telegramId) : '-'}</div>
+                        </div>
+                        <div class="profile-item">
+                            <div class="profile-label">تاریخ عضویت</div>
+                            <div class="profile-value">${user?.createdAt ? Utils.formatDateShort(user.createdAt) : '-'}</div>
+                        </div>
+                        ${user?.isAdmin ? `
+                            <div class="profile-item">
+                                <div class="badge badge-purple" style="width: 100%; justify-content: center;">مدیر سیستم</div>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        modal.onclick = (e) => {
+            if (e.target === modal) modal.remove();
+        };
     },
 
     async showAnnouncementsModal() {

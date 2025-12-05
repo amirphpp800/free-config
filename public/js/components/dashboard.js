@@ -38,7 +38,6 @@ const Dashboard = {
                 <div class="container">
                     ${this.renderAnnouncements()}
                     ${this.renderUsageStats()}
-                    ${this.renderWelcome(user)}
                     ${await this.renderQuickActions()}
                     ${isAdmin ? this.renderAdminAccess() : ''}
                 </div>
@@ -49,22 +48,6 @@ const Dashboard = {
 
     renderAnnouncements() {
         return '';
-    },
-
-    renderWelcome(user) {
-        return `
-            <div class="card animate-slideInUp">
-                <div style="display: flex; align-items: center; gap: 12px;">
-                    <div class="card-icon blue">👤</div>
-                    <div>
-                        <div class="card-title">سلام ${user?.telegramId ? Utils.toPersianNumber(user.telegramId) : 'کاربر'}</div>
-                        <div class="text-secondary" style="font-size: 13px;">
-                            ${user?.createdAt ? `عضویت: ${Utils.formatDateShort(user.createdAt)}` : 'خوش آمدید'}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
     },
 
     // Updated startResetTimer to accept a timestamp
@@ -183,13 +166,13 @@ const Dashboard = {
             ` : ''}
 
             <div class="card animate-slideInUp stagger-4">
-                <div class="card-header">
-                    <div class="card-title">ابزارک‌ها</div>
-                </div>
-                <img src="/images/tool.webp" alt="Tools" class="tool-image">
-                <p class="text-secondary text-center mb-16" style="font-size: 13px;">ابزارهای کمکی برای تنظیم VPN</p>
-                <button class="btn btn-primary" onclick="App.navigate('tools')">
-                    🔧 مشاهده ابزارک‌ها
+                <button class="tool-compact-card" onclick="App.navigate('tools')">
+                    <img src="/images/tool.webp" alt="Tools" class="tool-compact-icon">
+                    <div class="tool-compact-content">
+                        <div class="tool-compact-title">ابزارک‌های کمکی</div>
+                        <div class="tool-compact-desc">آموزش نصب و راه‌اندازی</div>
+                    </div>
+                    <div class="tool-arrow">←</div>
                 </button>
             </div>
         `;

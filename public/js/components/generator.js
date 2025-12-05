@@ -323,8 +323,8 @@ const Generator = {
                     ${inventoryHtml}
 
                     ${isDNS ? `
-                        <div class="card" style="margin-bottom: 16px;">
-                            <h4 style="font-size: 14px; margin-bottom: 12px; font-weight: 600;">🔧 DNS های پیشنهادی برای تانل کردن</h4>
+                        <div class="card" style="margin-bottom: 16px; padding: 12px; cursor: pointer;" onclick="Generator.copyDNSList(this)">
+                            <h4 style="font-size: 14px; margin-bottom: 12px; font-weight: 600;">🔧 DNS های پیشنهادی برای تانل کردن (کلیک کنید)</h4>
                             <div style="font-size: 13px; line-height: 1.8; font-family: monospace;">
                                 • 178.22.122.100 - شاتل<br>
                                 • 185.51.200.2 - ایرانسل<br>
@@ -340,18 +340,19 @@ const Generator = {
                     ${isWireGuard ? `<div class="config-box" style="max-height: 200px;">${Utils.escapeHtml(result.config)}</div>` : ''}
                 </div>
                 <div class="modal-footer">
-                    ${isDNS ? `
+                    ${isDNS && this.state.ipType === 'ipv4' ? `
                         <button class="btn btn-primary" onclick="window.open('https://check-host.net/check-ping?host=${ip}', '_blank')">
                             🔍 بررسی فیلتر
                         </button>
-                    ` : `
+                    ` : ''}
+                    ${isWireGuard ? `
                         <button class="btn btn-primary" onclick="Generator.copyConfig(); this.textContent = '✓ کپی شد'">
                             📋 کپی کانفیگ
                         </button>
                         <button class="btn btn-secondary" onclick="Generator.downloadConfig()">
                             ⬇️دانلود
                         </button>
-                    `}
+                    ` : ''}
                 </div>
             </div>
         `;
@@ -381,6 +382,23 @@ const Generator = {
             element.style.background = originalBg;
         }, 300);
         Toast.show('آدرس کپی شد', 'success');
+    },
+
+    copyDNSList(element) {
+        const dnsList = `178.22.122.100
+185.51.200.2
+10.202.10.10
+8.8.8.8
+1.1.1.1
+4.2.2.4
+78.157.42.100`;
+        Utils.copyToClipboard(dnsList);
+        const originalBg = element.style.background;
+        element.style.background = 'rgba(48, 209, 88, 0.3)';
+        setTimeout(() => {
+            element.style.background = originalBg;
+        }, 300);
+        Toast.show('لیست DNS کپی شد', 'success');
     },
 
     showLimitModal(resetTimer, resetTimestamp) {

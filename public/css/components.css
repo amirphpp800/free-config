@@ -864,6 +864,78 @@
     display: block;
 }
 
+.tool-compact-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 0;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: var(--transition);
+    text-align: right;
+}
+
+.tool-compact-card:hover {
+    opacity: 0.8;
+}
+
+.tool-compact-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-md);
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.tool-compact-content {
+    flex: 1;
+}
+
+.tool-compact-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.tool-compact-desc {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.profile-info {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.profile-item {
+    padding: 16px;
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+}
+
+.profile-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+    font-weight: 500;
+}
+
+.profile-value {
+    font-size: 16px;
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.badge-purple {
+    background: rgba(191, 90, 242, 0.15);
+    color: var(--accent-purple);
+}
+
 .generator-icon {
     width: 48px;
     height: 48px;

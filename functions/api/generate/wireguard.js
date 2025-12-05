@@ -71,7 +71,9 @@ export async function onRequestPost(context) {
             if (ipType === 'ipv4_ipv6') {
                 if (usage.wireguard_dual >= 1) {
                     return new Response(JSON.stringify({ 
-                        error: 'محدودیت روزانه: شما امروز ۱ کانفیگ IPv4+IPv6 تولید کرده‌اید'
+                        error: 'محدودیت روزانه: شما امروز ۱ کانفیگ IPv4+IPv6 تولید کرده‌اید',
+                        resetTimestamp: usage.resetTimestamp,
+                        resetTimer: usage.resetTimestamp ? Math.max(0, usage.resetTimestamp - Date.now()) : 0
                     }), {
                         status: 429,
                         headers: { 'Content-Type': 'application/json' }
@@ -80,7 +82,9 @@ export async function onRequestPost(context) {
             } else {
                 if (usage.wireguard >= 3) {
                     return new Response(JSON.stringify({ 
-                        error: 'محدودیت روزانه: شما امروز ۳ کانفیگ WireGuard تولید کرده‌اید'
+                        error: 'محدودیت روزانه: شما امروز ۳ کانفیگ WireGuard تولید کرده‌اید',
+                        resetTimestamp: usage.resetTimestamp,
+                        resetTimer: usage.resetTimestamp ? Math.max(0, usage.resetTimestamp - Date.now()) : 0
                     }), {
                         status: 429,
                         headers: { 'Content-Type': 'application/json' }
@@ -116,14 +120,36 @@ export async function onRequestPost(context) {
         // DNS از لیست انتخابی کاربر
         const selectedDNS = DNS_SERVERS[dns] || DNS_SERVERS.cloudflare_primary;
         
-        // DNS از کشور (اولین IPv4 کشور)
-        let countryDNS = '1.1.1.1';
-        if (countryInfo.ipv4 && countryInfo.ipv4.length > 0) {
-            countryDNS = countryInfo.ipv4[0];
+        let dnsServers;
+        if (ipType === 'ipv4_ipv6') {
+            // برای IPv4+IPv6: یک IPv4 کشور + دو IPv6 کشور + DNS انتخابی
+            let countryDNSv4 = '1.1.1.1';
+            if (ipv4Country.ipv4 && ipv4Country.ipv4.length > 0) {
+                countryDNSv4 = ipv4Country.ipv4[0];
+            }
+            
+            let countryDNSv6 = [];
+            if (ipv6Country.ipv6 && ipv6Country.ipv6.length >= 2) {
+                countryDNSv6 = [ipv6Country.ipv6[0], ipv6Country.ipv6[1]];
+            } else if (ipv6Country.ipv6 && ipv6Country.ipv6.length === 1) {
+                countryDNSv6 = [ipv6Country.ipv6[0]];
+            }
+            
+            if (countryDNSv6.length > 0) {
+                dnsServers = `${countryDNSv4}, ${countryDNSv6.join(', ')}, ${selectedDNS}`;
+            } else {
+                dnsServers = `${countryDNSv4}, ${selectedDNS}`;
+            }
+        } else {
+            // DNS از کشور (اولین IPv4 کشور)
+            let countryDNS = '1.1.1.1';
+            if (countryInfo.ipv4 && countryInfo.ipv4.length > 0) {
+                countryDNS = countryInfo.ipv4[0];
+            }
+            
+            // ترکیب دو DNS
+            dnsServers = `${countryDNS}, ${selectedDNS}`;
         }
-        
-        // ترکیب دو DNS
-        const dnsServers = `${countryDNS}, ${selectedDNS}`;
         
         // آدرس‌های اپراتور
         const operatorData = OPERATORS[operator] || OPERATORS.mci;
@@ -153,8 +179,8 @@ export async function onRequestPost(context) {
                 usedIpv6 = [countryInfo.ipv6[0]];
             }
             
-            // اضافه کردن آدرس‌های IPv6 اپراتور
-            const operatorAddresses = operatorData.addressesV6.join(', ');
+            // فقط آدرس‌های IPv4 اپراتور (بدون IPv6)
+            const operatorAddresses = operatorData.addresses.join(', ');
             const formattedIpv6 = usedIpv6.map(ip => ip.includes('/') ? ip : `${ip}/128`).join(', ');
             address = `${formattedIpv6}, ${operatorAddresses}`;
         } else if (ipType === 'ipv4_ipv6') {
@@ -192,13 +218,14 @@ export async function onRequestPost(context) {
                 usedIpv6 = [ipv6Country.ipv6[0]];
             }
             
-            // اضافه کردن آدرس‌های IPv4 و IPv6 اپراتور
+            // برای IPv4+IPv6: هم آدرس‌های IPv4 و هم IPv6 اپراتور
             const operatorIPv4 = operatorData.addresses.join(', ');
             const operatorIPv6 = operatorData.addressesV6.join(', ');
             const formattedIpv4 = usedIpv4.includes('/') ? usedIpv4 : `${usedIpv4}/32`;
             const formattedIpv6Dual = usedIpv6.map(ip => ip.includes('/') ? ip : `${ip}/128`).join(', ');
             address = `${formattedIpv4}, ${operatorIPv4}, ${formattedIpv6Dual}, ${operatorIPv6}`;
         } else {
+            // برای IPv4: فقط آدرس‌های IPv4 اپراتور
             if (!countryInfo.ipv4 || countryInfo.ipv4.length === 0) {
                 return new Response(JSON.stringify({ 
                     error: 'موجودی IPv4 برای این کشور وجود ندارد'
@@ -209,7 +236,6 @@ export async function onRequestPost(context) {
             }
             usedIpv4 = countryInfo.ipv4[Math.floor(Math.random() * countryInfo.ipv4.length)];
             
-            // اضافه کردن آدرس‌های IPv4 اپراتور
             const operatorAddresses = operatorData.addresses.join(', ');
             const formattedIpv4Single = usedIpv4.includes('/') ? usedIpv4 : `${usedIpv4}/32`;
             address = `${formattedIpv4Single}, ${operatorAddresses}`;
