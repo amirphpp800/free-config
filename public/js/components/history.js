@@ -166,9 +166,9 @@ const History = {
                         <span class="text-secondary">تاریخ:</span>
                         <span>${Utils.formatDate(item.createdAt)}</span>
                     </div>
-                    
+
                     <div class="divider"></div>
-                    
+
                     <h4 style="margin-bottom: 12px;">کانفیگ:</h4>
                     <div class="config-box">${Utils.escapeHtml(item.config)}</div>
                 </div>
@@ -195,5 +195,64 @@ const History = {
             Utils.copyToClipboard(item.config);
             Toast.show('کانفیگ کپی شد', 'success');
         }
-    }
+    },
+
+    renderCountryCard(item) {
+        const typeInfo = item.type === 'wireguard' 
+            ? { icon: '🔐', label: 'WireGuard', class: 'blue' }
+            : { icon: '🌐', label: 'DNS', class: 'green' };
+
+        return `
+            <div class="card animate-fadeIn">
+                <div class="card-header">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <img src="${item.country.flag}" alt="${item.country.name}" class="country-flag-admin">
+                        <div>
+                            <div class="card-title">${item.country.name}</div>
+                            <div style="font-size: 12px; color: var(--text-secondary);">
+                                ${Utils.formatDate(item.createdAt)}
+                            </div>
+                        </div>
+                    </div>
+                    <span class="badge badge-${typeInfo.class}">${typeInfo.icon} ${typeInfo.label}</span>
+                </div>
+
+                <div class="ip-stats-grid">
+                    <div class="ip-stat-card">
+                        <span class="ip-stat-value">${Utils.toPersianNumber(item.country.ipv4?.length || 0)}</span>
+                        <span class="ip-stat-label">IPv4</span>
+                    </div>
+                    <div class="ip-stat-card">
+                        <span class="ip-stat-value">${Utils.toPersianNumber(item.country.ipv6?.length || 0)}</span>
+                        <span class="ip-stat-label">IPv6</span>
+                    </div>
+                </div>
+
+                <div style="margin: 12px 0; padding: 12px; background: var(--bg-tertiary); border-radius: var(--radius-md);">
+                    <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">آدرس اختصاصی شما:</div>
+                    <div style="font-family: monospace; font-size: 14px; font-weight: 600; color: var(--accent-${typeInfo.class}); word-break: break-all;">
+                        ${item.ip}
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn btn-sm btn-primary" onclick="History.copyConfig('${item.id}')">
+                        📋 کپی
+                    </button>
+                    ${item.type === 'wireguard' ? `
+                        <button class="btn btn-sm btn-secondary" onclick="History.downloadConfig('${item.id}')">
+                            ⬇️دانلود
+                        </button>
+                    ` : `
+                        <button class="btn btn-sm btn-secondary" onclick="window.open('https://check-host.net/check-ping?host=${item.ip}', '_blank')">
+                            🔍 بررسی فیلتر
+                        </button>
+                    `}
+                    <button class="btn btn-sm btn-danger" onclick="History.deleteItem('${item.id}')">
+                        🗑️ حذف
+                    </button>
+                </div>
+            </div>
+        `;
+    },
 };

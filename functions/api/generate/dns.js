@@ -65,52 +65,7 @@ export async function onRequestPost(context) {
             }
         }
 
-        let config;
-        if (ipType === 'ipv6') {
-            config = `${selectedIp}
-# DNS Configuration for ${countryInfo.name}
-# Provider: ${dnsInfo.name}
-# Operator: ${operator}
-# Type: IPv6
-
-Primary DNS: ${selectedIp}
-Secondary DNS: 2606:4700:4700::1001
-
-DoH (DNS over HTTPS):
-${dnsInfo.doh}
-
-DoT (DNS over TLS):
-dns.cloudflare.com
-
-# Android Private DNS:
-1dot1dot1dot1.cloudflare-dns.com
-
-# iOS/macOS Configuration Profile:
-# Use mobileconfig generator with above settings`;
-        } else {
-            config = `${selectedIp}
-# DNS Configuration for ${countryInfo.name}
-# Provider: ${dnsInfo.name}
-# Operator: ${operator}
-# Type: IPv4
-
-Primary DNS: ${selectedIp}
-Secondary DNS: ${dnsInfo.secondary}
-
-DoH (DNS over HTTPS):
-${dnsInfo.doh}
-
-DoT (DNS over TLS):
-${dns === 'cloudflare' ? '1dot1dot1dot1.cloudflare-dns.com' : 'dns.google'}
-
-# Windows:
-netsh interface ip set dns "Ethernet" static ${selectedIp}
-netsh interface ip add dns "Ethernet" ${dnsInfo.secondary} index=2
-
-# Linux:
-echo "nameserver ${selectedIp}" | sudo tee /etc/resolv.conf
-echo "nameserver ${dnsInfo.secondary}" | sudo tee -a /etc/resolv.conf`;
-        }
+        const config = selectedIp;
 
         const historyItem = {
             id: generateId(),

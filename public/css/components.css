@@ -33,6 +33,7 @@
     padding: 16px;
     margin-bottom: 12px;
     border: 1px solid var(--border-color);
+    min-height: 140px;
 }
 
 .card-header {
@@ -1035,6 +1036,40 @@
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: var(--radius-md);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.ip-stats-grid {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.ip-stat-card {
+    flex: 1;
+    text-align: center;
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-sm);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+}
+
+.ip-stat-value {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--accent-blue);
+    display: block;
+    margin-bottom: 4px;
+}
+
+.ip-stat-label {
+    font-size: 10px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
 }
 
 .country-stat-value {

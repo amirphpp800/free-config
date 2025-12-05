@@ -1,8 +1,39 @@
 const DNS_SERVERS = {
-    cloudflare: '1.1.1.1',
-    google: '8.8.8.8',
+    cloudflare_primary: '1.1.1.1',
+    cloudflare_secondary: '1.0.0.1',
+    google_primary: '8.8.8.8',
+    google_secondary: '8.8.4.4',
     quad9: '9.9.9.9',
-    opendns: '208.67.222.222'
+    radar: '10.202.10.10',
+    electro: '78.157.42.100',
+    opendns_primary: '208.67.222.222',
+    opendns_secondary: '208.67.220.220',
+    shecan_primary: '185.55.226.26',
+    shecan_secondary: '185.55.225.25',
+    irancell: '185.51.200.2'
+};
+
+const OPERATORS = {
+    irancell: {
+        addresses: ['2.144.0.0/16'],
+        addressesV6: ['2a01:5ec0:1000::1/128', '2a01:5ec0:1000::2/128']
+    },
+    mci: {
+        addresses: ['5.52.0.0/16'],
+        addressesV6: ['2a02:4540::1/128', '2a02:4540::2/128']
+    },
+    tci: {
+        addresses: ['2.176.0.0/15', '2.190.0.0/15'],
+        addressesV6: ['2a04:2680:13::1/128', '2a04:2680:13::2/128']
+    },
+    rightel: {
+        addresses: ['37.137.128.0/17', '95.162.0.0/17'],
+        addressesV6: ['2a03:ef42::1/128', '2a03:ef42::2/128']
+    },
+    shatel: {
+        addresses: ['94.182.0.0/16', '37.148.0.0/18'],
+        addressesV6: ['2a0e::1/128', '2a0e::2/128']
+    }
 };
 
 export async function onRequestPost(context) {
@@ -17,7 +48,7 @@ export async function onRequestPost(context) {
             });
         }
 
-        const { country, ipType, operator, dns } = await request.json();
+        const { country, ipType, operator, dns, countryIPv4, countryIPv6 } = await request.json();
 
         const today = new Date().toISOString().split('T')[0];
         const usageKey = `usage:${user.telegramId}:${today}`;
@@ -62,7 +93,21 @@ export async function onRequestPost(context) {
         }
 
         const countryInfo = countries.find(c => c.code === country) || { code: country, name: country };
-        const dnsServer = DNS_SERVERS[dns] || DNS_SERVERS.cloudflare;
+        
+        // DNS از لیست انتخابی کاربر
+        const selectedDNS = DNS_SERVERS[dns] || DNS_SERVERS.cloudflare_primary;
+        
+        // DNS از کشور (اولین IPv4 کشور)
+        let countryDNS = '1.1.1.1';
+        if (countryInfo.ipv4 && countryInfo.ipv4.length > 0) {
+            countryDNS = countryInfo.ipv4[0];
+        }
+        
+        // ترکیب دو DNS
+        const dnsServers = `${countryDNS}, ${selectedDNS}`;
+        
+        // آدرس‌های اپراتور
+        const operatorData = OPERATORS[operator] || OPERATORS.mci;
 
         const privateKey = generateRandomKey();
         const peerPublicKey = generateRandomKey();
@@ -70,6 +115,8 @@ export async function onRequestPost(context) {
         let address;
         let usedIpv4 = null;
         let usedIpv6 = [];
+        let ipv4Country = countryInfo;
+        let ipv6Country = countryInfo;
         
         if (ipType === 'ipv6') {
             if (!countryInfo.ipv6 || countryInfo.ipv6.length === 0) {
@@ -81,35 +128,49 @@ export async function onRequestPost(context) {
                 });
             }
             usedIpv6 = [countryInfo.ipv6[Math.floor(Math.random() * countryInfo.ipv6.length)]];
-            address = `${usedIpv6[0]}/128`;
+            
+            // اضافه کردن آدرس‌های IPv6 اپراتور
+            const operatorAddresses = operatorData.addressesV6.join(', ');
+            address = `${usedIpv6[0]}/128, ${operatorAddresses}`;
         } else if (ipType === 'ipv4_ipv6') {
-            if (!countryInfo.ipv4 || countryInfo.ipv4.length === 0) {
+            if (countryIPv4 && countryIPv6) {
+                const foundIPv4Country = countries.find(c => c.code === countryIPv4);
+                const foundIPv6Country = countries.find(c => c.code === countryIPv6);
+                
+                if (foundIPv4Country) ipv4Country = foundIPv4Country;
+                if (foundIPv6Country) ipv6Country = foundIPv6Country;
+            }
+            
+            if (!ipv4Country.ipv4 || ipv4Country.ipv4.length === 0) {
                 return new Response(JSON.stringify({ 
-                    error: 'موجودی IPv4 برای این کشور وجود ندارد'
+                    error: `موجودی IPv4 برای کشور ${ipv4Country.name || ipv4Country.code} وجود ندارد`
                 }), {
                     status: 400,
                     headers: { 'Content-Type': 'application/json' }
                 });
             }
-            if (!countryInfo.ipv6 || countryInfo.ipv6.length === 0) {
+            if (!ipv6Country.ipv6 || ipv6Country.ipv6.length === 0) {
                 return new Response(JSON.stringify({ 
-                    error: 'موجودی IPv6 برای این کشور وجود ندارد'
+                    error: `موجودی IPv6 برای کشور ${ipv6Country.name || ipv6Country.code} وجود ندارد`
                 }), {
                     status: 400,
                     headers: { 'Content-Type': 'application/json' }
                 });
             }
             
-            usedIpv4 = countryInfo.ipv4[Math.floor(Math.random() * countryInfo.ipv4.length)];
+            usedIpv4 = ipv4Country.ipv4[Math.floor(Math.random() * ipv4Country.ipv4.length)];
             
-            if (countryInfo.ipv6.length >= 2) {
-                const shuffled = [...countryInfo.ipv6].sort(() => Math.random() - 0.5);
+            if (ipv6Country.ipv6.length >= 2) {
+                const shuffled = [...ipv6Country.ipv6].sort(() => Math.random() - 0.5);
                 usedIpv6 = [shuffled[0], shuffled[1]];
             } else {
-                usedIpv6 = [countryInfo.ipv6[0]];
+                usedIpv6 = [ipv6Country.ipv6[0]];
             }
             
-            address = `${usedIpv4}/32, ${usedIpv6.map(ip => `${ip}/128`).join(', ')}`;
+            // اضافه کردن آدرس‌های IPv4 و IPv6 اپراتور
+            const operatorIPv4 = operatorData.addresses.join(', ');
+            const operatorIPv6 = operatorData.addressesV6.join(', ');
+            address = `${usedIpv4}/32, ${operatorIPv4}, ${usedIpv6.map(ip => `${ip}/128`).join(', ')}, ${operatorIPv6}`;
         } else {
             if (!countryInfo.ipv4 || countryInfo.ipv4.length === 0) {
                 return new Response(JSON.stringify({ 
@@ -120,7 +181,10 @@ export async function onRequestPost(context) {
                 });
             }
             usedIpv4 = countryInfo.ipv4[Math.floor(Math.random() * countryInfo.ipv4.length)];
-            address = `${usedIpv4}/32`;
+            
+            // اضافه کردن آدرس‌های IPv4 اپراتور
+            const operatorAddresses = operatorData.addresses.join(', ');
+            address = `${usedIpv4}/32, ${operatorAddresses}`;
         }
 
         const endpoint = `${country}.vpn.example.com:51820`;
@@ -128,7 +192,7 @@ export async function onRequestPost(context) {
         const config = `[Interface]
 PrivateKey = ${privateKey}
 Address = ${address}
-DNS = ${dnsServer}
+DNS = ${dnsServers}
 MTU = 1280
 
 [Peer]
@@ -173,6 +237,8 @@ PersistentKeepalive = 25`;
             success: true,
             config: config,
             country: countryInfo,
+            ipv4Country: ipType === 'ipv4_ipv6' ? ipv4Country : null,
+            ipv6Country: ipType === 'ipv4_ipv6' ? ipv6Country : null,
             ipType: ipType,
             operator: operator,
             dns: dns
