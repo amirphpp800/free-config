@@ -681,11 +681,11 @@ const Admin = {
             </div>
             <div class="modal-footer">
                 <button class="btn btn-danger" onclick="Admin.closeModal()">انصراف</button>
-                <button class="btn btn-success" onclick="Admin.tempConfirmAction()">تأیید</button>
+                <button class="btn btn-success" id="confirm-action-btn">تأیید</button>
             </div>
         `);
 
-        document.getElementById('confirm-btn').onclick = () => {
+        document.getElementById('confirm-action-btn').onclick = () => {
             this.closeModal();
             onConfirm();
         };
