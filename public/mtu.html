@@ -384,17 +384,6 @@ async function checkUsageLimit() {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         
-        if (response.status === 401) {
-            console.log('Authentication failed - token may be expired');
-            showToast('نشست شما منقضی شده است. لطفاً دوباره وارد شوید', 'warning');
-            localStorage.removeItem('wg_dns_token');
-            setTimeout(() => {
-                localStorage.setItem('wg_dns_active_tab', 'tools');
-                window.location.href = '/';
-            }, 2500);
-            return { singleTestUsed: false, autoTestUsed: false };
-        }
-        
         if (response.ok) {
             const data = await response.json();
             state.singleTestUsed = data.singleTestUsed || false;
@@ -485,7 +474,11 @@ function updateTimerDisplay() {
 async function recordTest(testType) {
     const token = localStorage.getItem('wg_dns_token');
     if (!token) {
-        showToast('برای استفاده از این ابزار، لطفاً از صفحه اصلی وارد شوید', 'warning');
+        showToast('برای استفاده از این ابزار، لطفاً ابتدا وارد شوید', 'warning');
+        setTimeout(() => {
+            localStorage.setItem('wg_dns_active_tab', 'tools');
+            window.location.href = '/';
+        }, 2000);
         return { success: false, needsAuth: true };
     }
     
@@ -500,8 +493,11 @@ async function recordTest(testType) {
         });
         
         if (response.status === 401) {
-            showToast('نشست شما منقضی شده است. لطفاً مجدداً وارد شوید', 'error');
-            localStorage.removeItem('wg_dns_token');
+            showToast('لطفاً دوباره وارد شوید', 'error');
+            setTimeout(() => {
+                localStorage.setItem('wg_dns_active_tab', 'tools');
+                window.location.href = '/';
+            }, 2000);
             return { success: false, needsAuth: true };
         }
         
@@ -528,15 +524,9 @@ async function recordTest(testType) {
 
 window.addEventListener('load', () => {
     const token = localStorage.getItem('wg_dns_token');
-    if (!token) {
-        showToast('برای استفاده از این ابزار، لطفاً ابتدا وارد شوید', 'warning');
-        setTimeout(() => {
-            localStorage.setItem('wg_dns_active_tab', 'tools');
-            window.location.href = '/';
-        }, 2000);
-        return;
+    if (token) {
+        checkUsageLimit();
     }
-    checkUsageLimit();
 });
 
 const el = (id) => document.getElementById(id);
