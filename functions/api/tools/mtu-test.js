@@ -48,6 +48,7 @@ export async function onRequestPost(context) {
 
             usage[field] = true;
             
+            // Initialize resetTimestamp if not exists
             if (!usage.resetTimestamp) {
                 const tomorrow = new Date();
                 tomorrow.setDate(tomorrow.getDate() + 1);
@@ -55,6 +56,7 @@ export async function onRequestPost(context) {
                 usage.resetTimestamp = tomorrow.getTime();
             }
 
+            // Save complete usage object including resetTimestamp
             await env.DB.put(usageKey, JSON.stringify(usage), { expirationTtl: 86400 });
         }
 
