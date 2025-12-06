@@ -165,15 +165,23 @@ const Dashboard = {
                 </div>
             ` : ''}
 
-            <div class="card animate-slideInUp stagger-4">
-                <button class="tool-compact-card" onclick="App.navigate('tools')">
-                    <img src="/images/tool.webp" alt="Tools" class="tool-compact-icon">
-                    <div class="tool-compact-content">
-                        <div class="tool-compact-title">ابزارک‌های کمکی</div>
-                        <div class="tool-compact-desc">آموزش نصب و راه‌اندازی</div>
+            <div class="card tools-featured-card animate-slideInUp stagger-4" onclick="App.navigate('tools')">
+                <div class="tools-featured-header">
+                    <div class="tools-featured-icon">
+                        <img src="/images/tool.webp" alt="Tools">
                     </div>
-                    <div class="tool-arrow">←</div>
-                </button>
+                    <div class="tools-featured-content">
+                        <div class="tools-featured-title">ابزارک‌های کمکی</div>
+                        <div class="tools-featured-desc">آموزش نصب و راه‌اندازی کانفیگ‌ها</div>
+                    </div>
+                    <div class="tools-featured-arrow">←</div>
+                </div>
+                <div class="tools-featured-items">
+                    <div class="tools-mini-item">📱 اندروید</div>
+                    <div class="tools-mini-item">🍎 iOS</div>
+                    <div class="tools-mini-item">💻 ویندوز</div>
+                    <div class="tools-mini-item">❓ راهنما</div>
+                </div>
             </div>
         `;
     },

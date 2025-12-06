@@ -267,8 +267,11 @@ const Generator = {
         if (isDNS) {
             ip = result.config || result.dns || '';
         } else {
-            ip = result.consumedIPv4 || result.consumedIPv6 || '';
-            if (!ip) {
+            if (Array.isArray(result.consumedIPv6) && result.consumedIPv6.length > 0) {
+                ip = result.consumedIPv6.join('\n');
+            } else if (result.consumedIPv4) {
+                ip = result.consumedIPv4;
+            } else {
                 const addressLine = result.config.split('\n').find(line => line.includes('Address'));
                 if (addressLine) {
                     ip = addressLine.split('=')[1]?.trim().split('/')[0] || '';
@@ -276,13 +279,15 @@ const Generator = {
             }
         }
 
+        this._currentIP = ip;
+
         let inventoryHtml = '';
         const inv = result.inventory;
 
         if (isWireGuard && inv) {
             if (this.state.ipType === 'ipv4_ipv6' && inv.ipv4Country && inv.ipv6Country) {
                 inventoryHtml = `
-                    <div class="card" style="margin-bottom: 16px; background: rgba(10, 132, 255, 0.1); border-color: var(--accent-blue);">
+                    <div class="card" style="margin-bottom: 12px; min-height: auto; background: rgba(10, 132, 255, 0.1); border-color: var(--accent-blue);">
                         <h4 style="font-size: 14px; margin-bottom: 8px; color: var(--text-secondary);">📊 موجودی باقی‌مانده:</h4>
                         <div style="font-size: 14px; font-weight: 600; color: var(--accent-blue); line-height: 1.8;">
                             <img src="${inv.ipv4Country.flag}" style="width: 20px; height: 14px; vertical-align: middle; margin-left: 4px;"> ${inv.ipv4Country.name}: ${inv.ipv4Country.remaining} IPv4<br>
@@ -294,7 +299,7 @@ const Generator = {
                 const remainingCount = this.state.ipType === 'ipv4' ? inv.country.remainingIPv4 : inv.country.remainingIPv6;
                 const ipTypeLabel = this.state.ipType === 'ipv4' ? 'IPv4' : 'IPv6';
                 inventoryHtml = `
-                    <div class="card" style="margin-bottom: 16px; background: rgba(10, 132, 255, 0.1); border-color: var(--accent-blue);">
+                    <div class="card" style="margin-bottom: 12px; min-height: auto; background: rgba(10, 132, 255, 0.1); border-color: var(--accent-blue);">
                         <h4 style="font-size: 14px; margin-bottom: 8px; color: var(--text-secondary);">📊 موجودی باقی‌مانده ${inv.country.name}:</h4>
                         <div style="font-size: 20px; font-weight: 700; color: var(--accent-blue);">
                             ${remainingCount} ${ipTypeLabel}
@@ -313,9 +318,9 @@ const Generator = {
                     <button class="modal-close" onclick="Generator.closeResultModal(this)">×</button>
                 </div>
                 <div class="modal-body">
-                    <div class="card" style="margin-bottom: 16px; padding: 12px; background: rgba(48, 209, 88, 0.1); border-color: var(--accent-green); cursor: pointer;" onclick="Generator.copyIP('${ip}', this)">
+                    <div class="card ip-copy-card" style="margin-bottom: 12px; padding: 10px; min-height: auto; background: rgba(48, 209, 88, 0.1); border-color: var(--accent-green); cursor: pointer;">
                         <h4 style="font-size: 13px; margin-bottom: 6px; color: var(--text-secondary);">🌐 آدرس${ip.includes('\n') ? 'های' : ''} اختصاصی شما (کلیک کنید):</h4>
-                        <div style="font-family: monospace; font-size: 15px; font-weight: 600; color: var(--accent-green); word-break: break-all; white-space: pre-line;">
+                        <div style="font-family: monospace; font-size: 14px; font-weight: 600; color: var(--accent-green); word-break: break-all; white-space: pre-line; line-height: 1.4;">
                             ${ip}
                         </div>
                     </div>
@@ -323,9 +328,9 @@ const Generator = {
                     ${inventoryHtml}
 
                     ${isDNS ? `
-                        <div class="card" style="margin-bottom: 16px; padding: 12px; cursor: pointer;" onclick="Generator.copyDNSList(this)">
-                            <h4 style="font-size: 14px; margin-bottom: 12px; font-weight: 600;">🔧 DNS های پیشنهادی برای تانل کردن (کلیک کنید)</h4>
-                            <div style="font-size: 13px; line-height: 1.8; font-family: monospace;">
+                        <div class="card" style="margin-bottom: 12px; padding: 10px; min-height: auto; cursor: pointer;" onclick="Generator.copyDNSList(this)">
+                            <h4 style="font-size: 14px; margin-bottom: 10px; font-weight: 600;">🔧 DNS های پیشنهادی برای تانل کردن (کلیک کنید)</h4>
+                            <div style="font-size: 13px; line-height: 1.6; font-family: monospace;">
                                 • 178.22.122.100 - شاتل<br>
                                 • 185.51.200.2 - ایرانسل<br>
                                 • 10.202.10.10 - رادار<br>
@@ -337,11 +342,11 @@ const Generator = {
                         </div>
                     ` : ''}
 
-                    ${isWireGuard ? `<div class="config-box" style="max-height: 200px;">${Utils.escapeHtml(result.config)}</div>` : ''}
+                    ${isWireGuard ? `<div class="config-box" style="max-height: 180px;">${Utils.escapeHtml(result.config)}</div>` : ''}
                 </div>
                 <div class="modal-footer">
                     ${isDNS && this.state.ipType === 'ipv4' ? `
-                        <button class="btn btn-primary" onclick="window.open('https://check-host.net/check-ping?host=${ip}', '_blank')">
+                        <button class="btn btn-primary" onclick="window.open('https://check-host.net/check-ping?host=${encodeURIComponent(ip)}', '_blank')">
                             🔍 بررسی فیلتر
                         </button>
                     ` : ''}
@@ -356,6 +361,13 @@ const Generator = {
                 </div>
             </div>
         `;
+
+        const ipCopyCard = modal.querySelector('.ip-copy-card');
+        if (ipCopyCard) {
+            ipCopyCard.addEventListener('click', function() {
+                Generator.copyIPFromStorage(this);
+            });
+        }
 
         document.body.appendChild(modal);
         modal.onclick = (e) => {
@@ -382,6 +394,19 @@ const Generator = {
             element.style.background = originalBg;
         }, 300);
         Toast.show('آدرس کپی شد', 'success');
+    },
+
+    copyIPFromStorage(element) {
+        const ip = this._currentIP || '';
+        if (ip) {
+            Utils.copyToClipboard(ip);
+            const originalBg = element.style.background;
+            element.style.background = 'rgba(48, 209, 88, 0.3)';
+            setTimeout(() => {
+                element.style.background = originalBg;
+            }, 300);
+            Toast.show('آدرس کپی شد', 'success');
+        }
     },
 
     copyDNSList(element) {

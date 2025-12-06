@@ -5,7 +5,8 @@ const Auth = {
         code: '',
         password: '',
         hasPassword: false,
-        loading: false
+        loading: false,
+        showPassword: false
     },
 
     render() {
@@ -75,22 +76,28 @@ const Auth = {
     },
 
     renderCodeStep() {
+        const codeDigits = this.state.code.split('');
         return `
             <h2 style="font-size: 17px; margin-bottom: 8px;">کد تایید</h2>
             <p class="text-secondary mb-16">کد ۵ رقمی ارسال شده به تلگرام را وارد کنید</p>
             <div class="input-group">
-                <input 
-                    type="text" 
-                    class="input input-code" 
-                    placeholder="• • • • •"
-                    maxlength="5"
-                    value="${this.state.code}"
-                    onchange="Auth.state.code = this.value"
-                    oninput="Auth.handleCodeInput(this)"
-                    inputmode="numeric"
-                    pattern="[0-9]*"
-                    autofocus
-                >
+                <div class="otp-container" dir="ltr">
+                    ${[0,1,2,3,4].map(i => `
+                        <input 
+                            type="text" 
+                            class="otp-input" 
+                            id="otp-${i}"
+                            maxlength="1"
+                            value="${codeDigits[i] || ''}"
+                            oninput="Auth.handleOTPInput(${i}, this)"
+                            onkeydown="Auth.handleOTPKeydown(${i}, event)"
+                            onpaste="Auth.handleOTPPaste(event)"
+                            inputmode="numeric"
+                            pattern="[0-9]*"
+                            ${i === 0 ? 'autofocus' : ''}
+                        >
+                    `).join('')}
+                </div>
             </div>
             <button 
                 class="btn btn-primary ${this.state.loading ? 'disabled' : ''}"
@@ -110,14 +117,19 @@ const Auth = {
             <h2 style="font-size: 17px; margin-bottom: 8px;">تنظیم رمز عبور</h2>
             <p class="text-secondary mb-16">می‌توانید یک رمز عبور برای ورود سریع‌تر تنظیم کنید (اختیاری)</p>
             <div class="input-group">
-                <input 
-                    type="password" 
-                    class="input" 
-                    placeholder="رمز عبور (حداقل ۴ کاراکتر)"
-                    value="${this.state.password}"
-                    onchange="Auth.state.password = this.value"
-                    oninput="Auth.state.password = this.value"
-                >
+                <div class="password-input-wrapper">
+                    <input 
+                        type="${this.state.showPassword ? 'text' : 'password'}" 
+                        class="input password-input" 
+                        placeholder="رمز عبور (حداقل ۴ کاراکتر)"
+                        value="${this.state.password}"
+                        onchange="Auth.state.password = this.value"
+                        oninput="Auth.state.password = this.value"
+                    >
+                    <button type="button" class="password-toggle" onclick="Auth.togglePassword()">
+                        ${this.state.showPassword ? '🙈' : '👁️'}
+                    </button>
+                </div>
             </div>
             <button 
                 class="btn btn-primary ${this.state.loading ? 'disabled' : ''}"
@@ -148,14 +160,19 @@ const Auth = {
             </div>
             <div class="input-group">
                 <label class="input-label">رمز عبور</label>
-                <input 
-                    type="password" 
-                    class="input" 
-                    placeholder="رمز عبور خود را وارد کنید"
-                    value="${this.state.password}"
-                    onchange="Auth.state.password = this.value"
-                    oninput="Auth.state.password = this.value"
-                >
+                <div class="password-input-wrapper">
+                    <input 
+                        type="${this.state.showPassword ? 'text' : 'password'}" 
+                        class="input password-input" 
+                        placeholder="رمز عبور خود را وارد کنید"
+                        value="${this.state.password}"
+                        onchange="Auth.state.password = this.value"
+                        oninput="Auth.state.password = this.value"
+                    >
+                    <button type="button" class="password-toggle" onclick="Auth.togglePassword()">
+                        ${this.state.showPassword ? '🙈' : '👁️'}
+                    </button>
+                </div>
             </div>
             <button 
                 class="btn btn-primary ${this.state.loading ? 'disabled' : ''}"
@@ -177,6 +194,74 @@ const Auth = {
         if (this.state.code.length === 5) {
             this.verifyCode();
         }
+    },
+
+    handleOTPInput(index, input) {
+        const value = input.value.replace(/\D/g, '').slice(0, 1);
+        input.value = value;
+        
+        let code = '';
+        for (let i = 0; i < 5; i++) {
+            const otpInput = document.getElementById(`otp-${i}`);
+            if (otpInput) {
+                code += otpInput.value || '';
+            }
+        }
+        this.state.code = code;
+        
+        if (value && index < 4) {
+            const nextInput = document.getElementById(`otp-${index + 1}`);
+            if (nextInput) nextInput.focus();
+        }
+        
+        if (this.state.code.length === 5) {
+            this.verifyCode();
+        }
+    },
+
+    handleOTPKeydown(index, event) {
+        if (event.key === 'Backspace' && !event.target.value && index > 0) {
+            const prevInput = document.getElementById(`otp-${index - 1}`);
+            if (prevInput) {
+                prevInput.focus();
+                prevInput.value = '';
+                let code = '';
+                for (let i = 0; i < 5; i++) {
+                    const otpInput = document.getElementById(`otp-${i}`);
+                    if (otpInput) {
+                        code += otpInput.value || '';
+                    }
+                }
+                this.state.code = code;
+            }
+        }
+    },
+
+    handleOTPPaste(event) {
+        event.preventDefault();
+        const pastedData = (event.clipboardData || window.clipboardData).getData('text');
+        const digits = pastedData.replace(/\D/g, '').slice(0, 5);
+        
+        this.state.code = digits;
+        
+        for (let i = 0; i < 5; i++) {
+            const input = document.getElementById(`otp-${i}`);
+            if (input) {
+                input.value = digits[i] || '';
+            }
+        }
+        
+        if (digits.length === 5) {
+            this.verifyCode();
+        } else if (digits.length > 0) {
+            const nextInput = document.getElementById(`otp-${digits.length}`);
+            if (nextInput) nextInput.focus();
+        }
+    },
+
+    togglePassword() {
+        this.state.showPassword = !this.state.showPassword;
+        App.render();
     },
 
     async sendCode() {

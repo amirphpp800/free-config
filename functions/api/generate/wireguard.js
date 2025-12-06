@@ -158,10 +158,10 @@ export async function onRequestPost(context) {
                 usedIpv6 = [countryInfo.ipv6[0]];
             }
             
-            // فقط آدرس‌های IPv4 اپراتور (بدون IPv6)
+            // آدرس‌های IPv6 کشور + آدرس‌های IPv4 اپراتور
+            const formattedIPv6 = usedIpv6.map(ip => ip.includes('/') ? ip : `${ip}/128`).join(', ');
             const operatorAddresses = operatorData.addresses.join(', ');
-            const formattedIpv6 = usedIpv6.map(ip => ip.includes('/') ? ip : `${ip}/128`).join(', ');
-            address = `${formattedIpv6}, ${operatorAddresses}`;
+            address = `${formattedIPv6}, ${operatorAddresses}`;
             
             // DNS: فقط DNS انتخابی
             dnsServers = selectedDNS;
@@ -193,27 +193,14 @@ export async function onRequestPost(context) {
                 usedIpv6 = [ipv6Country.ipv6[0]];
             }
             
-            // برای IPv4+IPv6: هم آدرس‌های IPv4 و هم IPv6 اپراتور
+            // برای IPv4+IPv6: آدرس IPv4 کشور + آدرس‌های اپراتور (بدون IPv6 کشور که فقط برای DNS است)
             const operatorIPv4 = operatorData.addresses.join(', ');
             const operatorIPv6 = operatorData.addressesV6.join(', ');
             const formattedIpv4 = usedIpv4.includes('/') ? usedIpv4 : `${usedIpv4}/32`;
-            const formattedIpv6Dual = usedIpv6.map(ip => ip.includes('/') ? ip : `${ip}/128`).join(', ');
-            address = `${formattedIpv4}, ${operatorIPv4}, ${formattedIpv6Dual}, ${operatorIPv6}`;
+            address = `${formattedIpv4}, ${operatorIPv4}, ${operatorIPv6}`;
             
-            // DNS: یک IPv4 از کشور IPv4 + دو IPv6 از کشور IPv6 + DNS انتخابی
-            let countryDNSv4 = ipv4Country.ipv4[0];
-            let countryDNSv6 = [];
-            if (ipv6Country.ipv6.length >= 2) {
-                countryDNSv6 = [ipv6Country.ipv6[0], ipv6Country.ipv6[1]];
-            } else if (ipv6Country.ipv6.length === 1) {
-                countryDNSv6 = [ipv6Country.ipv6[0]];
-            }
-            
-            if (countryDNSv6.length > 0) {
-                dnsServers = `${countryDNSv4}, ${countryDNSv6.join(', ')}, ${selectedDNS}`;
-            } else {
-                dnsServers = `${countryDNSv4}, ${selectedDNS}`;
-            }
+            // DNS: آی‌پی IPv4 کشور + DNS انتخابی
+            dnsServers = `${usedIpv4}, ${selectedDNS}`;
             
         } else {
             // برای IPv4: فقط آدرس‌های IPv4 اپراتور
@@ -227,12 +214,12 @@ export async function onRequestPost(context) {
             }
             usedIpv4 = countryInfo.ipv4[Math.floor(Math.random() * countryInfo.ipv4.length)];
             
+            // فقط آدرس‌های اپراتور
             const operatorAddresses = operatorData.addresses.join(', ');
-            const formattedIpv4Single = usedIpv4.includes('/') ? usedIpv4 : `${usedIpv4}/32`;
-            address = `${formattedIpv4Single}, ${operatorAddresses}`;
+            address = operatorAddresses;
             
-            // DNS: اولین IPv4 کشور + DNS انتخابی
-            dnsServers = `${countryInfo.ipv4[0]}, ${selectedDNS}`;
+            // DNS: آی‌پی کشور + DNS انتخابی
+            dnsServers = `${usedIpv4}, ${selectedDNS}`;
         }
 
         const endpoint = `${country}.vpn.example.com:51820`;
@@ -243,16 +230,9 @@ Address = ${address}
 DNS = ${dnsServers}
 MTU = 1280`;
 
-        // مصرف IP و به‌روزرسانی موجودی
-        let consumedIPv4 = null;
-        let consumedIPv6 = null;
-        
-        if (ipType === 'ipv4' && countryInfo.ipv4 && countryInfo.ipv4.length > 0) {
-            consumedIPv4 = countryInfo.ipv4.shift();
-        }
-        if (ipType === 'ipv6' && countryInfo.ipv6 && countryInfo.ipv6.length > 0) {
-            consumedIPv6 = countryInfo.ipv6.shift();
-        }
+        // مصرف IP و به‌روزرسانی موجودی - استفاده از همان IP که در کانفیگ استفاده شده
+        let consumedIPv4 = usedIpv4;
+        let consumedIPv6 = usedIpv6.length > 0 ? usedIpv6 : null;
         
         const historyItem = {
             id: generateId(),

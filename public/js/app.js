@@ -3,8 +3,29 @@ const App = {
 
     async init() {
         if (Storage.isLoggedIn()) {
-            this.currentPage = 'dashboard';
-            await Dashboard.init();
+            const savedPage = Storage.getCurrentPage();
+            const validPages = ['dashboard', 'wireguard', 'dns', 'tools', 'history', 'admin'];
+            this.currentPage = validPages.includes(savedPage) ? savedPage : 'dashboard';
+            
+            switch (this.currentPage) {
+                case 'wireguard':
+                    await Generator.init('wireguard');
+                    break;
+                case 'dns':
+                    await Generator.init('dns');
+                    break;
+                case 'tools':
+                    await Tools.init();
+                    break;
+                case 'history':
+                    await History.init();
+                    break;
+                case 'admin':
+                    await Admin.init();
+                    break;
+                default:
+                    await Dashboard.init();
+            }
         } else {
             this.currentPage = 'auth';
         }
@@ -55,6 +76,7 @@ const App = {
 
     async navigate(page) {
         this.currentPage = page;
+        Storage.setCurrentPage(page);
 
         switch (page) {
             case 'dashboard':

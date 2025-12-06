@@ -57,5 +57,13 @@ const Storage = {
     logout() {
         this.remove('token');
         this.remove('user');
+    },
+
+    setCurrentPage(page) {
+        this.set('currentPage', page);
+    },
+
+    getCurrentPage() {
+        return this.get('currentPage', 'dashboard');
     }
 };
