@@ -88,19 +88,3 @@ export async function onRequestPost(context) {
         });
     }
 }
-
-async function getAuthUser(request, env) {
-    const authHeader = request.headers.get('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) return null;
-
-    const token = authHeader.slice(7);
-    if (!env.DB) return null;
-
-    const telegramId = await env.DB.get(`token:${token}`);
-    if (!telegramId) return null;
-
-    const userData = await env.DB.get(`user:${telegramId}`);
-    if (!userData) return null;
-
-    return JSON.parse(userData);
-}
