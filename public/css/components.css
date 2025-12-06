@@ -634,12 +634,19 @@
 /* Ping Tester Styles */
 .ping-input-group {
     display: flex;
+    flex-direction: column;
     gap: 12px;
-    align-items: stretch;
+    align-items: center;
+    max-width: 400px;
+    margin: 0 auto;
 }
 
 .ping-input-group .input {
-    flex: 1;
+    width: 100%;
+}
+
+.ping-input-group .btn {
+    width: 100%;
 }
 
 .quick-hosts {
