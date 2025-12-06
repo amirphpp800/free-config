@@ -224,11 +224,14 @@ export async function onRequestPost(context) {
 
         const endpoint = `${country}.vpn.example.com:51820`;
 
+        const MTU_OPTIONS = [1280, 1320, 1360, 1380, 1400, 1420, 1440, 1480, 1500];
+        const randomMTU = MTU_OPTIONS[Math.floor(Math.random() * MTU_OPTIONS.length)];
+
         const config = `[Interface]
 PrivateKey = ${privateKey}
 Address = ${address}
 DNS = ${dnsServers}
-MTU = 1280`;
+MTU = ${randomMTU}`;
 
         // مصرف IP و به‌روزرسانی موجودی - استفاده از همان IP که در کانفیگ استفاده شده
         let consumedIPv4 = usedIpv4;
