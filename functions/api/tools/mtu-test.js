@@ -44,27 +44,38 @@ export async function onRequestPost(context) {
         if (env.DB) {
             const usageData = await env.DB.get(usageKey);
             if (usageData) {
-                usage = JSON.parse(usageData);
+                try {
+                    usage = JSON.parse(usageData);
+                } catch (e) {
+                    console.error('Error parsing usage data:', e);
+                    usage = { singleTestUsed: false, autoTestUsed: false };
+                }
             }
 
             const field = testType === 'single' ? 'singleTestUsed' : 'autoTestUsed';
             
             if (usage[field]) {
-                const now = Date.now();
-                const resetTimer = usage.resetTimestamp ? Math.floor((usage.resetTimestamp - now) / 1000) : 0;
+                if (!usage.resetTimestamp) {
+                    const tomorrow = new Date();
+                    tomorrow.setDate(tomorrow.getDate() + 1);
+                    tomorrow.setHours(0, 0, 0, 0);
+                    usage.resetTimestamp = tomorrow.getTime();
+                }
                 
                 return new Response(JSON.stringify({ 
                     error: `شما امروز از این تست استفاده کرده‌اید`,
-                    resetTimer
+                    resetTimestamp: usage.resetTimestamp
                 }), {
                     status: 429,
-                    headers: { 'Content-Type': 'application/json' }
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Access-Control-Allow-Origin': '*'
+                    }
                 });
             }
 
             usage[field] = true;
             
-            // Initialize resetTimestamp if not exists
             if (!usage.resetTimestamp) {
                 const tomorrow = new Date();
                 tomorrow.setDate(tomorrow.getDate() + 1);
@@ -72,19 +83,24 @@ export async function onRequestPost(context) {
                 usage.resetTimestamp = tomorrow.getTime();
             }
 
-            // Save complete usage object including resetTimestamp
             await env.DB.put(usageKey, JSON.stringify(usage), { expirationTtl: 86400 });
         }
 
         return new Response(JSON.stringify({ success: true }), {
-            headers: { 'Content-Type': 'application/json' }
+            headers: { 
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*'
+            }
         });
 
     } catch (error) {
         console.error('MTU test error:', error);
         return new Response(JSON.stringify({ error: 'خطا در ثبت تست' }), {
             status: 500,
-            headers: { 'Content-Type': 'application/json' }
+            headers: { 
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*'
+            }
         });
     }
 }
