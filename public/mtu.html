@@ -292,7 +292,7 @@ const state = {
 
 async function checkUsageLimit() {
     try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('wg_dns_token');
         if (!token) return { singleTestUsed: false, autoTestUsed: false };
         
         const response = await fetch('/api/tools/mtu-usage', {
@@ -309,7 +309,7 @@ async function checkUsageLimit() {
 
 async function recordTest(testType) {
     try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('wg_dns_token');
         if (!token) throw new Error('لطفاً ابتدا وارد شوید');
         
         const response = await fetch('/api/tools/mtu-test', {
