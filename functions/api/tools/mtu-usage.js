@@ -23,7 +23,10 @@ export async function onRequestGet(context) {
         if (!user) {
             return new Response(JSON.stringify({ error: 'احراز هویت نشده' }), {
                 status: 401,
-                headers: { 'Content-Type': 'application/json' }
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                }
             });
         }
 
@@ -35,7 +38,12 @@ export async function onRequestGet(context) {
         if (env.DB) {
             const usageData = await env.DB.get(usageKey);
             if (usageData) {
-                usage = JSON.parse(usageData);
+                try {
+                    usage = JSON.parse(usageData);
+                } catch (e) {
+                    console.error('Error parsing usage data:', e);
+                    usage = { singleTestUsed: false, autoTestUsed: false };
+                }
             }
             
             if (!usage.resetTimestamp) {
@@ -44,22 +52,25 @@ export async function onRequestGet(context) {
                 tomorrow.setHours(0, 0, 0, 0);
                 usage.resetTimestamp = tomorrow.getTime();
                 
-                // Save to KV to persist resetTimestamp
                 await env.DB.put(usageKey, JSON.stringify(usage), { expirationTtl: 86400 });
             }
-            
-            usage.resetTimer = Math.floor((usage.resetTimestamp - Date.now()) / 1000);
         }
 
         return new Response(JSON.stringify(usage), {
-            headers: { 'Content-Type': 'application/json' }
+            headers: { 
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*'
+            }
         });
 
     } catch (error) {
         console.error('MTU usage error:', error);
         return new Response(JSON.stringify({ error: 'خطا در دریافت اطلاعات' }), {
             status: 500,
-            headers: { 'Content-Type': 'application/json' }
+            headers: { 
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*'
+            }
         });
     }
 }
