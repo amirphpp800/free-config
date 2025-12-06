@@ -373,8 +373,27 @@ function goBackToTools() {
     window.location.href = '/';
 }
 
+function getToken() {
+    try {
+        const item = localStorage.getItem('wg_dns_token');
+        if (!item) return null;
+        
+        const parsed = JSON.parse(item);
+        
+        if (typeof parsed !== 'string' || !parsed || parsed.startsWith('"')) {
+            localStorage.removeItem('wg_dns_token');
+            return null;
+        }
+        
+        return parsed;
+    } catch (e) {
+        localStorage.removeItem('wg_dns_token');
+        return null;
+    }
+}
+
 async function checkUsageLimit() {
-    const token = localStorage.getItem('wg_dns_token');
+    const token = getToken();
     
     if (!token) {
         showToast('برای استفاده از این ابزار، لطفاً ابتدا وارد شوید', 'warning');
@@ -489,7 +508,7 @@ function updateTimerDisplay() {
 }
 
 async function recordTest(testType) {
-    const token = localStorage.getItem('wg_dns_token');
+    const token = getToken();
     if (!token) {
         showToast('برای استفاده از این ابزار، لطفاً ابتدا وارد شوید', 'warning');
         setTimeout(() => {
@@ -545,7 +564,7 @@ async function recordTest(testType) {
 }
 
 window.addEventListener('load', () => {
-    const token = localStorage.getItem('wg_dns_token');
+    const token = getToken();
     if (token) {
         checkUsageLimit();
     } else {
