@@ -3,7 +3,10 @@ const Tools = {
         currentTool: null,
         pingResults: [],
         isPinging: false,
-        targetHost: ''
+        targetHost: '',
+        ipInfo: null,
+        isLoadingIpInfo: false,
+        targetIp: ''
     },
 
     toolsList: [
@@ -90,6 +93,10 @@ const Tools = {
             this.state.pingResults = [];
             this.state.isPinging = false;
         }
+        if (toolId === 'ip-info') {
+            this.state.ipInfo = null;
+            this.state.isLoadingIpInfo = false;
+        }
         App.render();
     },
 
@@ -155,21 +162,6 @@ const Tools = {
                     >
                         ${this.state.isPinging ? '⏳ در حال تست...' : '🚀 شروع تست'}
                     </button>
-                </div>
-
-                <div class="quick-hosts-section mb-20">
-                    <p class="text-secondary mb-12" style="font-size: 13px;">سرورهای پیشنهادی:</p>
-                    <div class="quick-hosts-grid">
-                        <button class="quick-host-btn" onclick="Tools.quickPing('8.8.8.8')" ${this.state.isPinging ? 'disabled' : ''}>
-                            Google DNS (8.8.8.8)
-                        </button>
-                        <button class="quick-host-btn" onclick="Tools.quickPing('1.1.1.1')" ${this.state.isPinging ? 'disabled' : ''}>
-                            Cloudflare (1.1.1.1)
-                        </button>
-                        <button class="quick-host-btn" onclick="Tools.quickPing('4.2.2.4')" ${this.state.isPinging ? 'disabled' : ''}>
-                            Level3 (4.2.2.4)
-                        </button>
-                    </div>
                 </div>
 
                 ${this.state.pingResults.length > 0 ? this.renderPingResults() : this.renderEmptyState()}
@@ -335,22 +327,133 @@ const Tools = {
                     <button class="btn btn-secondary mb-16" onclick="Tools.goBack()">
                         → بازگشت به ابزارها
                     </button>
-                    <div class="card animate-slideInUp">
-                        <div class="card-icon orange mb-16" style="margin: 0 auto;">
-                            <span style="font-size: 32px;">📍</span>
-                        </div>
-                        <h3 class="card-title text-center mb-12">اطلاعات IP</h3>
-                        <p class="text-secondary text-center mb-20">
-                            این ابزار به زودی فعال می‌شود
-                        </p>
-                        <div class="alert alert-info">
-                            <p>🚧 این قابلیت در حال توسعه است و به زودی در دسترس قرار می‌گیرد.</p>
-                        </div>
-                    </div>
+                    ${this.renderIpInfoTool()}
                 </div>
             </div>
             ${Dashboard.renderBottomNav('tools')}
         `;
+    },
+
+    renderIpInfoTool() {
+        return `
+            <div class="card animate-slideInUp">
+                <h3 class="card-title mb-16">📍 اطلاعات آی‌پی</h3>
+                <p class="text-secondary mb-20" style="font-size: 14px;">
+                    آدرس IP را وارد کنید تا اطلاعات کامل آن را مشاهده کنید
+                </p>
+
+                <div class="ping-input-group mb-20">
+                    <input 
+                        type="text" 
+                        id="ip-info-input" 
+                        class="input" 
+                        placeholder="مثال: 8.8.8.8"
+                        value="${this.state.targetIp}"
+                        ${this.state.isLoadingIpInfo ? 'disabled' : ''}
+                    >
+                    <button 
+                        class="btn btn-primary" 
+                        onclick="Tools.lookupIpInfo()"
+                        ${this.state.isLoadingIpInfo ? 'disabled' : ''}
+                        style="min-width: 120px;"
+                    >
+                        ${this.state.isLoadingIpInfo ? '⏳ در حال بررسی...' : '🔍 بررسی'}
+                    </button>
+                </div>
+
+                ${this.state.ipInfo ? this.renderIpInfoResults() : this.renderIpInfoEmptyState()}
+            </div>
+        `;
+    },
+
+    renderIpInfoEmptyState() {
+        return `
+            <div style="text-align: center; padding: 40px 20px; color: var(--text-secondary);">
+                <div style="font-size: 48px; margin-bottom: 16px;">🌍</div>
+                <p>آدرس IP مورد نظر را وارد کنید</p>
+                <p style="font-size: 13px; margin-top: 8px;">اطلاعات موقعیت جغرافیایی و سایر جزئیات نمایش داده می‌شود</p>
+            </div>
+        `;
+    },
+
+    renderIpInfoResults() {
+        const info = this.state.ipInfo;
+        if (info.error) {
+            return `
+                <div class="alert" style="background: rgba(255, 69, 58, 0.1); border: 1px solid var(--accent-red);">
+                    <p style="color: var(--accent-red);">خطا: ${info.error}</p>
+                </div>
+            `;
+        }
+
+        return `
+            <div class="ip-info-results">
+                <div class="ip-info-header mb-20">
+                    <div style="text-align: center; padding: 20px; background: var(--bg-tertiary); border-radius: var(--radius-md);">
+                        <div style="font-size: 14px; color: var(--text-secondary); margin-bottom: 8px;">آدرس IP</div>
+                        <div style="font-size: 24px; font-weight: 700; color: var(--accent-blue); direction: ltr;">${info.ip || '-'}</div>
+                    </div>
+                </div>
+
+                <div class="ip-info-grid">
+                    ${this.renderIpInfoItem('کشور', info.country_name || '-', '🌍')}
+                    ${this.renderIpInfoItem('کد کشور', info.country_code2 || '-', '🏳️')}
+                    ${this.renderIpInfoItem('ISP', info.isp || '-', '📡')}
+                </div>
+            </div>
+        `;
+    },
+
+    renderIpInfoItem(label, value, icon) {
+        return `
+            <div class="ip-info-item">
+                <div class="ip-info-item-icon">${icon}</div>
+                <div class="ip-info-item-content">
+                    <div class="ip-info-item-label">${label}</div>
+                    <div class="ip-info-item-value">${value}</div>
+                </div>
+            </div>
+        `;
+    },
+
+    async lookupIpInfo() {
+        const input = document.getElementById('ip-info-input');
+        const ip = input ? input.value.trim() : this.state.targetIp;
+
+        if (!ip) {
+            Toast.show('لطفاً آدرس IP را وارد کنید', 'error');
+            return;
+        }
+
+        const ipv4Regex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+        if (!ipv4Regex.test(ip)) {
+            Toast.show('لطفاً یک آدرس IPv4 معتبر وارد کنید', 'error');
+            return;
+        }
+
+        this.state.targetIp = ip;
+        this.state.isLoadingIpInfo = true;
+        this.state.ipInfo = null;
+        App.render();
+
+        try {
+            const response = await fetch(`https://api.iplocation.net/?ip=${ip}`);
+            if (!response.ok) {
+                throw new Error('خطا در دریافت اطلاعات');
+            }
+            const data = await response.json();
+            
+            if (data.response_code === '200') {
+                this.state.ipInfo = data;
+            } else {
+                this.state.ipInfo = { error: data.response_message || 'خطا در دریافت اطلاعات' };
+            }
+        } catch (error) {
+            this.state.ipInfo = { error: 'خطا در اتصال به سرویس. لطفاً دوباره تلاش کنید.' };
+        } finally {
+            this.state.isLoadingIpInfo = false;
+            App.render();
+        }
     },
 
     renderSpeedTestPage() {
