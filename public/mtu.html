@@ -499,12 +499,12 @@ async function runSingleTest() {
         return;
     }
 
-    const result = await recordTest('single');
-    if (result.limitReached) {
+    const recordResult = await recordTest('single');
+    if (recordResult.limitReached) {
         state.singleTestUsed = true;
         return;
     }
-    if (!result.success && !result.limitReached) {
+    if (!recordResult.success && !recordResult.limitReached) {
         return;
     }
     state.singleTestUsed = true;
@@ -534,12 +534,12 @@ async function runAutoTest() {
         return;
     }
 
-    const result = await recordTest('auto');
-    if (result.limitReached) {
+    const recordResult = await recordTest('auto');
+    if (recordResult.limitReached) {
         state.autoTestUsed = true;
         return;
     }
-    if (!result.success && !result.limitReached) {
+    if (!recordResult.success && !recordResult.limitReached) {
         return;
     }
     state.autoTestUsed = true;
