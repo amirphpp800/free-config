@@ -210,12 +210,34 @@
     font-size: 20px;
   }
 }
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
 </style>
 </head>
 <body>
 
+<div id="toast-container" style="position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 9999;"></div>
+
 <div class="mtu-container">
-  <button class="btn btn-secondary" onclick="window.location.href='/'" style="margin-bottom: 20px;">
+  <button class="btn btn-secondary" onclick="goBackToTools()" style="margin-bottom: 20px;">
     → بازگشت به ابزارها
   </button>
   <div class="mtu-header">
@@ -290,14 +312,73 @@ const state = {
     autoTestUsed: false
 };
 
+function showToast(message, type = 'info') {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    
+    const bgColors = {
+        success: 'var(--accent-green)',
+        error: 'var(--accent-red)',
+        info: 'var(--accent-blue)',
+        warning: 'var(--accent-orange)'
+    };
+    
+    toast.style.cssText = `
+        background: ${bgColors[type] || bgColors.info};
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        margin-bottom: 10px;
+        font-size: 14px;
+        font-weight: 500;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        animation: slideDown 0.3s ease;
+    `;
+    toast.textContent = message;
+    container.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.style.animation = 'fadeOut 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
+function goBackToTools() {
+    localStorage.setItem('wg_dns_active_tab', 'tools');
+    window.location.href = '/';
+}
+
+function checkAuth() {
+    const token = localStorage.getItem('wg_dns_token');
+    if (!token) {
+        showToast('لطفاً ابتدا وارد شوید', 'error');
+        setTimeout(() => {
+            window.location.href = '/';
+        }, 1500);
+        return false;
+    }
+    return true;
+}
+
 async function checkUsageLimit() {
+    if (!checkAuth()) return;
+    
     try {
         const token = localStorage.getItem('wg_dns_token');
-        if (!token) return { singleTestUsed: false, autoTestUsed: false };
         
         const response = await fetch('/api/tools/mtu-usage', {
             headers: { 'Authorization': `Bearer ${token}` }
         });
+        
+        if (response.status === 401) {
+            showToast('لطفاً دوباره وارد شوید', 'error');
+            localStorage.removeItem('wg_dns_token');
+            setTimeout(() => {
+                window.location.href = '/';
+            }, 1500);
+            return;
+        }
+        
         const data = await response.json();
         state.singleTestUsed = data.singleTestUsed;
         state.autoTestUsed = data.autoTestUsed;
@@ -308,28 +389,24 @@ async function checkUsageLimit() {
 }
 
 async function recordTest(testType) {
-    try {
-        const token = localStorage.getItem('wg_dns_token');
-        if (!token) throw new Error('لطفاً ابتدا وارد شوید');
-        
-        const response = await fetch('/api/tools/mtu-test', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ testType })
-        });
-        
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || 'خطا در ثبت تست');
-        }
-        
-        return await response.json();
-    } catch (error) {
-        throw error;
+    const token = localStorage.getItem('wg_dns_token');
+    if (!token) throw new Error('لطفاً ابتدا وارد شوید');
+    
+    const response = await fetch('/api/tools/mtu-test', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ testType })
+    });
+    
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'خطا در ثبت تست');
     }
+    
+    return await response.json();
 }
 
 window.addEventListener('load', checkUsageLimit);
@@ -408,18 +485,21 @@ async function runSingleTest() {
     if (state.isRunning) return stopTest();
 
     if (state.singleTestUsed) {
-        alert('شما امروز از تست تکی استفاده کرده‌اید. لطفاً فردا مجدداً تلاش کنید.');
+        showToast('شما امروز از تست تکی استفاده کرده‌اید. لطفاً فردا مجدداً تلاش کنید.', 'warning');
         return;
     }
 
     const size = parseInt(ui.sizeInput.value);
-    if (!size || size < 1) return alert('سایز نامعتبر است');
+    if (!size || size < 1) {
+        showToast('سایز نامعتبر است', 'error');
+        return;
+    }
 
     try {
         await recordTest('single');
         state.singleTestUsed = true;
     } catch (error) {
-        alert(error.message);
+        showToast(error.message, 'error');
         return;
     }
 
@@ -436,7 +516,7 @@ async function runAutoTest() {
     if (state.isRunning) return stopTest();
 
     if (state.autoTestUsed) {
-        alert('شما امروز از تست خودکار استفاده کرده‌اید. لطفاً فردا مجدداً تلاش کنید.');
+        showToast('شما امروز از تست خودکار استفاده کرده‌اید. لطفاً فردا مجدداً تلاش کنید.', 'warning');
         return;
     }
 
@@ -444,7 +524,7 @@ async function runAutoTest() {
     let max = parseInt(ui.maxSizeInput.value) || 1500;
 
     if (min >= max || min < 1 || max > 9000) {
-        alert('لطفاً بازه جستجوی معتبری وارد کنید');
+        showToast('لطفاً بازه جستجوی معتبری وارد کنید', 'error');
         return;
     }
 
@@ -452,7 +532,7 @@ async function runAutoTest() {
         await recordTest('auto');
         state.autoTestUsed = true;
     } catch (error) {
-        alert(error.message);
+        showToast(error.message, 'error');
         return;
     }
 
