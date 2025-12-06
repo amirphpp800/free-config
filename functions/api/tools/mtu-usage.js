@@ -23,11 +23,13 @@ export async function onRequestGet(context) {
             }
             
             if (!usage.resetTimestamp) {
-                const now = Date.now();
                 const tomorrow = new Date();
                 tomorrow.setDate(tomorrow.getDate() + 1);
                 tomorrow.setHours(0, 0, 0, 0);
                 usage.resetTimestamp = tomorrow.getTime();
+                
+                // Save to KV to persist resetTimestamp
+                await env.DB.put(usageKey, JSON.stringify(usage), { expirationTtl: 86400 });
             }
             
             usage.resetTimer = Math.floor((usage.resetTimestamp - Date.now()) / 1000);
