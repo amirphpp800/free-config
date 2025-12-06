@@ -34,7 +34,7 @@ const Dashboard = {
 
         return `
             ${Header.render('داشبورد', false, true)}
-            <div class="page" style="padding-bottom: 80px;">
+            <div class="page" padding-bottom: 80px;">
                 <div class="container">
                     ${this.renderAnnouncements()}
                     ${this.renderUsageStats()}
@@ -137,6 +137,10 @@ const Dashboard = {
             countries = [];
         }
 
+        // MTU configuration for WireGuard
+        const MTU_OPTIONS = [1280, 1320, 1360, 1380, 1400, 1420, 1440, 1480, 1500];
+        const randomMTU = MTU_OPTIONS[Math.floor(Math.random() * MTU_OPTIONS.length)];
+
         return `
             <div class="animate-slideInUp stagger-2">
                 <div class="stat-grid">
@@ -165,22 +169,22 @@ const Dashboard = {
                 </div>
             ` : ''}
 
-            <div class="card tools-featured-card animate-slideInUp stagger-4" onclick="App.navigate('tools')">
+            <div class="card tools-featured-card" onclick="App.navigate('tools')">
                 <div class="tools-featured-header">
                     <div class="tools-featured-icon">
-                        <img src="/images/tool.webp" alt="Tools">
+                        <img src="/images/tool.webp" alt="ابزارک‌ها">
                     </div>
                     <div class="tools-featured-content">
                         <div class="tools-featured-title">ابزارک‌های کمکی</div>
-                        <div class="tools-featured-desc">آموزش نصب و راه‌اندازی کانفیگ‌ها</div>
+                        <div class="tools-featured-desc">راهنما و آموزش استفاده</div>
                     </div>
                     <div class="tools-featured-arrow">←</div>
                 </div>
                 <div class="tools-featured-items">
-                    <div class="tools-mini-item">📱 اندروید</div>
-                    <div class="tools-mini-item">🍎 iOS</div>
-                    <div class="tools-mini-item">💻 ویندوز</div>
-                    <div class="tools-mini-item">❓ راهنما</div>
+                    <div class="tools-mini-item">📱 آموزش اندروید</div>
+                    <div class="tools-mini-item">🍎 آموزش iOS</div>
+                    <div class="tools-mini-item">💻 آموزش ویندوز</div>
+                    <div class="tools-mini-item">❓ سوالات متداول</div>
                 </div>
             </div>
         `;
