@@ -1,19 +1,126 @@
 const Tools = {
     state: {
+        currentTool: null,
         pingResults: [],
         isPinging: false,
         targetHost: ''
     },
 
+    toolsList: [
+        {
+            id: 'ping',
+            title: 'تست پینگ',
+            description: 'بررسی سرعت و کیفیت اتصال به سرورهای مختلف',
+            icon: '🌐',
+            color: 'blue'
+        },
+        {
+            id: 'dns-lookup',
+            title: 'بررسی DNS',
+            description: 'جستجو و بررسی رکوردهای DNS دامنه‌ها',
+            icon: '🔍',
+            color: 'green'
+        },
+        {
+            id: 'ip-info',
+            title: 'اطلاعات IP',
+            description: 'نمایش اطلاعات آی‌پی و موقعیت جغرافیایی',
+            icon: '📍',
+            color: 'orange'
+        },
+        {
+            id: 'speed-test',
+            title: 'تست سرعت',
+            description: 'اندازه‌گیری سرعت دانلود و آپلود اینترنت',
+            icon: '⚡',
+            color: 'purple'
+        }
+    ],
+
     async init() {
+        this.state.currentTool = null;
+        this.state.pingResults = [];
+        this.state.isPinging = false;
         App.render();
     },
 
     render() {
+        if (this.state.currentTool) {
+            return this.renderToolPage(this.state.currentTool);
+        }
+        return this.renderToolsList();
+    },
+
+    renderToolsList() {
+        return `
+            ${Header.render('ابزارها', true, false)}
+            <div class="page" style="padding-bottom: 80px;">
+                <div class="container">
+                    <div class="tools-cards-grid">
+                        ${this.toolsList.map(tool => this.renderToolCard(tool)).join('')}
+                    </div>
+                </div>
+            </div>
+            ${Dashboard.renderBottomNav('tools')}
+        `;
+    },
+
+    renderToolCard(tool) {
+        return `
+            <div class="tool-card animate-slideInUp" onclick="Tools.openTool('${tool.id}')">
+                <div class="tool-card-icon ${tool.color}">
+                    <span>${tool.icon}</span>
+                </div>
+                <div class="tool-card-content">
+                    <h3 class="tool-card-title">${tool.title}</h3>
+                    <p class="tool-card-desc">${tool.description}</p>
+                </div>
+                <div class="tool-card-arrow">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M15 18l-6-6 6-6"/>
+                    </svg>
+                </div>
+            </div>
+        `;
+    },
+
+    openTool(toolId) {
+        this.state.currentTool = toolId;
+        if (toolId === 'ping') {
+            this.state.pingResults = [];
+            this.state.isPinging = false;
+        }
+        App.render();
+    },
+
+    goBack() {
+        this.state.currentTool = null;
+        App.render();
+    },
+
+    renderToolPage(toolId) {
+        switch (toolId) {
+            case 'ping':
+                return this.renderPingPage();
+            case 'dns-lookup':
+                return this.renderDnsLookupPage();
+            case 'ip-info':
+                return this.renderIpInfoPage();
+            case 'speed-test':
+                return this.renderSpeedTestPage();
+            default:
+                return this.renderToolsList();
+        }
+    },
+
+    renderPingPage() {
         return `
             ${Header.render('تست پینگ', true, false)}
             <div class="page" style="padding-bottom: 80px;">
                 <div class="container">
+                    <button class="btn btn-secondary mb-16" onclick="Tools.goBack()">
+                        → بازگشت به ابزارها
+                    </button>
                     ${this.renderPingTester()}
                 </div>
             </div>
@@ -50,12 +157,25 @@ const Tools = {
                     </button>
                 </div>
 
+                <div class="quick-hosts-section mb-20">
+                    <p class="text-secondary mb-12" style="font-size: 13px;">سرورهای پیشنهادی:</p>
+                    <div class="quick-hosts-grid">
+                        <button class="quick-host-btn" onclick="Tools.quickPing('8.8.8.8')" ${this.state.isPinging ? 'disabled' : ''}>
+                            Google DNS (8.8.8.8)
+                        </button>
+                        <button class="quick-host-btn" onclick="Tools.quickPing('1.1.1.1')" ${this.state.isPinging ? 'disabled' : ''}>
+                            Cloudflare (1.1.1.1)
+                        </button>
+                        <button class="quick-host-btn" onclick="Tools.quickPing('4.2.2.4')" ${this.state.isPinging ? 'disabled' : ''}>
+                            Level3 (4.2.2.4)
+                        </button>
+                    </div>
+                </div>
+
                 ${this.state.pingResults.length > 0 ? this.renderPingResults() : this.renderEmptyState()}
             </div>
         `;
     },
-
-    
 
     renderEmptyState() {
         return `
@@ -114,6 +234,11 @@ const Tools = {
         `;
     },
 
+    quickPing(host) {
+        document.getElementById('ping-host-input').value = host;
+        this.startPing();
+    },
+
     async startPing() {
         const input = document.getElementById('ping-host-input');
         const host = input ? input.value.trim() : this.state.targetHost;
@@ -123,7 +248,6 @@ const Tools = {
             return;
         }
 
-        // اعتبارسنجی IPv4
         const ipv4Regex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
         if (!ipv4Regex.test(host)) {
             Toast.show('لطفاً یک آدرس IPv4 معتبر وارد کنید', 'error');
@@ -136,12 +260,11 @@ const Tools = {
         App.render();
 
         try {
-            // ارسال 4 پینگ
             for (let i = 0; i < 4; i++) {
                 const result = await this.simulatePing(host, i);
                 this.state.pingResults.push(result);
                 App.render();
-                await this.sleep(800); // تاخیر بین پینگ‌ها
+                await this.sleep(800);
             }
         } catch (error) {
             Toast.show('خطا در انجام تست', 'error');
@@ -153,10 +276,9 @@ const Tools = {
 
     async simulatePing(host, sequence) {
         try {
-            // دریافت یا ایجاد seed برای این هاست از KV
             const response = await API.request('/ping/simulate', {
                 method: 'POST',
-                body: JSON.JSON.stringify({ host, sequence })
+                body: JSON.stringify({ host, sequence })
             });
 
             return {
@@ -177,5 +299,85 @@ const Tools = {
 
     sleep(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
+    },
+
+    renderDnsLookupPage() {
+        return `
+            ${Header.render('بررسی DNS', true, false)}
+            <div class="page" style="padding-bottom: 80px;">
+                <div class="container">
+                    <button class="btn btn-secondary mb-16" onclick="Tools.goBack()">
+                        → بازگشت به ابزارها
+                    </button>
+                    <div class="card animate-slideInUp">
+                        <div class="card-icon green mb-16" style="margin: 0 auto;">
+                            <span style="font-size: 32px;">🔍</span>
+                        </div>
+                        <h3 class="card-title text-center mb-12">بررسی DNS</h3>
+                        <p class="text-secondary text-center mb-20">
+                            این ابزار به زودی فعال می‌شود
+                        </p>
+                        <div class="alert alert-info">
+                            <p>🚧 این قابلیت در حال توسعه است و به زودی در دسترس قرار می‌گیرد.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            ${Dashboard.renderBottomNav('tools')}
+        `;
+    },
+
+    renderIpInfoPage() {
+        return `
+            ${Header.render('اطلاعات IP', true, false)}
+            <div class="page" style="padding-bottom: 80px;">
+                <div class="container">
+                    <button class="btn btn-secondary mb-16" onclick="Tools.goBack()">
+                        → بازگشت به ابزارها
+                    </button>
+                    <div class="card animate-slideInUp">
+                        <div class="card-icon orange mb-16" style="margin: 0 auto;">
+                            <span style="font-size: 32px;">📍</span>
+                        </div>
+                        <h3 class="card-title text-center mb-12">اطلاعات IP</h3>
+                        <p class="text-secondary text-center mb-20">
+                            این ابزار به زودی فعال می‌شود
+                        </p>
+                        <div class="alert alert-info">
+                            <p>🚧 این قابلیت در حال توسعه است و به زودی در دسترس قرار می‌گیرد.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            ${Dashboard.renderBottomNav('tools')}
+        `;
+    },
+
+    renderSpeedTestPage() {
+        return `
+            ${Header.render('تست سرعت', true, false)}
+            <div class="page" style="padding-bottom: 80px;">
+                <div class="container">
+                    <button class="btn btn-secondary mb-16" onclick="Tools.goBack()">
+                        → بازگشت به ابزارها
+                    </button>
+                    <div class="card animate-slideInUp">
+                        <div class="card-icon purple mb-16" style="margin: 0 auto;">
+                            <span style="font-size: 32px;">⚡</span>
+                        </div>
+                        <h3 class="card-title text-center mb-12">تست سرعت</h3>
+                        <p class="text-secondary text-center mb-20">
+                            این ابزار به زودی فعال می‌شود
+                        </p>
+                        <div class="alert alert-info">
+                            <p>🚧 این قابلیت در حال توسعه است و به زودی در دسترس قرار می‌گیرد.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            ${Dashboard.renderBottomNav('tools')}
+        `;
     }
 };
+
+window.Tools = Tools;
