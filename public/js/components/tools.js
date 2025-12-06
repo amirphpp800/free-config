@@ -6,7 +6,9 @@ const Tools = {
         targetHost: '',
         ipInfo: null,
         isLoadingIpInfo: false,
-        targetIp: ''
+        targetIp: '',
+        mtuUsage: null,
+        isMtuTesting: false
     },
 
     toolsList: [
@@ -18,13 +20,6 @@ const Tools = {
             color: 'blue'
         },
         {
-            id: 'dns-lookup',
-            title: 'بررسی DNS',
-            description: 'جستجو و بررسی رکوردهای DNS دامنه‌ها',
-            icon: '🔍',
-            color: 'green'
-        },
-        {
             id: 'ip-info',
             title: 'اطلاعات IP',
             description: 'نمایش اطلاعات آی‌پی و موقعیت جغرافیایی',
@@ -32,11 +27,11 @@ const Tools = {
             color: 'orange'
         },
         {
-            id: 'speed-test',
-            title: 'تست سرعت',
-            description: 'اندازه‌گیری سرعت دانلود و آپلود اینترنت',
-            icon: '⚡',
-            color: 'purple'
+            id: 'mtu-tester',
+            title: 'تستر MTU',
+            description: 'آزمایش اندازه بهینه بسته‌های شبکه',
+            icon: '📊',
+            color: 'red'
         }
     ],
 
@@ -88,6 +83,11 @@ const Tools = {
     },
 
     openTool(toolId) {
+        if (toolId === 'mtu-tester') {
+            window.location.href = '/mtu.html';
+            return;
+        }
+        
         this.state.currentTool = toolId;
         if (toolId === 'ping') {
             this.state.pingResults = [];
@@ -113,6 +113,8 @@ const Tools = {
                 return this.renderDnsLookupPage();
             case 'ip-info':
                 return this.renderIpInfoPage();
+            case 'mtu-tester':
+                return this.renderMtuTesterPage();
             case 'speed-test':
                 return this.renderSpeedTestPage();
             default:
@@ -480,6 +482,71 @@ const Tools = {
             </div>
             ${Dashboard.renderBottomNav('tools')}
         `;
+    },
+
+    renderMtuTesterPage() {
+        return `
+            ${Header.render('تستر MTU', true, false)}
+            <div class="page" style="padding-bottom: 80px;">
+                <div class="container">
+                    <button class="btn btn-secondary mb-16" onclick="Tools.goBack()">
+                        → بازگشت به ابزارها
+                    </button>
+                    <div id="mtu-iframe-container"></div>
+                </div>
+            </div>
+            ${Dashboard.renderBottomNav('tools')}
+            <script>
+                (async function() {
+                    const container = document.getElementById('mtu-iframe-container');
+                    const usage = await Tools.getMtuUsage();
+                    
+                    if (usage.singleTestUsed && usage.autoTestUsed) {
+                        container.innerHTML = \`
+                            <div class="card animate-slideInUp">
+                                <div style="text-align: center; padding: 40px 20px;">
+                                    <div style="font-size: 48px; margin-bottom: 16px;">⏰</div>
+                                    <h3 style="color: var(--text-primary); margin-bottom: 12px;">محدودیت روزانه</h3>
+                                    <p style="color: var(--text-secondary); margin-bottom: 20px;">
+                                        شما امروز از تمام تست‌های MTU استفاده کرده‌اید
+                                    </p>
+                                    <div class="alert" style="background: rgba(255, 159, 10, 0.1); border: 1px solid var(--accent-orange);">
+                                        <p style="color: var(--accent-orange); font-size: 14px;">
+                                            🔄 محدودیت در \${Utils.toPersianNumber(Math.ceil(usage.resetTimer / 3600))} ساعت دیگر بازنشانی می‌شود
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        \`;
+                    } else {
+                        container.innerHTML = '<iframe src="/mtu.html" style="width: 100%; height: 800px; border: none; border-radius: 12px;"></iframe>';
+                    }
+                })();
+            </script>
+        `;
+    },
+
+    async getMtuUsage() {
+        try {
+            const response = await API.request('/tools/mtu-usage');
+            this.state.mtuUsage = response;
+            return response;
+        } catch (error) {
+            console.error('Error fetching MTU usage:', error);
+            return { singleTestUsed: false, autoTestUsed: false, resetTimer: 0 };
+        }
+    },
+
+    async recordMtuTest(testType) {
+        try {
+            const response = await API.request('/tools/mtu-test', {
+                method: 'POST',
+                body: JSON.stringify({ testType })
+            });
+            return response;
+        } catch (error) {
+            throw error;
+        }
     }
 };
 

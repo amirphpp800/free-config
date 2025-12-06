@@ -100,6 +100,12 @@ const Generator = {
         const isWireGuard = this.state.type === 'wireguard';
         const countries = this.state.countries.length ? this.state.countries : CONFIG.COUNTRIES;
 
+        // Initialize customMtu state if not exists
+        if (this.state.customMtu === undefined) {
+            this.state.customMtu = false;
+            this.state.mtuValue = 1420;
+        }
+
         return `
             <div class="card animate-slideInUp">
                 <h3 class="card-title mb-16">
@@ -237,6 +243,33 @@ const Generator = {
                                 </option>
                             `).join('')}
                         </select>
+                    </div>
+                ` : ''}
+
+                ${isWireGuard ? `
+                    <div class="input-group">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                            <label class="input-label" style="margin-bottom: 0;">MTU دستی</label>
+                            <div class="checkbox-wrapper-38">
+                                <input class="toggle-input" id="mtu-toggle" type="checkbox"
+                                    ${this.state.customMtu ? 'checked' : ''}
+                                    onchange="Generator.state.customMtu = this.checked; App.render();">
+                                <label class="toggle-label" for="mtu-toggle"></label>
+                            </div>
+                        </div>
+                        ${this.state.customMtu ? `
+                            <input type="number" 
+                                class="input" 
+                                value="${this.state.mtuValue}"
+                                min="100"
+                                max="10000"
+                                placeholder="مثال: 1420"
+                                onchange="Generator.state.mtuValue = parseInt(this.value); App.render();"
+                                style="direction: ltr; text-align: left;">
+                            <p style="font-size: 12px; color: var(--text-secondary); margin-top: 6px;">
+                                💡 محدوده مجاز: 100 تا 10000
+                            </p>
+                        ` : ''}
                     </div>
                 ` : ''}
 
@@ -503,6 +536,11 @@ const Generator = {
             if (isWireGuard && this.state.ipType === 'ipv4_ipv6') {
                 options.countryIPv4 = this.state.countryIPv4;
                 options.countryIPv6 = this.state.countryIPv6;
+            }
+
+            // Add custom MTU if enabled
+            if (isWireGuard && this.state.customMtu && this.state.mtuValue) {
+                options.customMtu = this.state.mtuValue;
             }
 
             let result;

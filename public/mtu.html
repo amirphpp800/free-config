@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MTU Tester</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/main.css">
+<link rel="stylesheet" href="/css/components.css">
+<link rel="stylesheet" href="/css/animations.css">
+<style>
+.mtu-container {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 20px 16px;
+}
+
+.mtu-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.mtu-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.mtu-subtitle {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.mtu-input-section {
+  margin-bottom: 16px;
+}
+
+.mtu-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.mtu-input {
+  width: 100%;
+  padding: 14px 16px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 16px;
+  font-family: inherit;
+  transition: var(--transition);
+  direction: ltr;
+  text-align: left;
+}
+
+.mtu-input:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.2);
+}
+
+.mtu-divider {
+  height: 1px;
+  background: var(--separator);
+  margin: 20px 0;
+}
+
+.mtu-section-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--accent-blue);
+  margin-bottom: 12px;
+}
+
+.mtu-button-group {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+.mtu-status-box {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  margin-top: 20px;
+  text-align: center;
+}
+
+.mtu-status-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.mtu-status-text {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-top: 8px;
+}
+
+.mtu-status-loading {
+  color: var(--accent-orange);
+}
+
+.mtu-status-ok {
+  color: var(--accent-green);
+}
+
+.mtu-status-err {
+  color: var(--accent-red);
+}
+
+.mtu-table-container {
+  max-height: 300px;
+  overflow-y: auto;
+  margin-top: 20px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+}
+
+.mtu-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 14px;
+}
+
+.mtu-table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--bg-secondary);
+  z-index: 10;
+  border-bottom: 2px solid var(--accent-blue);
+  padding: 12px 16px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.mtu-table tbody td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--separator);
+  text-align: center;
+}
+
+.mtu-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.mtu-table tbody tr:nth-child(even) {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.mtu-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.mtu-summary-box {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin-top: 20px;
+}
+
+.mtu-summary-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--accent-blue);
+  margin-bottom: 12px;
+}
+
+.mtu-summary-text {
+  font-size: 14px;
+  color: var(--text-primary);
+  line-height: 1.8;
+}
+
+.mtu-counter {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 8px;
+}
+
+.res-success {
+  color: var(--accent-green);
+}
+
+.res-fail {
+  color: var(--accent-red);
+}
+
+@media(max-width: 600px) {
+  .mtu-button-group {
+    flex-direction: column;
+  }
+
+  .mtu-title {
+    font-size: 20px;
+  }
+}
+</style>
+</head>
+<body>
+
+<div class="mtu-container">
+  <button class="btn btn-secondary" onclick="window.location.href='/'" style="margin-bottom: 20px;">
+    → بازگشت به ابزارها
+  </button>
+  <div class="mtu-header">
+    <h1 class="mtu-title">تستر پیشرفته MTU</h1>
+    <p class="mtu-subtitle">آزمایش اندازه بهینه بسته‌های شبکه</p>
+  </div>
+
+  <div class="card">
+    <div class="mtu-input-section">
+      <label class="mtu-label" id="labelService">آدرس سرویس (Payload Generator URL)</label>
+      <input class="mtu-input" id="serviceURL" type="text" value="https://httpbin.org/bytes/" />
+    </div>
+
+    <div class="mtu-input-section">
+      <label class="mtu-label" id="labelSize">سایز بسته (بایت) - تست تکی</label>
+      <input class="mtu-input" id="size" type="number" value="1472" />
+    </div>
+
+    <div class="mtu-divider"></div>
+
+    <h4 class="mtu-section-title">تنظیمات تست خودکار (جستجوی باینری)</h4>
+
+    <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+      <div style="flex: 1;">
+        <label class="mtu-label" id="labelMinSize">شروع جستجو (Min)</label>
+        <input class="mtu-input" id="minSize" type="number" value="500" />
+      </div>
+      <div style="flex: 1;">
+        <label class="mtu-label" id="labelMaxSize">پایان جستجو (Max)</label>
+        <input class="mtu-input" id="maxSize" type="number" value="1500" />
+      </div>
+    </div>
+
+    <div class="mtu-button-group">
+      <button class="btn btn-primary" id="run">اجرای تست تکی</button>
+      <button class="btn btn-secondary" id="auto">تست خودکار (هوشمند)</button>
+      <button class="btn btn-danger" id="clear">پاکسازی</button>
+    </div>
+
+    <div class="mtu-status-box">
+      <div class="mtu-status-label" id="strongStatus">وضعیت لحظه‌ای:</div>
+      <div class="mtu-status-text" id="liveStatus" style="color:var(--text-secondary)">منتظر دستور...</div>
+      <div class="mtu-counter" id="testCounter"></div>
+    </div>
+
+    <div class="mtu-table-container">
+      <table class="mtu-table" id="results">
+        <thead>
+          <tr>
+            <th id="thSize">سایز</th>
+            <th id="thResult">نتیجه</th>
+            <th id="thTime">زمان (ms)</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="mtu-summary-box" id="summaryBox" style="display:none;">
+      <h4 class="mtu-summary-title">📊 نتایج تحلیل</h4>
+      <div class="mtu-summary-text" id="summaryText"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const state = {
+    isRunning: false,
+    results: [],
+    testCount: 0,
+    singleTestUsed: false,
+    autoTestUsed: false
+};
+
+async function checkUsageLimit() {
+    try {
+        const token = localStorage.getItem('token');
+        if (!token) return { singleTestUsed: false, autoTestUsed: false };
+        
+        const response = await fetch('/api/tools/mtu-usage', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+        state.singleTestUsed = data.singleTestUsed;
+        state.autoTestUsed = data.autoTestUsed;
+        return data;
+    } catch (error) {
+        return { singleTestUsed: false, autoTestUsed: false };
+    }
+}
+
+async function recordTest(testType) {
+    try {
+        const token = localStorage.getItem('token');
+        if (!token) throw new Error('لطفاً ابتدا وارد شوید');
+        
+        const response = await fetch('/api/tools/mtu-test', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ testType })
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'خطا در ثبت تست');
+        }
+        
+        return await response.json();
+    } catch (error) {
+        throw error;
+    }
+}
+
+window.addEventListener('load', checkUsageLimit);
+
+const el = (id) => document.getElementById(id);
+const ui = {
+    serviceURL: el('serviceURL'),
+    sizeInput: el('size'),
+    minSizeInput: el('minSize'),
+    maxSizeInput: el('maxSize'),
+    runBtn: el('run'),
+    autoBtn: el('auto'),
+    clearBtn: el('clear'),
+    statusText: el('liveStatus'),
+    testCounter: el('testCounter'),
+    tableBody: el('results').querySelector('tbody'),
+    summaryBox: el('summaryBox'),
+    summaryText: el('summaryText')
+};
+
+async function fetchPayload(size) {
+    const url = ui.serviceURL.value;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000); 
+
+    const start = performance.now();
+    try {
+        const targetUrl = `${url}${size}?_t=${Date.now()}`;
+        const response = await fetch(targetUrl, { 
+            signal: controller.signal,
+            cache: "no-store",
+            mode: 'cors' 
+        });
+
+        clearTimeout(timeoutId);
+        const end = performance.now();
+
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const blob = await response.blob();
+        if (blob.size !== parseInt(size)) throw new Error("Size Mismatch");
+
+        return { success: true, time: (end - start).toFixed(0) };
+    } catch (err) {
+        return { success: false, error: err.name === 'AbortError' ? 'Timeout' : err.message };
+    }
+}
+
+function logResult(size, result) {
+    const tr = document.createElement('tr');
+
+    let statusHtml = '';
+    if (result.success) {
+        statusHtml = `<span class="res-success">✔ موفق</span>`;
+    } else {
+        const msg = result.error === 'Timeout' ? 'Timeout' : 'ناموفق';
+        statusHtml = `<span class="res-fail">✘ ${msg}</span>`;
+    }
+
+    tr.innerHTML = `
+        <td style="font-family:monospace; font-weight:bold;">${size}</td>
+        <td>${statusHtml}</td>
+        <td dir="ltr">${result.time ? result.time : '-'}</td>
+    `;
+
+    ui.tableBody.prepend(tr);
+
+    ui.statusText.innerHTML = result.success ? 
+        `<span class="mtu-status-ok">موفق: ${size} بایت</span>` : 
+        `<span class="mtu-status-err">ناموفق: ${size} بایت</span>`;
+
+    return result.success;
+}
+
+async function runSingleTest() {
+    if (state.isRunning) return stopTest();
+
+    if (state.singleTestUsed) {
+        alert('شما امروز از تست تکی استفاده کرده‌اید. لطفاً فردا مجدداً تلاش کنید.');
+        return;
+    }
+
+    const size = parseInt(ui.sizeInput.value);
+    if (!size || size < 1) return alert('سایز نامعتبر است');
+
+    try {
+        await recordTest('single');
+        state.singleTestUsed = true;
+    } catch (error) {
+        alert(error.message);
+        return;
+    }
+
+    setRunningState(true);
+    ui.statusText.innerText = `درحال تست ${size} بایت...`;
+    ui.statusText.className = 'mtu-status-text mtu-status-loading';
+
+    const result = await fetchPayload(size);
+    logResult(size, result);
+    setRunningState(false);
+}
+
+async function runAutoTest() {
+    if (state.isRunning) return stopTest();
+
+    if (state.autoTestUsed) {
+        alert('شما امروز از تست خودکار استفاده کرده‌اید. لطفاً فردا مجدداً تلاش کنید.');
+        return;
+    }
+
+    let min = parseInt(ui.minSizeInput.value) || 500;
+    let max = parseInt(ui.maxSizeInput.value) || 1500;
+
+    if (min >= max || min < 1 || max > 9000) {
+        alert('لطفاً بازه جستجوی معتبری وارد کنید');
+        return;
+    }
+
+    try {
+        await recordTest('auto');
+        state.autoTestUsed = true;
+    } catch (error) {
+        alert(error.message);
+        return;
+    }
+
+    setRunningState(true);
+    ui.tableBody.innerHTML = ''; 
+    let optimalPayload = 0;
+
+    const totalTests = Math.ceil(Math.log2(max - min)) + 1;
+    state.testCount = 0; 
+
+    let currentMin = min;
+    let currentMax = max;
+
+    while (currentMin <= currentMax && state.isRunning) {
+        let mid = Math.floor((currentMin + currentMax) / 2);
+
+        state.testCount++;
+        ui.statusText.innerText = `درحال تست ${mid} بایت...`;
+        ui.statusText.className = 'mtu-status-text mtu-status-loading';
+        ui.testCounter.innerText = `تست‌های انجام شده: ${state.testCount} از ${totalTests} (تخمین)`;
+
+        let success = await doTestStep(mid);
+
+        if (success) {
+            optimalPayload = mid;
+            currentMin = mid + 1;
+        } else {
+            currentMax = mid - 1;
+        }
+
+        await new Promise(r => setTimeout(r, 500));
+    }
+
+    if (state.isRunning) {
+        showSummary(optimalPayload);
+        ui.testCounter.innerText = '';
+        setRunningState(false);
+    }
+}
+
+async function doTestStep(size) {
+    const result = await fetchPayload(size);
+    logResult(size, result);
+    return result.success;
+}
+
+function getClassification(mtu) {
+    if (mtu > 1528) {
+        return 'وضعیت: 🟠 بالاتر از استاندارد (Jumbo Frame یا مشکل مسیریابی)';
+    } else if (mtu <= 1500 && mtu >= 1400) {
+        return 'وضعیت: 🟢 استاندارد اترنت (1500)';
+    } else if (mtu < 1400) {
+        return 'وضعیت: 🔴 بسیار کوچک (احتمال وجود فایروال یا مشکل Fragmentation)';
+    }
+    return '';
+}
+
+function showSummary(maxPayload) {
+    if(maxPayload === 0) return;
+
+    ui.summaryBox.style.display = 'block';
+    const estimatedMTU = maxPayload + 28; 
+    const classificationText = getClassification(estimatedMTU);
+
+    ui.summaryText.innerHTML = `
+        بزرگترین بسته موفق: <strong>${maxPayload} بایت</strong><br>
+        MTU پیشنهادی (تخمین): <strong>${estimatedMTU}</strong><br>
+        <span style="font-size:13px; font-weight:normal;">${classificationText}</span>
+    `;
+}
+
+function setRunningState(running) {
+    state.isRunning = running;
+
+    if (running) {
+        ui.runBtn.innerText = 'توقف تست';
+        ui.autoBtn.innerText = 'توقف تست';
+        ui.runBtn.classList.remove('btn-primary');
+        ui.runBtn.classList.add('btn-danger');
+        ui.autoBtn.classList.remove('btn-secondary');
+        ui.autoBtn.classList.add('btn-danger');
+        ui.sizeInput.disabled = true;
+        ui.serviceURL.disabled = true;
+        ui.minSizeInput.disabled = true;
+        ui.maxSizeInput.disabled = true;
+    } else {
+        ui.runBtn.innerText = 'اجرای تست تکی';
+        ui.autoBtn.innerText = 'تست خودکار (هوشمند)';
+        ui.runBtn.classList.remove('btn-danger');
+        ui.runBtn.classList.add('btn-primary');
+        ui.autoBtn.classList.remove('btn-danger');
+        ui.autoBtn.classList.add('btn-secondary');
+        ui.sizeInput.disabled = false;
+        ui.serviceURL.disabled = false;
+        ui.minSizeInput.disabled = false;
+        ui.maxSizeInput.disabled = false;
+        ui.statusText.innerText = 'منتظر دستور...';
+        ui.statusText.className = 'mtu-status-text';
+        ui.testCounter.innerText = '';
+    }
+}
+
+function stopTest() {
+    setRunningState(false);
+    ui.statusText.innerText = "توقف توسط کاربر";
+}
+
+function clearResults() {
+    ui.tableBody.innerHTML = '';
+    ui.summaryBox.style.display = 'none';
+    ui.statusText.innerText = 'منتظر دستور...';
+    ui.testCounter.innerText = '';
+}
+
+ui.runBtn.onclick = runSingleTest;
+ui.autoBtn.onclick = runAutoTest;
+ui.clearBtn.onclick = clearResults;
+</script>
+
+</body>
+</html>
