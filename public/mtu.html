@@ -283,6 +283,28 @@
       <div class="mtu-counter" id="testCounter"></div>
     </div>
 
+    <div class="mtu-status-box" id="limitStatusBox" style="display:none;">
+      <div class="mtu-status-label">محدودیت‌های استفاده:</div>
+      <div style="display: flex; gap: 12px; justify-content: center; margin-top: 12px;">
+        <div style="text-align: center;">
+          <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">تست تکی</div>
+          <div id="singleTestStatus" style="font-size: 14px; font-weight: 600;"></div>
+        </div>
+        <div style="text-align: center;">
+          <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">تست خودکار</div>
+          <div id="autoTestStatus" style="font-size: 14px; font-weight: 600;"></div>
+        </div>
+      </div>
+      <div id="resetTimerContainer" style="display:none; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--separator);">
+        <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; text-align: center;">
+          زمان باقی‌مانده تا ریست محدودیت:
+        </div>
+        <div id="resetTimer" style="font-size: 24px; font-weight: 700; color: var(--accent-orange); font-family: monospace; direction: ltr; text-align: center;">
+          00:00:00
+        </div>
+      </div>
+    </div>
+
     <div class="mtu-table-container">
       <table class="mtu-table" id="results">
         <thead>
@@ -309,7 +331,9 @@ const state = {
     results: [],
     testCount: 0,
     singleTestUsed: false,
-    autoTestUsed: false
+    autoTestUsed: false,
+    resetTimestamp: null,
+    timerInterval: null
 };
 
 function showToast(message, type = 'info') {
@@ -365,10 +389,22 @@ async function checkUsageLimit() {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         
+        if (response.status === 401) {
+            showToast('لطفاً مجدداً وارد شوید', 'warning');
+            localStorage.removeItem('wg_dns_token');
+            setTimeout(() => {
+                localStorage.setItem('wg_dns_active_tab', 'tools');
+                window.location.href = '/';
+            }, 2000);
+            return;
+        }
+        
         if (response.ok) {
             const data = await response.json();
             state.singleTestUsed = data.singleTestUsed || false;
             state.autoTestUsed = data.autoTestUsed || false;
+            state.resetTimestamp = data.resetTimestamp || null;
+            updateUsageDisplay();
             return data;
         }
         
@@ -379,10 +415,85 @@ async function checkUsageLimit() {
     }
 }
 
+function updateUsageDisplay() {
+    const limitBox = document.getElementById('limitStatusBox');
+    const singleStatus = document.getElementById('singleTestStatus');
+    const autoStatus = document.getElementById('autoTestStatus');
+    const timerContainer = document.getElementById('resetTimerContainer');
+    
+    if (!limitBox || !singleStatus || !autoStatus) return;
+    
+    limitBox.style.display = 'block';
+    
+    singleStatus.innerHTML = state.singleTestUsed 
+        ? '<span style="color: var(--accent-red);">✘ استفاده شده</span>'
+        : '<span style="color: var(--accent-green);">✔ در دسترس</span>';
+    
+    autoStatus.innerHTML = state.autoTestUsed 
+        ? '<span style="color: var(--accent-red);">✘ استفاده شده</span>'
+        : '<span style="color: var(--accent-green);">✔ در دسترس</span>';
+    
+    if (state.singleTestUsed || state.autoTestUsed) {
+        if (timerContainer) {
+            timerContainer.style.display = 'block';
+        }
+        startResetTimer();
+    } else {
+        if (timerContainer) {
+            timerContainer.style.display = 'none';
+        }
+        stopResetTimer();
+    }
+}
+
+function startResetTimer() {
+    stopResetTimer();
+    
+    if (!state.resetTimestamp) return;
+    
+    updateTimerDisplay();
+    
+    state.timerInterval = setInterval(() => {
+        updateTimerDisplay();
+    }, 1000);
+}
+
+function stopResetTimer() {
+    if (state.timerInterval) {
+        clearInterval(state.timerInterval);
+        state.timerInterval = null;
+    }
+}
+
+function updateTimerDisplay() {
+    const timerEl = document.getElementById('resetTimer');
+    if (!timerEl || !state.resetTimestamp) return;
+    
+    const now = Date.now();
+    const remaining = Math.max(0, state.resetTimestamp - now);
+    
+    if (remaining <= 0) {
+        timerEl.textContent = '00:00:00';
+        stopResetTimer();
+        checkUsageLimit();
+        return;
+    }
+    
+    const hours = Math.floor(remaining / 3600000);
+    const minutes = Math.floor((remaining % 3600000) / 60000);
+    const seconds = Math.floor((remaining % 60000) / 1000);
+    
+    timerEl.textContent = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}
+
 async function recordTest(testType) {
     const token = localStorage.getItem('wg_dns_token');
     if (!token) {
         showToast('لطفاً ابتدا وارد شوید', 'warning');
+        setTimeout(() => {
+            localStorage.setItem('wg_dns_active_tab', 'tools');
+            window.location.href = '/';
+        }, 2000);
         return { success: false };
     }
     
@@ -396,6 +507,16 @@ async function recordTest(testType) {
             body: JSON.stringify({ testType })
         });
         
+        if (response.status === 401) {
+            showToast('لطفاً مجدداً وارد شوید', 'warning');
+            localStorage.removeItem('wg_dns_token');
+            setTimeout(() => {
+                localStorage.setItem('wg_dns_active_tab', 'tools');
+                window.location.href = '/';
+            }, 2000);
+            return { success: false };
+        }
+        
         if (response.status === 429) {
             const error = await response.json();
             showToast(error.error || 'شما امروز از این تست استفاده کرده‌اید', 'warning');
@@ -406,7 +527,11 @@ async function recordTest(testType) {
             return { success: true };
         }
         
-        return await response.json();
+        const result = await response.json();
+        if (result.success) {
+            await checkUsageLimit();
+        }
+        return result;
     } catch (error) {
         console.log('Record test error:', error);
         return { success: true };
@@ -658,6 +783,10 @@ function clearResults() {
 ui.runBtn.onclick = runSingleTest;
 ui.autoBtn.onclick = runAutoTest;
 ui.clearBtn.onclick = clearResults;
+
+window.addEventListener('beforeunload', () => {
+    stopResetTimer();
+});
 </script>
 
 </body>
