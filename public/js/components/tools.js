@@ -1,7 +1,8 @@
-
 const Tools = {
     state: {
-        activeModal: null
+        pingResults: [],
+        isPinging: false,
+        targetHost: ''
     },
 
     async init() {
@@ -10,359 +11,171 @@ const Tools = {
 
     render() {
         return `
-            ${Header.render('ابزارک‌های کمکی', true, false)}
+            ${Header.render('تست پینگ', true, false)}
             <div class="page" style="padding-bottom: 80px;">
                 <div class="container">
-                    ${this.renderToolsGrid()}
+                    ${this.renderPingTester()}
                 </div>
             </div>
             ${Dashboard.renderBottomNav('tools')}
-            ${this.state.activeModal ? this.renderModal() : ''}
         `;
     },
 
-    renderToolsGrid() {
+    renderPingTester() {
         return `
             <div class="card animate-slideInUp">
-                <h3 class="card-title mb-16">ابزارهای تنظیم VPN</h3>
+                <h3 class="card-title mb-16">🌐 تست پینگ و بررسی اتصال</h3>
                 <p class="text-secondary mb-20" style="font-size: 14px;">
-                    ابزارهای کمکی برای تنظیم و استفاده بهتر از کانفیگ‌های VPN
+                    سرعت و کیفیت اتصال خود را با سرورهای مختلف بررسی کنید
                 </p>
 
-                <div class="tools-grid">
-                    <button class="tool-item" onclick="Tools.openModal('wireguard-android')">
-                        <div class="tool-icon">📱</div>
-                        <div class="tool-content">
-                            <div class="tool-title">آموزش WireGuard اندروید</div>
-                            <div class="tool-desc">نصب و راه‌اندازی در اندروید</div>
-                        </div>
-                        <div class="tool-arrow">←</div>
-                    </button>
-
-                    <button class="tool-item" onclick="Tools.openModal('wireguard-ios')">
-                        <div class="tool-icon">🍎</div>
-                        <div class="tool-content">
-                            <div class="tool-title">آموزش WireGuard iOS</div>
-                            <div class="tool-desc">نصب و راه‌اندازی در آیفون</div>
-                        </div>
-                        <div class="tool-arrow">←</div>
-                    </button>
-
-                    <button class="tool-item" onclick="Tools.openModal('wireguard-windows')">
-                        <div class="tool-icon">💻</div>
-                        <div class="tool-content">
-                            <div class="tool-title">آموزش WireGuard ویندوز</div>
-                            <div class="tool-desc">نصب و راه‌اندازی در ویندوز</div>
-                        </div>
-                        <div class="tool-arrow">←</div>
-                    </button>
-
-                    <button class="tool-item" onclick="Tools.openModal('dns-android')">
-                        <div class="tool-icon">🌐</div>
-                        <div class="tool-content">
-                            <div class="tool-title">تنظیم DNS اندروید</div>
-                            <div class="tool-desc">تغییر DNS در اندروید</div>
-                        </div>
-                        <div class="tool-arrow">←</div>
-                    </button>
-
-                    <button class="tool-item" onclick="Tools.openModal('dns-ios')">
-                        <div class="tool-icon">🔧</div>
-                        <div class="tool-content">
-                            <div class="tool-title">تنظیم DNS iOS</div>
-                            <div class="tool-desc">تغییر DNS در آیفون</div>
-                        </div>
-                        <div class="tool-arrow">←</div>
-                    </button>
-
-                    <button class="tool-item" onclick="Tools.openModal('troubleshooting')">
-                        <div class="tool-icon">🔍</div>
-                        <div class="tool-content">
-                            <div class="tool-title">رفع مشکلات رایج</div>
-                            <div class="tool-desc">حل مشکلات اتصال</div>
-                        </div>
-                        <div class="tool-arrow">←</div>
-                    </button>
-
-                    <button class="tool-item" onclick="Tools.openModal('speed-test')">
-                        <div class="tool-icon">⚡</div>
-                        <div class="tool-content">
-                            <div class="tool-title">تست سرعت</div>
-                            <div class="tool-desc">بررسی سرعت اتصال</div>
-                        </div>
-                        <div class="tool-arrow">←</div>
-                    </button>
-
-                    <button class="tool-item" onclick="Tools.openModal('faq')">
-                        <div class="tool-icon">❓</div>
-                        <div class="tool-content">
-                            <div class="tool-title">سوالات متداول</div>
-                            <div class="tool-desc">پاسخ به سوالات رایج</div>
-                        </div>
-                        <div class="tool-arrow">←</div>
+                <div class="ping-input-group mb-20">
+                    <input 
+                        type="text" 
+                        id="ping-host-input" 
+                        class="input" 
+                        placeholder="مثال: 8.8.8.8"
+                        value="${this.state.targetHost}"
+                        ${this.state.isPinging ? 'disabled' : ''}
+                        pattern="^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
+                        title="لطفاً یک آدرس IPv4 معتبر وارد کنید"
+                    >
+                    <button 
+                        class="btn btn-primary" 
+                        onclick="Tools.startPing()"
+                        ${this.state.isPinging ? 'disabled' : ''}
+                        style="min-width: 120px;"
+                    >
+                        ${this.state.isPinging ? '⏳ در حال تست...' : '🚀 شروع تست'}
                     </button>
                 </div>
+
+                ${this.state.pingResults.length > 0 ? this.renderPingResults() : this.renderEmptyState()}
             </div>
         `;
     },
 
-    openModal(type) {
-        this.state.activeModal = type;
-        App.render();
-    },
+    
 
-    closeModal() {
-        this.state.activeModal = null;
-        App.render();
-    },
-
-    renderModal() {
-        const modalContent = this.getModalContent(this.state.activeModal);
-        
+    renderEmptyState() {
         return `
-            <div class="modal-overlay" onclick="if(event.target === this) Tools.closeModal()">
-                <div class="modal">
-                    <div class="modal-header">
-                        <h3 class="modal-title">${modalContent.title}</h3>
-                        <button class="modal-close" onclick="Tools.closeModal()">×</button>
+            <div style="text-align: center; padding: 40px 20px; color: var(--text-secondary);">
+                <div style="font-size: 48px; margin-bottom: 16px;">📡</div>
+                <p>آدرس یا دامنه مورد نظر را وارد کنید</p>
+                <p style="font-size: 13px; margin-top: 8px;">نتایج تست اینجا نمایش داده می‌شود</p>
+            </div>
+        `;
+    },
+
+    renderPingResults() {
+        const results = this.state.pingResults;
+        const successCount = results.filter(r => r.success).length;
+        const avgTime = results.length > 0 
+            ? Math.round(results.reduce((sum, r) => sum + (r.time || 0), 0) / results.length)
+            : 0;
+        const packetLoss = Math.round(((results.length - successCount) / results.length) * 100);
+
+        return `
+            <div class="ping-results">
+                <div class="ping-stats mb-20">
+                    <div class="stat-card">
+                        <div class="stat-label">بسته ارسالی</div>
+                        <div class="stat-value">${Utils.toPersianNumber(results.length)}</div>
                     </div>
-                    <div class="modal-body">
-                        ${modalContent.content}
+                    <div class="stat-card">
+                        <div class="stat-label">موفق</div>
+                        <div class="stat-value text-success">${Utils.toPersianNumber(successCount)}</div>
                     </div>
+                    <div class="stat-card">
+                        <div class="stat-label">میانگین زمان</div>
+                        <div class="stat-value">${Utils.toPersianNumber(avgTime)}ms</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">از دست رفته</div>
+                        <div class="stat-value ${packetLoss > 0 ? 'text-danger' : 'text-success'}">
+                            ${Utils.toPersianNumber(packetLoss)}%
+                        </div>
+                    </div>
+                </div>
+
+                <div class="ping-log">
+                    ${results.map((result, idx) => `
+                        <div class="ping-log-item ${result.success ? 'success' : 'failed'}">
+                            <span class="ping-seq">#${Utils.toPersianNumber(idx + 1)}</span>
+                            <span class="ping-host">${result.host}</span>
+                            ${result.success 
+                                ? `<span class="ping-time">${Utils.toPersianNumber(result.time)}ms</span>`
+                                : `<span class="ping-error">خطا در اتصال</span>`
+                            }
+                        </div>
+                    `).join('')}
                 </div>
             </div>
         `;
     },
 
-    getModalContent(type) {
-        const contents = {
-            'wireguard-android': {
-                title: '📱 آموزش WireGuard اندروید',
-                content: `
-                    <div class="tutorial-steps">
-                        <div class="tutorial-step">
-                            <div class="step-number">۱</div>
-                            <div class="step-content">
-                                <h4>نصب برنامه</h4>
-                                <p>برنامه WireGuard را از گوگل پلی یا سایت رسمی دانلود و نصب کنید.</p>
-                                <a href="https://play.google.com/store/apps/details?id=com.wireguard.android" 
-                                   target="_blank" class="btn btn-sm btn-primary mt-8">
-                                    دانلود از گوگل پلی
-                                </a>
-                            </div>
-                        </div>
-                        <div class="tutorial-step">
-                            <div class="step-number">۲</div>
-                            <div class="step-content">
-                                <h4>افزودن کانفیگ</h4>
-                                <p>روی دکمه + کلیک کنید و گزینه "Import from file or archive" را انتخاب کنید.</p>
-                            </div>
-                        </div>
-                        <div class="tutorial-step">
-                            <div class="step-number">۳</div>
-                            <div class="step-content">
-                                <h4>فعال‌سازی</h4>
-                                <p>فایل .conf دانلود شده را انتخاب کنید و سوئیچ را روشن کنید.</p>
-                            </div>
-                        </div>
-                    </div>
-                `
-            },
-            'wireguard-ios': {
-                title: '🍎 آموزش WireGuard iOS',
-                content: `
-                    <div class="tutorial-steps">
-                        <div class="tutorial-step">
-                            <div class="step-number">۱</div>
-                            <div class="step-content">
-                                <h4>نصب برنامه</h4>
-                                <p>برنامه WireGuard را از App Store دانلود کنید.</p>
-                                <a href="https://apps.apple.com/us/app/wireguard/id1441195209" 
-                                   target="_blank" class="btn btn-sm btn-primary mt-8">
-                                    دانلود از App Store
-                                </a>
-                            </div>
-                        </div>
-                        <div class="tutorial-step">
-                            <div class="step-number">۲</div>
-                            <div class="step-content">
-                                <h4>اضافه کردن تانل</h4>
-                                <p>روی Add a tunnel کلیک کنید و Create from file or archive را انتخاب کنید.</p>
-                            </div>
-                        </div>
-                        <div class="tutorial-step">
-                            <div class="step-number">۳</div>
-                            <div class="step-content">
-                                <h4>اتصال</h4>
-                                <p>فایل کانفیگ را انتخاب و سوئیچ را فعال کنید.</p>
-                            </div>
-                        </div>
-                    </div>
-                `
-            },
-            'wireguard-windows': {
-                title: '💻 آموزش WireGuard ویندوز',
-                content: `
-                    <div class="tutorial-steps">
-                        <div class="tutorial-step">
-                            <div class="step-number">۱</div>
-                            <div class="step-content">
-                                <h4>دانلود و نصب</h4>
-                                <p>نسخه ویندوز WireGuard را دانلود و نصب کنید.</p>
-                                <a href="https://www.wireguard.com/install/" 
-                                   target="_blank" class="btn btn-sm btn-primary mt-8">
-                                    دانلود WireGuard
-                                </a>
-                            </div>
-                        </div>
-                        <div class="tutorial-step">
-                            <div class="step-number">۲</div>
-                            <div class="step-content">
-                                <h4>Import تانل</h4>
-                                <p>روی Import tunnel(s) from file کلیک کنید و فایل .conf را انتخاب کنید.</p>
-                            </div>
-                        </div>
-                        <div class="tutorial-step">
-                            <div class="step-number">۳</div>
-                            <div class="step-content">
-                                <h4>فعال‌سازی</h4>
-                                <p>روی Activate کلیک کنید تا VPN متصل شود.</p>
-                            </div>
-                        </div>
-                    </div>
-                `
-            },
-            'dns-android': {
-                title: '🌐 تنظیم DNS اندروید',
-                content: `
-                    <div class="tutorial-steps">
-                        <div class="tutorial-step">
-                            <div class="step-number">۱</div>
-                            <div class="step-content">
-                                <h4>ورود به تنظیمات</h4>
-                                <p>به Settings > Network & Internet > Private DNS بروید.</p>
-                            </div>
-                        </div>
-                        <div class="tutorial-step">
-                            <div class="step-number">۲</div>
-                            <div class="step-content">
-                                <h4>انتخاب حالت دستی</h4>
-                                <p>گزینه Private DNS provider hostname را انتخاب کنید.</p>
-                            </div>
-                        </div>
-                        <div class="tutorial-step">
-                            <div class="step-number">۳</div>
-                            <div class="step-content">
-                                <h4>وارد کردن DNS</h4>
-                                <p>DNS دریافت شده را وارد کنید و ذخیره کنید.</p>
-                            </div>
-                        </div>
-                    </div>
-                `
-            },
-            'dns-ios': {
-                title: '🔧 تنظیم DNS iOS',
-                content: `
-                    <div class="tutorial-steps">
-                        <div class="tutorial-step">
-                            <div class="step-number">۱</div>
-                            <div class="step-content">
-                                <h4>ورود به Wi-Fi</h4>
-                                <p>به Settings > Wi-Fi بروید و روی شبکه متصل کلیک کنید.</p>
-                            </div>
-                        </div>
-                        <div class="tutorial-step">
-                            <div class="step-number">۲</div>
-                            <div class="step-content">
-                                <h4>تنظیم DNS</h4>
-                                <p>روی Configure DNS کلیک کنید و Manual را انتخاب کنید.</p>
-                            </div>
-                        </div>
-                        <div class="tutorial-step">
-                            <div class="step-number">۳</div>
-                            <div class="step-content">
-                                <h4>افزودن سرور</h4>
-                                <p>DNS سرور دریافتی را اضافه کنید و ذخیره کنید.</p>
-                            </div>
-                        </div>
-                    </div>
-                `
-            },
-            'troubleshooting': {
-                title: '🔍 رفع مشکلات رایج',
-                content: `
-                    <div class="faq-list">
-                        <div class="faq-item">
-                            <h4>VPN وصل نمی‌شود</h4>
-                            <p>• اتصال اینترنت خود را بررسی کنید<br>
-                               • کانفیگ جدید دریافت کنید<br>
-                               • برنامه را به‌روز کنید</p>
-                        </div>
-                        <div class="faq-item">
-                            <h4>سرعت پایین است</h4>
-                            <p>• کشور دیگری را امتحان کنید<br>
-                               • از IPv6 استفاده کنید<br>
-                               • DNS را تغییر دهید</p>
-                        </div>
-                        <div class="faq-item">
-                            <h4>قطع و وصل می‌شود</h4>
-                            <p>• اپراتور دیگری انتخاب کنید<br>
-                               • تنظیمات برنامه را ریست کنید<br>
-                               • کانفیگ جدید بگیرید</p>
-                        </div>
-                    </div>
-                `
-            },
-            'speed-test': {
-                title: '⚡ تست سرعت',
-                content: `
-                    <div class="speed-test-content">
-                        <p class="mb-16">برای تست سرعت اتصال VPN خود می‌توانید از سایت‌های زیر استفاده کنید:</p>
-                        <div class="link-list">
-                            <a href="https://fast.com" target="_blank" class="link-item">
-                                <span>⚡ Fast.com</span>
-                                <span class="link-arrow">←</span>
-                            </a>
-                            <a href="https://www.speedtest.net" target="_blank" class="link-item">
-                                <span>📊 Speedtest.net</span>
-                                <span class="link-arrow">←</span>
-                            </a>
-                            <a href="https://speed.cloudflare.com" target="_blank" class="link-item">
-                                <span>☁️ Cloudflare Speed</span>
-                                <span class="link-arrow">←</span>
-                            </a>
-                        </div>
-                        <div class="alert alert-info mt-16">
-                            💡 برای دقت بیشتر، تست را چند بار تکرار کنید.
-                        </div>
-                    </div>
-                `
-            },
-            'faq': {
-                title: '❓ سوالات متداول',
-                content: `
-                    <div class="faq-list">
-                        <div class="faq-item">
-                            <h4>چند کانفیگ در روز می‌توانم بگیرم؟</h4>
-                            <p>روزانه ${Utils.toPersianNumber(CONFIG.DAILY_LIMITS.wireguard)} کانفیگ WireGuard و ${Utils.toPersianNumber(CONFIG.DAILY_LIMITS.dns)} DNS می‌توانید دریافت کنید.</p>
-                        </div>
-                        <div class="faq-item">
-                            <h4>تفاوت IPv4 و IPv6 چیست؟</h4>
-                            <p>IPv6 معمولاً سریع‌تر و پایدارتر است اما همه اپراتورها آن را پشتیبانی نمی‌کنند.</p>
-                        </div>
-                        <div class="faq-item">
-                            <h4>کدام اپراتور بهتر است؟</h4>
-                            <p>بسته به منطقه شما متفاوت است. همه اپراتورها را امتحان کنید.</p>
-                        </div>
-                        <div class="faq-item">
-                            <h4>آیا استفاده رایگان است؟</h4>
-                            <p>بله، این سرویس کاملاً رایگان و بدون محدودیت است.</p>
-                        </div>
-                    </div>
-                `
-            }
-        };
+    async startPing() {
+        const input = document.getElementById('ping-host-input');
+        const host = input ? input.value.trim() : this.state.targetHost;
 
-        return contents[type] || { title: 'اطلاعات', content: '<p>محتوایی یافت نشد</p>' };
+        if (!host) {
+            Toast.show('لطفاً آدرس IPv4 را وارد کنید', 'error');
+            return;
+        }
+
+        // اعتبارسنجی IPv4
+        const ipv4Regex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+        if (!ipv4Regex.test(host)) {
+            Toast.show('لطفاً یک آدرس IPv4 معتبر وارد کنید', 'error');
+            return;
+        }
+
+        this.state.targetHost = host;
+        this.state.isPinging = true;
+        this.state.pingResults = [];
+        App.render();
+
+        try {
+            // ارسال 4 پینگ
+            for (let i = 0; i < 4; i++) {
+                const result = await this.simulatePing(host, i);
+                this.state.pingResults.push(result);
+                App.render();
+                await this.sleep(800); // تاخیر بین پینگ‌ها
+            }
+        } catch (error) {
+            Toast.show('خطا در انجام تست', 'error');
+        } finally {
+            this.state.isPinging = false;
+            App.render();
+        }
+    },
+
+    async simulatePing(host, sequence) {
+        try {
+            // دریافت یا ایجاد seed برای این هاست از KV
+            const response = await API.request('/ping/simulate', {
+                method: 'POST',
+                body: JSON.JSON.stringify({ host, sequence })
+            });
+
+            return {
+                host,
+                sequence,
+                success: response.success,
+                time: response.time
+            };
+        } catch (error) {
+            return {
+                host,
+                sequence,
+                success: false,
+                time: null
+            };
+        }
+    },
+
+    sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
     }
 };

@@ -155,8 +155,27 @@ const Dashboard = {
                 </div>
             </div>
 
+            <div class="card tools-featured-card animate-slideInUp stagger-3" onclick="event.preventDefault(); App.navigate('tools')">
+                <div class="tools-featured-header">
+                    <div class="tools-featured-icon">
+                        <img src="/images/tool.webp" alt="ابزارک‌ها">
+                    </div>
+                    <div class="tools-featured-content">
+                        <div class="tools-featured-title">بخش ابزارک‌ها</div>
+                        <div class="tools-featured-desc">آموزش نصب و راه‌اندازی</div>
+                    </div>
+                    <div class="tools-featured-arrow"></div>
+                </div>
+                <div class="tools-featured-items">
+                    <div class="tools-mini-item">📱 اندروید</div>
+                    <div class="tools-mini-item">🍎 iOS</div>
+                    <div class="tools-mini-item">💻 ویندوز</div>
+                    <div class="tools-mini-item">❓ راهنما</div>
+                </div>
+            </div>
+
             ${countries.length > 0 ? `
-                <div class="card animate-slideInUp stagger-3">
+                <div class="card animate-slideInUp stagger-4">
                     <h3 class="card-title mb-16">کشورهای موجود</h3>
                     <div class="country-grid">
                         ${countries.map(c => `
@@ -168,25 +187,6 @@ const Dashboard = {
                     </div>
                 </div>
             ` : ''}
-
-            <div class="card tools-featured-card" onclick="App.navigate('tools')">
-                <div class="tools-featured-header">
-                    <div class="tools-featured-icon">
-                        <img src="/images/tool.webp" alt="ابزارک‌ها">
-                    </div>
-                    <div class="tools-featured-content">
-                        <div class="tools-featured-title">ابزارک‌های کمکی</div>
-                        <div class="tools-featured-desc">راهنما و آموزش استفاده</div>
-                    </div>
-                    <div class="tools-featured-arrow">←</div>
-                </div>
-                <div class="tools-featured-items">
-                    <div class="tools-mini-item">📱 آموزش اندروید</div>
-                    <div class="tools-mini-item">🍎 آموزش iOS</div>
-                    <div class="tools-mini-item">💻 آموزش ویندوز</div>
-                    <div class="tools-mini-item">❓ سوالات متداول</div>
-                </div>
-            </div>
         `;
     },
 
@@ -219,7 +219,7 @@ const Dashboard = {
                         <img src="/images/dns.webp" alt="DNS" class="nav-item-icon-img">
                         <span class="nav-item-label">DNS</span>
                     </button>
-                    <button class="nav-item ${active === 'tools' ? 'active' : ''}" onclick="App.navigate('tools')">
+                    <button class="nav-item ${active === 'tools' ? 'active' : ''}" onclick="event.preventDefault(); App.navigate('tools')">
                         <img src="/images/tool.webp" alt="ابزارک‌ها" class="nav-item-icon-img">
                         <span class="nav-item-label">ابزارک‌ها</span>
                     </button>
