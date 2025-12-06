@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
@@ -376,6 +377,11 @@ async function checkUsageLimit() {
     const token = localStorage.getItem('wg_dns_token');
     
     if (!token) {
+        showToast('برای استفاده از این ابزار، لطفاً ابتدا وارد شوید', 'warning');
+        setTimeout(() => {
+            localStorage.setItem('wg_dns_active_tab', 'tools');
+            window.location.href = '/';
+        }, 2000);
         return { singleTestUsed: false, autoTestUsed: false };
     }
     
@@ -383,6 +389,16 @@ async function checkUsageLimit() {
         const response = await fetch('/api/tools/mtu-usage', {
             headers: { 'Authorization': `Bearer ${token}` }
         });
+        
+        if (response.status === 401) {
+            showToast('نشست شما منقضی شده است. لطفاً دوباره وارد شوید', 'warning');
+            setTimeout(() => {
+                localStorage.removeItem('wg_dns_token');
+                localStorage.setItem('wg_dns_active_tab', 'auth');
+                window.location.href = '/';
+            }, 2000);
+            return { singleTestUsed: false, autoTestUsed: false };
+        }
         
         if (response.ok) {
             const data = await response.json();
@@ -395,7 +411,8 @@ async function checkUsageLimit() {
         
         return { singleTestUsed: false, autoTestUsed: false };
     } catch (error) {
-        console.log('Usage check error:', error);
+        console.error('Usage check error:', error);
+        showToast('خطا در بررسی محدودیت‌ها', 'error');
         return { singleTestUsed: false, autoTestUsed: false };
     }
 }
@@ -476,7 +493,7 @@ async function recordTest(testType) {
     if (!token) {
         showToast('برای استفاده از این ابزار، لطفاً ابتدا وارد شوید', 'warning');
         setTimeout(() => {
-            localStorage.setItem('wg_dns_active_tab', 'tools');
+            localStorage.setItem('wg_dns_active_tab', 'auth');
             window.location.href = '/';
         }, 2000);
         return { success: false, needsAuth: true };
@@ -493,9 +510,10 @@ async function recordTest(testType) {
         });
         
         if (response.status === 401) {
-            showToast('لطفاً دوباره وارد شوید', 'error');
+            showToast('نشست شما منقضی شده است. لطفاً دوباره وارد شوید', 'warning');
             setTimeout(() => {
-                localStorage.setItem('wg_dns_active_tab', 'tools');
+                localStorage.removeItem('wg_dns_token');
+                localStorage.setItem('wg_dns_active_tab', 'auth');
                 window.location.href = '/';
             }, 2000);
             return { success: false, needsAuth: true };
@@ -504,11 +522,14 @@ async function recordTest(testType) {
         if (response.status === 429) {
             const error = await response.json();
             showToast(error.error || 'شما امروز از این تست استفاده کرده‌اید', 'warning');
+            await checkUsageLimit();
             return { success: false, limitReached: true };
         }
         
         if (!response.ok) {
-            return { success: true };
+            const errorData = await response.json().catch(() => ({}));
+            showToast(errorData.error || 'خطا در ثبت تست', 'error');
+            return { success: false };
         }
         
         const result = await response.json();
@@ -517,8 +538,9 @@ async function recordTest(testType) {
         }
         return result;
     } catch (error) {
-        console.log('Record test error:', error);
-        return { success: true };
+        console.error('Record test error:', error);
+        showToast('خطا در ارتباط با سرور', 'error');
+        return { success: false };
     }
 }
 
@@ -526,6 +548,12 @@ window.addEventListener('load', () => {
     const token = localStorage.getItem('wg_dns_token');
     if (token) {
         checkUsageLimit();
+    } else {
+        showToast('لطفاً برای استفاده از این ابزار وارد شوید', 'info');
+        setTimeout(() => {
+            localStorage.setItem('wg_dns_active_tab', 'auth');
+            window.location.href = '/';
+        }, 2000);
     }
 });
 
@@ -569,6 +597,7 @@ async function fetchPayload(size) {
 
         return { success: true, time: (end - start).toFixed(0) };
     } catch (err) {
+        clearTimeout(timeoutId);
         return { success: false, error: err.name === 'AbortError' ? 'Timeout' : err.message };
     }
 }
@@ -618,13 +647,11 @@ async function runSingleTest() {
         return;
     }
     if (recordResult.limitReached) {
-        state.singleTestUsed = true;
         return;
     }
-    if (!recordResult.success && !recordResult.limitReached && !recordResult.needsAuth) {
+    if (!recordResult.success) {
         return;
     }
-    state.singleTestUsed = true;
 
     setRunningState(true);
     ui.statusText.innerText = `درحال تست ${size} بایت...`;
@@ -656,13 +683,11 @@ async function runAutoTest() {
         return;
     }
     if (recordResult.limitReached) {
-        state.autoTestUsed = true;
         return;
     }
-    if (!recordResult.success && !recordResult.limitReached && !recordResult.needsAuth) {
+    if (!recordResult.success) {
         return;
     }
-    state.autoTestUsed = true;
 
     setRunningState(true);
     ui.tableBody.innerHTML = ''; 
