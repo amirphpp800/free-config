@@ -348,65 +348,69 @@ function goBackToTools() {
     window.location.href = '/';
 }
 
-function checkAuth() {
-    const token = localStorage.getItem('wg_dns_token');
-    if (!token) {
-        showToast('لطفاً ابتدا وارد شوید', 'error');
-        setTimeout(() => {
-            window.location.href = '/';
-        }, 1500);
-        return false;
-    }
-    return true;
-}
-
 async function checkUsageLimit() {
-    if (!checkAuth()) return;
+    const token = localStorage.getItem('wg_dns_token');
+    
+    if (!token) {
+        showToast('لطفاً ابتدا وارد شوید', 'warning');
+        setTimeout(() => {
+            localStorage.setItem('wg_dns_active_tab', 'tools');
+            window.location.href = '/';
+        }, 2000);
+        return;
+    }
     
     try {
-        const token = localStorage.getItem('wg_dns_token');
-        
         const response = await fetch('/api/tools/mtu-usage', {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         
-        if (response.status === 401) {
-            showToast('لطفاً دوباره وارد شوید', 'error');
-            localStorage.removeItem('wg_dns_token');
-            setTimeout(() => {
-                window.location.href = '/';
-            }, 1500);
-            return;
+        if (response.ok) {
+            const data = await response.json();
+            state.singleTestUsed = data.singleTestUsed || false;
+            state.autoTestUsed = data.autoTestUsed || false;
+            return data;
         }
         
-        const data = await response.json();
-        state.singleTestUsed = data.singleTestUsed;
-        state.autoTestUsed = data.autoTestUsed;
-        return data;
+        return { singleTestUsed: false, autoTestUsed: false };
     } catch (error) {
+        console.log('Usage check error:', error);
         return { singleTestUsed: false, autoTestUsed: false };
     }
 }
 
 async function recordTest(testType) {
     const token = localStorage.getItem('wg_dns_token');
-    if (!token) throw new Error('لطفاً ابتدا وارد شوید');
-    
-    const response = await fetch('/api/tools/mtu-test', {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ testType })
-    });
-    
-    if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'خطا در ثبت تست');
+    if (!token) {
+        showToast('لطفاً ابتدا وارد شوید', 'warning');
+        return { success: false };
     }
     
-    return await response.json();
+    try {
+        const response = await fetch('/api/tools/mtu-test', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ testType })
+        });
+        
+        if (response.status === 429) {
+            const error = await response.json();
+            showToast(error.error || 'شما امروز از این تست استفاده کرده‌اید', 'warning');
+            return { success: false, limitReached: true };
+        }
+        
+        if (!response.ok) {
+            return { success: true };
+        }
+        
+        return await response.json();
+    } catch (error) {
+        console.log('Record test error:', error);
+        return { success: true };
+    }
 }
 
 window.addEventListener('load', checkUsageLimit);
@@ -495,13 +499,15 @@ async function runSingleTest() {
         return;
     }
 
-    try {
-        await recordTest('single');
+    const result = await recordTest('single');
+    if (result.limitReached) {
         state.singleTestUsed = true;
-    } catch (error) {
-        showToast(error.message, 'error');
         return;
     }
+    if (!result.success && !result.limitReached) {
+        return;
+    }
+    state.singleTestUsed = true;
 
     setRunningState(true);
     ui.statusText.innerText = `درحال تست ${size} بایت...`;
@@ -528,13 +534,15 @@ async function runAutoTest() {
         return;
     }
 
-    try {
-        await recordTest('auto');
+    const result = await recordTest('auto');
+    if (result.limitReached) {
         state.autoTestUsed = true;
-    } catch (error) {
-        showToast(error.message, 'error');
         return;
     }
+    if (!result.success && !result.limitReached) {
+        return;
+    }
+    state.autoTestUsed = true;
 
     setRunningState(true);
     ui.tableBody.innerHTML = ''; 
