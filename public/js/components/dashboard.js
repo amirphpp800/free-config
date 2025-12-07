@@ -60,7 +60,7 @@ const Dashboard = {
                         <div style="font-size: 32px;">👑</div>
                         <div>
                             <h3 style="color: white; font-size: 18px; margin-bottom: 4px;">اشتراک پرو فعال</h3>
-                            <p style="color: rgba(255,255,255,0.9); font-size: 13px;">دسترسی نامحدود به تمام امکانات</p>
+                            <p style="color: rgba(255,255,255,0.9); font-size: 13px;">دسترسی روزانه ۱۵ تا</p>
                         </div>
                     </div>
                     <div style="background: rgba(255,255,255,0.2); border-radius: 8px; padding: 12px; backdrop-filter: blur(10px);">
