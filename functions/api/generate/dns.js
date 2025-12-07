@@ -33,13 +33,18 @@ export async function onRequestPost(context) {
             }
         }
 
-        if (!user.isAdmin && !user.isPro && usage.dns >= 3) {
-            return new Response(JSON.stringify({ 
-                error: 'محدودیت روزانه: شما امروز ۳ کانفیگ DNS تولید کرده‌اید'
-            }), {
-                status: 429,
-                headers: { 'Content-Type': 'application/json' }
-            });
+        if (!user.isAdmin) {
+            const limit = user.isPro ? 15 : 3;
+            if (usage.dns >= limit) {
+                return new Response(JSON.stringify({ 
+                    error: `محدودیت روزانه: شما امروز ${limit === 3 ? '۳' : '۱۵'} کانفیگ DNS تولید کرده‌اید`,
+                    resetTimestamp: usage.resetTimestamp,
+                    resetTimer: usage.resetTimestamp ? Math.max(0, usage.resetTimestamp - Date.now()) : 0
+                }), {
+                    status: 429,
+                    headers: { 'Content-Type': 'application/json' }
+                });
+            }
         }
 
         const { country, ipType, operator, dns } = await request.json();

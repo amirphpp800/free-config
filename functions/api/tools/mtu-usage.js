@@ -1,4 +1,3 @@
-
 async function getAuthUser(request, env) {
     const authHeader = request.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) return null;
@@ -23,7 +22,7 @@ export async function onRequestGet(context) {
         if (!user) {
             return new Response(JSON.stringify({ error: 'احراز هویت نشده' }), {
                 status: 401,
-                headers: { 
+                headers: {
                     'Content-Type': 'application/json',
                     'Access-Control-Allow-Origin': '*'
                 }
@@ -32,32 +31,37 @@ export async function onRequestGet(context) {
 
         const today = new Date().toISOString().split('T')[0];
         const usageKey = `mtu-usage:${user.telegramId}:${today}`;
-        
-        let usage = { singleTestUsed: false, autoTestUsed: false };
+
+        let usage = { singleTestCount: 0, autoTestCount: 0 };
+        const limit = user.isPro ? 15 : 1;
 
         if (env.DB) {
             const usageData = await env.DB.get(usageKey);
             if (usageData) {
                 try {
-                    usage = JSON.parse(usageData);
+                    const parsed = JSON.parse(usageData);
+                    usage.singleTestCount = parsed.singleTestCount || 0;
+                    usage.autoTestCount = parsed.autoTestCount || 0;
+                    usage.resetTimestamp = parsed.resetTimestamp;
                 } catch (e) {
                     console.error('Error parsing usage data:', e);
-                    usage = { singleTestUsed: false, autoTestUsed: false };
                 }
-            }
-            
-            if (!usage.resetTimestamp) {
-                const tomorrow = new Date();
-                tomorrow.setDate(tomorrow.getDate() + 1);
-                tomorrow.setHours(0, 0, 0, 0);
-                usage.resetTimestamp = tomorrow.getTime();
-                
-                await env.DB.put(usageKey, JSON.stringify(usage), { expirationTtl: 86400 });
             }
         }
 
+        if (!usage.resetTimestamp) {
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            tomorrow.setHours(0, 0, 0, 0);
+            usage.resetTimestamp = tomorrow.getTime();
+        }
+
+        usage.limit = limit;
+        usage.singleTestUsed = usage.singleTestCount >= limit;
+        usage.autoTestUsed = usage.autoTestCount >= limit;
+
         return new Response(JSON.stringify(usage), {
-            headers: { 
+            headers: {
                 'Content-Type': 'application/json',
                 'Access-Control-Allow-Origin': '*'
             }
@@ -67,7 +71,7 @@ export async function onRequestGet(context) {
         console.error('MTU usage error:', error);
         return new Response(JSON.stringify({ error: 'خطا در دریافت اطلاعات' }), {
             status: 500,
-            headers: { 
+            headers: {
                 'Content-Type': 'application/json',
                 'Access-Control-Allow-Origin': '*'
             }

@@ -67,11 +67,14 @@ export async function onRequestPost(context) {
             }
         }
 
-        if (!user.isAdmin && !user.isPro) {
+        if (!user.isAdmin) {
+            const limit = user.isPro ? 15 : 3;
+            const dualLimit = user.isPro ? 15 : 1;
+            
             if (ipType === 'ipv4_ipv6') {
-                if (usage.wireguard_dual >= 1) {
+                if (usage.wireguard_dual >= dualLimit) {
                     return new Response(JSON.stringify({ 
-                        error: 'محدودیت روزانه: شما امروز ۱ کانفیگ IPv4+IPv6 تولید کرده‌اید',
+                        error: `محدودیت روزانه: شما امروز ${dualLimit === 1 ? '۱' : '۱۵'} کانفیگ IPv4+IPv6 تولید کرده‌اید`,
                         resetTimestamp: usage.resetTimestamp,
                         resetTimer: usage.resetTimestamp ? Math.max(0, usage.resetTimestamp - Date.now()) : 0
                     }), {
@@ -80,9 +83,9 @@ export async function onRequestPost(context) {
                     });
                 }
             } else {
-                if (usage.wireguard >= 3) {
+                if (usage.wireguard >= limit) {
                     return new Response(JSON.stringify({ 
-                        error: 'محدودیت روزانه: شما امروز ۳ کانفیگ WireGuard تولید کرده‌اید',
+                        error: `محدودیت روزانه: شما امروز ${limit === 3 ? '۳' : '۱۵'} کانفیگ WireGuard تولید کرده‌اید`,
                         resetTimestamp: usage.resetTimestamp,
                         resetTimer: usage.resetTimestamp ? Math.max(0, usage.resetTimestamp - Date.now()) : 0
                     }), {

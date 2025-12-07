@@ -14,12 +14,13 @@ export async function onRequestGet(context) {
         const today = new Date().toISOString().split('T')[0];
         const usageKey = `usage:${user.telegramId}:${today}`;
         
-        let usage = { wireguard: 0, dns: 0, limit: 3 };
+        let usage = { wireguard: 0, dns: 0, wireguard_dual: 0, limit: 3 };
 
         if (env.DB) {
             const usageData = await env.DB.get(usageKey);
             if (usageData) {
                 usage = JSON.parse(usageData);
+                if (usage.wireguard_dual === undefined) usage.wireguard_dual = 0;
             }
             
             // Initialize resetTimestamp if not exists
@@ -29,11 +30,12 @@ export async function onRequestGet(context) {
             }
         }
 
-        // Add limit field
-        usage.limit = 3;
+        // Add limit field based on user type
+        const limit = user.isPro ? 15 : 3;
+        usage.limit = limit;
         
         // Check if user is limited
-        const isLimited = !user.isAdmin && (usage.wireguard >= 3 || usage.dns >= 3);
+        const isLimited = !user.isAdmin && !user.isPro && (usage.wireguard >= 3 || usage.dns >= 3);
         usage.isLimited = isLimited;
 
         return new Response(JSON.stringify(usage), {

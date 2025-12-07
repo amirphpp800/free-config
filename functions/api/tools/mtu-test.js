@@ -52,9 +52,12 @@ export async function onRequestPost(context) {
                 }
             }
 
-            const field = testType === 'single' ? 'singleTestUsed' : 'autoTestUsed';
+            const field = testType === 'single' ? 'singleTestCount' : 'autoTestCount';
+            const limit = user.isPro ? 15 : 1;
             
-            if (!user.isAdmin && !user.isPro && usage[field]) {
+            if (!usage[field]) usage[field] = 0;
+            
+            if (!user.isAdmin && usage[field] >= limit) {
                 if (!usage.resetTimestamp) {
                     const tomorrow = new Date();
                     tomorrow.setDate(tomorrow.getDate() + 1);
@@ -63,7 +66,7 @@ export async function onRequestPost(context) {
                 }
                 
                 return new Response(JSON.stringify({ 
-                    error: `شما امروز از این تست استفاده کرده‌اید`,
+                    error: `محدودیت روزانه: شما امروز ${limit === 1 ? '۱' : '۱۵'} بار از این تست استفاده کرده‌اید`,
                     resetTimestamp: usage.resetTimestamp
                 }), {
                     status: 429,
@@ -74,7 +77,7 @@ export async function onRequestPost(context) {
                 });
             }
 
-            usage[field] = true;
+            usage[field]++;
             
             if (!usage.resetTimestamp) {
                 const tomorrow = new Date();
