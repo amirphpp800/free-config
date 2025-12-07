@@ -55,7 +55,7 @@ const Dashboard = {
             const days = Math.ceil(remaining / (1000 * 60 * 60 * 24));
 
             return `
-                <div class="card animate-slideInUp stagger-1" style="background: linear-gradient(135deg, #00E7F7 0%, #D36BF8 0%, #862DCD 100%); border: none;">
+                <div class="card animate-slideInUp stagger-1" style="background: linear-gradient(135deg, #B794F6 0%, #9F7AEA 50%, #805AD5 100%); border: none; box-shadow: 0 8px 32px rgba(128, 90, 213, 0.25);">
                     <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
                         <div style="font-size: 32px;">👑</div>
                         <div>
