@@ -93,6 +93,17 @@ const Header = {
                         ` : ''}
                     </div>
                     ${proSection}
+                    
+                    <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--separator);">
+                        <a href="https://t.me/Minimalcraft" target="_blank" class="btn btn-primary" style="width: 100%; margin-bottom: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none;">
+                            <span style="font-size: 18px;">💬</span>
+                            پشتیبانی
+                        </a>
+                        <a href="https://t.me/ROOTLeaker" target="_blank" class="btn btn-secondary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none;">
+                            <span style="font-size: 18px;">📢</span>
+                            کانال تلگرام
+                        </a>
+                    </div>
                 </div>
             </div>
         `;
