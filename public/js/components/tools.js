@@ -66,7 +66,7 @@ const Tools = {
     renderToolCard(tool) {
         return `
             <div class="tool-card animate-slideInUp" onclick="Tools.openTool('${tool.id}')">
-                <div class="tool-card-icon" style="background: white; width: 64px; height: 64px; border-radius: 16px; display: flex; align-items: center; justify-content: center;">
+                <div class="tool-card-icon" style="background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(10px); width: 64px; height: 64px; border-radius: 16px; display: flex; align-items: center; justify-content: center;">
                     <img src="${tool.icon}" alt="${tool.title}" style="width: 48px; height: 48px; object-fit: contain;">
                 </div>
                 <div class="tool-card-content">
