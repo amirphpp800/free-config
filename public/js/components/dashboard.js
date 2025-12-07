@@ -138,9 +138,9 @@ const Dashboard = {
 
     renderUsageStats() {
         const user = Storage.getUser();
-        const isPro = user?.isPro || user?.isAdmin;
+        const isAdmin = user?.isAdmin;
         
-        if (isPro) {
+        if (isAdmin) {
             return `
                 <div class="card animate-slideInUp stagger-2">
                     <h3 class="card-title mb-16">مصرف امروز</h3>
@@ -160,8 +160,9 @@ const Dashboard = {
             `;
         }
 
-        const usage = this.state.usage || { wireguard: 0, dns: 0, limit: 3 };
-        const limit = usage.limit || CONFIG.DAILY_LIMITS.wireguard;
+        const usage = this.state.usage || { wireguard: 0, dns: 0, wireguard_dual: 0, limit: 3 };
+        const isPro = user?.isPro;
+        const limit = isPro ? 15 : (usage.limit || CONFIG.DAILY_LIMITS.wireguard);
         const wgPercent = (usage.wireguard / limit) * 100;
         const dnsPercent = (usage.dns / limit) * 100;
         const isLimited = usage.isLimited || (usage.wireguard >= limit);
