@@ -34,7 +34,7 @@ const Dashboard = {
 
         return `
             ${Header.render('داشبورد', false, true)}
-            <div class="page" padding-bottom: 80px;">
+            <div class="page" style="padding-bottom: 100px;">
                 <div class="container">
                     ${this.renderAnnouncements()}
                     ${this.renderUsageStats()}

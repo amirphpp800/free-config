@@ -52,7 +52,7 @@ const Tools = {
     renderToolsList() {
         return `
             ${Header.render('ابزارها', true, false)}
-            <div class="page" style="padding-bottom: 80px;">
+            <div class="page" style="padding-bottom: 100px;">
                 <div class="container">
                     <div class="tools-cards-grid">
                         ${this.toolsList.map(tool => this.renderToolCard(tool)).join('')}
