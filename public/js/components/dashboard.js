@@ -36,7 +36,6 @@ const Dashboard = {
             ${Header.render('داشبورد', false, true)}
             <div class="page" style="padding-bottom: 100px;">
                 <div class="container">
-                    ${this.renderProStatus()}
                     ${this.renderUsageStats()}
                     ${await this.renderQuickActions()}
                     ${isAdmin ? this.renderAdminAccess() : ''}
