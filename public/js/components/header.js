@@ -38,7 +38,7 @@ const Header = {
             const remaining = user.proExpiresAt - Date.now();
             const days = Math.ceil(remaining / (1000 * 60 * 60 * 24));
             proSection = `
-                <div style="background: linear-gradient(135deg, #B794F6 0%, #9F7AEA 50%, #805AD5 100%); border-radius: 12px; padding: 16px; margin-top: 16px; box-shadow: 0 8px 32px rgba(128, 90, 213, 0.25);">
+                <div style="background: linear-gradient(135deg, #9F7AEA 0%, #805AD5 50%, #6B46C1 100%); border-radius: 12px; padding: 16px; margin-top: 16px; box-shadow: 0 8px 32px rgba(107, 70, 193, 0.35);">
                     <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
                         <span style="font-size: 24px;">👑</span>
                         <div>
@@ -81,10 +81,6 @@ const Header = {
                         <div class="profile-item">
                             <div class="profile-label">شناسه تلگرام</div>
                             <div class="profile-value">${user?.telegramId ? Utils.toPersianNumber(user.telegramId) : '-'}</div>
-                        </div>
-                        <div class="profile-item">
-                            <div class="profile-label">تاریخ عضویت</div>
-                            <div class="profile-value">${user?.createdAt ? Utils.formatDateShort(user.createdAt) : '-'}</div>
                         </div>
                         ${user?.isAdmin ? `
                             <div class="profile-item">
