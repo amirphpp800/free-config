@@ -94,12 +94,12 @@ const Header = {
                     </div>
                     ${proSection}
                     
-                    <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--separator);">
-                        <a href="https://t.me/Minimalcraft" target="_blank" class="btn btn-primary" style="width: 100%; margin-bottom: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none;">
+                    <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--separator); display: flex; gap: 12px;">
+                        <a href="https://t.me/Minimalcraft" target="_blank" class="btn btn-secondary" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none;">
                             <img src="/images/support.webp" alt="پشتیبانی" style="width: 20px; height: 20px; object-fit: contain;">
                             پشتیبانی
                         </a>
-                        <a href="https://t.me/ROOTLeaker" target="_blank" class="btn btn-secondary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none;">
+                        <a href="https://t.me/ROOTLeaker" target="_blank" class="btn btn-secondary" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none;">
                             <img src="/images/telegram.webp" alt="تلگرام" style="width: 20px; height: 20px; object-fit: contain;">
                             کانال تلگرام
                         </a>
