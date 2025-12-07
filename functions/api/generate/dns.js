@@ -33,7 +33,7 @@ export async function onRequestPost(context) {
             }
         }
 
-        if (!user.isAdmin && usage.dns >= 3) {
+        if (!user.isAdmin && !user.isPro && usage.dns >= 3) {
             return new Response(JSON.stringify({ 
                 error: 'محدودیت روزانه: شما امروز ۳ کانفیگ DNS تولید کرده‌اید'
             }), {

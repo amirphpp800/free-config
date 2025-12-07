@@ -119,5 +119,34 @@ const API = {
         return this.request(`/admin/announcements/${id}`, {
             method: 'DELETE'
         });
+    },
+
+    async activateProCode(code) {
+        return this.request('/user/activate-pro', {
+            method: 'POST',
+            body: JSON.stringify({ code })
+        });
+    },
+
+    async adminGetProCodes() {
+        return this.request('/admin/pro-codes');
+    },
+
+    async adminCreateProCodes(duration, count) {
+        return this.request('/admin/pro-codes', {
+            method: 'POST',
+            body: JSON.stringify({ action: 'create', duration, count })
+        });
+    },
+
+    async adminDeleteProCode(code) {
+        return this.request('/admin/pro-codes', {
+            method: 'POST',
+            body: JSON.stringify({ action: 'delete', code })
+        });
+    },
+
+    async adminGetProUsers() {
+        return this.request('/admin/pro-users');
     }
 };

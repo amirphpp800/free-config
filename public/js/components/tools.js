@@ -16,21 +16,21 @@ const Tools = {
             id: 'ping',
             title: 'تست پینگ',
             description: 'بررسی سرعت و کیفیت اتصال به سرورهای مختلف',
-            icon: '🌐',
+            icon: '/images/tool-icon/ping-tool.webp',
             color: 'blue'
         },
         {
             id: 'ip-info',
             title: 'اطلاعات IP',
             description: 'نمایش اطلاعات آی‌پی و موقعیت جغرافیایی',
-            icon: '📍',
+            icon: '/images/tool-icon/ip-tool.webp',
             color: 'orange'
         },
         {
             id: 'mtu-tester',
             title: 'تستر MTU',
             description: 'آزمایش اندازه بهینه بسته‌های شبکه',
-            icon: '📊',
+            icon: '/images/tool-icon/mtu-tool.webp',
             color: 'red'
         }
     ],
@@ -67,7 +67,7 @@ const Tools = {
         return `
             <div class="tool-card animate-slideInUp" onclick="Tools.openTool('${tool.id}')">
                 <div class="tool-card-icon ${tool.color}">
-                    <span>${tool.icon}</span>
+                    <img src="${tool.icon}" alt="${tool.title}" style="width: 32px; height: 32px; object-fit: contain;">
                 </div>
                 <div class="tool-card-content">
                     <h3 class="tool-card-title">${tool.title}</h3>

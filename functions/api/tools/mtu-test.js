@@ -54,7 +54,7 @@ export async function onRequestPost(context) {
 
             const field = testType === 'single' ? 'singleTestUsed' : 'autoTestUsed';
             
-            if (usage[field]) {
+            if (!user.isAdmin && !user.isPro && usage[field]) {
                 if (!usage.resetTimestamp) {
                     const tomorrow = new Date();
                     tomorrow.setDate(tomorrow.getDate() + 1);

@@ -67,7 +67,7 @@ export async function onRequestPost(context) {
             }
         }
 
-        if (!user.isAdmin) {
+        if (!user.isAdmin && !user.isPro) {
             if (ipType === 'ipv4_ipv6') {
                 if (usage.wireguard_dual >= 1) {
                     return new Response(JSON.stringify({ 

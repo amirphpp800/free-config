@@ -392,6 +392,16 @@ function getToken() {
     }
 }
 
+function getUser() {
+    try {
+        const item = localStorage.getItem('wg_dns_user');
+        if (!item) return null;
+        return JSON.parse(item);
+    } catch (e) {
+        return null;
+    }
+}
+
 async function checkUsageLimit() {
     const token = getToken();
     
@@ -650,7 +660,8 @@ function logResult(size, result) {
 async function runSingleTest() {
     if (state.isRunning) return stopTest();
 
-    if (state.singleTestUsed) {
+    const user = getUser();
+    if (!user?.isAdmin && !user?.isPro && state.singleTestUsed) {
         showToast('شما امروز از تست تکی استفاده کرده‌اید. لطفاً فردا مجدداً تلاش کنید.', 'warning');
         return;
     }
@@ -684,7 +695,8 @@ async function runSingleTest() {
 async function runAutoTest() {
     if (state.isRunning) return stopTest();
 
-    if (state.autoTestUsed) {
+    const user = getUser();
+    if (!user?.isAdmin && !user?.isPro && state.autoTestUsed) {
         showToast('شما امروز از تست خودکار استفاده کرده‌اید. لطفاً فردا مجدداً تلاش کنید.', 'warning');
         return;
     }

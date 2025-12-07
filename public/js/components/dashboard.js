@@ -37,6 +37,7 @@ const Dashboard = {
             <div class="page" padding-bottom: 80px;">
                 <div class="container">
                     ${this.renderAnnouncements()}
+                    ${this.renderProStatus()}
                     ${this.renderUsageStats()}
                     ${await this.renderQuickActions()}
                     ${isAdmin ? this.renderAdminAccess() : ''}
@@ -44,6 +45,65 @@ const Dashboard = {
             </div>
             ${this.renderBottomNav('home')}
         `;
+    },
+
+    renderProStatus() {
+        const user = Storage.getUser();
+        if (!user) return '';
+
+        if (user.isPro && user.proExpiresAt) {
+            const remaining = user.proExpiresAt - Date.now();
+            const days = Math.ceil(remaining / (1000 * 60 * 60 * 24));
+
+            return `
+                <div class="card animate-slideInUp stagger-1" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none;">
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                        <div style="font-size: 32px;">👑</div>
+                        <div>
+                            <h3 style="color: white; font-size: 18px; margin-bottom: 4px;">اشتراک پرو فعال</h3>
+                            <p style="color: rgba(255,255,255,0.9); font-size: 13px;">دسترسی نامحدود به تمام امکانات</p>
+                        </div>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.2); border-radius: 8px; padding: 12px; backdrop-filter: blur(10px);">
+                        <div style="color: white; font-size: 13px; margin-bottom: 4px;">زمان باقی‌مانده:</div>
+                        <div style="color: white; font-size: 20px; font-weight: 700;">${Utils.toPersianNumber(days)} روز</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        return `
+            <div class="card animate-slideInUp stagger-1">
+                <h3 class="card-title mb-12">👑 اشتراک پرو</h3>
+                <p class="text-secondary mb-16" style="font-size: 14px;">با فعال‌سازی اشتراک پرو، محدودیت روزانه را حذف کنید</p>
+                <div class="input-group">
+                    <label class="input-label">کد پرو</label>
+                    <input type="text" class="input" id="pro-code-input" placeholder="XXXX-XXXX-XXXX-XXXX" style="text-transform: uppercase;">
+                </div>
+                <button class="btn btn-primary" onclick="Dashboard.activateProCode()">
+                    فعال‌سازی اشتراک پرو
+                </button>
+            </div>
+        `;
+    },
+
+    async activateProCode() {
+        const input = document.getElementById('pro-code-input');
+        const code = input?.value?.trim();
+
+        if (!code) {
+            Toast.show('کد پرو را وارد کنید', 'error');
+            return;
+        }
+
+        try {
+            const result = await API.activateProCode(code);
+            Storage.setUser(result.user);
+            Toast.show('اشتراک پرو با موفقیت فعال شد!', 'success');
+            await this.init();
+        } catch (error) {
+            Toast.show(error.message, 'error');
+        }
     },
 
     renderAnnouncements() {
@@ -78,6 +138,29 @@ const Dashboard = {
     },
 
     renderUsageStats() {
+        const user = Storage.getUser();
+        const isPro = user?.isPro || user?.isAdmin;
+        
+        if (isPro) {
+            return `
+                <div class="card animate-slideInUp stagger-2">
+                    <h3 class="card-title mb-16">مصرف امروز</h3>
+                    <div class="mb-16">
+                        <div class="usage-info">
+                            <span class="usage-label">🔐 WireGuard</span>
+                            <span class="usage-value" style="color: var(--accent-green);">نامحدود ✓</span>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="usage-info">
+                            <span class="usage-label">🌐 DNS</span>
+                            <span class="usage-value" style="color: var(--accent-green);">نامحدود ✓</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
         const usage = this.state.usage || { wireguard: 0, dns: 0, limit: 3 };
         const limit = usage.limit || CONFIG.DAILY_LIMITS.wireguard;
         const wgPercent = (usage.wireguard / limit) * 100;

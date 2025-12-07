@@ -5,6 +5,8 @@ const Admin = {
         users: [],
         countries: [],
         announcements: [],
+        proCodes: [],
+        proUsers: [],
         loading: true,
         newAnnouncement: '',
         selectedCountry: null,
@@ -14,14 +16,18 @@ const Admin = {
     async init() {
         this.state.loading = true;
         try {
-            const [statsRes, countriesRes, announcementsRes] = await Promise.all([
+            const [statsRes, countriesRes, announcementsRes, proCodesRes, proUsersRes] = await Promise.all([
                 API.adminGetStats().catch(() => ({})),
                 API.getCountries().catch(() => ({ countries: [] })),
-                API.getAnnouncements().catch(() => ({ announcements: [] }))
+                API.getAnnouncements().catch(() => ({ announcements: [] })),
+                API.adminGetProCodes().catch(() => ({ codes: [] })),
+                API.adminGetProUsers().catch(() => ({ users: [] }))
             ]);
             this.state.stats = statsRes;
             this.state.countries = countriesRes.countries || [];
             this.state.announcements = announcementsRes.announcements || [];
+            this.state.proCodes = proCodesRes.codes || [];
+            this.state.proUsers = proUsersRes.users || [];
         } catch (error) {
             console.error('Admin init error:', error);
         } finally {
@@ -65,6 +71,8 @@ const Admin = {
             <div class="tabs">
                 <button class="tab ${this.state.tab === 'stats' ? 'active' : ''}" 
                     onclick="Admin.setTab('stats')">آمار</button>
+                <button class="tab ${this.state.tab === 'pro' ? 'active' : ''}" 
+                    onclick="Admin.setTab('pro')">مدیریت پرو</button>
                 <button class="tab ${this.state.tab === 'countries' ? 'active' : ''}" 
                     onclick="Admin.setTab('countries')">کشورها</button>
                 <button class="tab ${this.state.tab === 'announcements' ? 'active' : ''}" 
@@ -86,6 +94,7 @@ const Admin = {
 
         switch (this.state.tab) {
             case 'stats': return this.renderStats();
+            case 'pro': return this.renderPro();
             case 'countries': return this.renderCountries();
             case 'announcements': return this.renderAnnouncements();
             default: return this.renderStats();
@@ -126,6 +135,145 @@ const Admin = {
                 </div>
             </div>
         `;
+    },
+
+    renderPro() {
+        const unusedCodes = this.state.proCodes.filter(c => !c.used);
+        const usedCodes = this.state.proCodes.filter(c => c.used);
+
+        return `
+            <div class="card animate-fadeIn" style="margin-bottom: 20px;">
+                <h3 class="card-title mb-16">ایجاد کد پرو</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                    <div class="input-group">
+                        <label class="input-label">مدت زمان (روز)</label>
+                        <select class="input" id="pro-duration">
+                            <option value="30">30 روز</option>
+                            <option value="90">90 روز</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label class="input-label">تعداد کد</label>
+                        <input type="number" class="input" id="pro-count" value="1" min="1" max="100">
+                    </div>
+                    <div style="display: flex; align-items: flex-end;">
+                        <button class="btn btn-primary" style="width: 100%;" onclick="Admin.createProCodes()">
+                            ➕ ایجاد کد
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card animate-fadeIn" style="margin-bottom: 20px;">
+                <h3 class="card-title mb-16">کاربران پرو (${Utils.toPersianNumber(this.state.proUsers.length)})</h3>
+                ${this.state.proUsers.length ? `
+                    <div style="max-height: 300px; overflow-y: auto;">
+                        ${this.state.proUsers.map(u => {
+                            const remaining = u.proExpiresAt - Date.now();
+                            const days = Math.ceil(remaining / (1000 * 60 * 60 * 24));
+                            return `
+                                <div class="list-item">
+                                    <div style="flex: 1;">
+                                        <div style="font-weight: 600;">👤 ${u.telegramId}</div>
+                                        <div class="text-secondary" style="font-size: 12px;">
+                                            فعال شده: ${Utils.formatDateShort(u.proActivatedAt)}
+                                        </div>
+                                    </div>
+                                    <div style="text-align: left;">
+                                        <div style="color: var(--accent-green); font-weight: 600;">${Utils.toPersianNumber(days)} روز</div>
+                                        <div class="text-secondary" style="font-size: 12px;">باقی‌مانده</div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                ` : '<p class="text-secondary text-center">کاربر پرویی وجود ندارد</p>'}
+            </div>
+
+            <div class="card animate-fadeIn">
+                <h3 class="card-title mb-16">کدهای استفاده نشده (${Utils.toPersianNumber(unusedCodes.length)})</h3>
+                ${unusedCodes.length ? `
+                    <div style="max-height: 400px; overflow-y: auto;">
+                        ${unusedCodes.map(c => `
+                            <div class="list-item">
+                                <div style="flex: 1;">
+                                    <div style="font-family: monospace; font-weight: 600; direction: ltr; text-align: left;">${c.code}</div>
+                                    <div class="text-secondary" style="font-size: 12px;">
+                                        ${Utils.toPersianNumber(c.duration)} روزه • ایجاد: ${Utils.formatDateShort(c.createdAt)}
+                                    </div>
+                                </div>
+                                <button class="btn btn-sm btn-secondary" onclick="Admin.copyProCode('${c.code}')">
+                                    📋 کپی
+                                </button>
+                                <button class="btn btn-sm btn-danger" onclick="Admin.deleteProCode('${c.code}')">
+                                    🗑️
+                                </button>
+                            </div>
+                        `).join('')}
+                    </div>
+                ` : '<p class="text-secondary text-center">کد استفاده نشده‌ای وجود ندارد</p>'}
+            </div>
+
+            ${usedCodes.length ? `
+                <div class="card animate-fadeIn" style="margin-top: 20px;">
+                    <h3 class="card-title mb-16">کدهای استفاده شده (${Utils.toPersianNumber(usedCodes.length)})</h3>
+                    <div style="max-height: 300px; overflow-y: auto;">
+                        ${usedCodes.map(c => `
+                            <div class="list-item">
+                                <div style="flex: 1;">
+                                    <div style="font-family: monospace; font-weight: 600; direction: ltr; text-align: left;">${c.code}</div>
+                                    <div class="text-secondary" style="font-size: 12px;">
+                                        استفاده توسط: ${c.usedBy} • ${Utils.formatDateShort(c.usedAt)}
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            ` : ''}
+        `;
+    },
+
+    async createProCodes() {
+        const duration = parseInt(document.getElementById('pro-duration').value);
+        const count = parseInt(document.getElementById('pro-count').value);
+
+        if (!count || count < 1 || count > 100) {
+            Toast.show('تعداد باید بین 1 تا 100 باشد', 'error');
+            return;
+        }
+
+        try {
+            const result = await API.adminCreateProCodes(duration, count);
+            Toast.show(`${Utils.toPersianNumber(result.codes.length)} کد پرو ایجاد شد`, 'success');
+            await this.init();
+        } catch (error) {
+            Toast.show(error.message, 'error');
+        }
+    },
+
+    copyProCode(code) {
+        navigator.clipboard.writeText(code).then(() => {
+            Toast.show('کد کپی شد', 'success');
+        }).catch(() => {
+            Toast.show('خطا در کپی کردن', 'error');
+        });
+    },
+
+    async deleteProCode(code) {
+        this.showConfirmModal(
+            'حذف کد پرو',
+            'آیا از حذف این کد اطمینان دارید؟',
+            async () => {
+                try {
+                    await API.adminDeleteProCode(code);
+                    Toast.show('کد پرو حذف شد', 'success');
+                    await this.init();
+                } catch (error) {
+                    Toast.show(error.message, 'error');
+                }
+            }
+        );
     },
 
     renderCountries() {
