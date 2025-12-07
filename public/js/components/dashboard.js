@@ -37,7 +37,6 @@ const Dashboard = {
             <div class="page" padding-bottom: 80px;">
                 <div class="container">
                     ${this.renderAnnouncements()}
-                    ${this.renderProStatus()}
                     ${this.renderUsageStats()}
                     ${await this.renderQuickActions()}
                     ${isAdmin ? this.renderAdminAccess() : ''}
