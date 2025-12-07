@@ -8,7 +8,7 @@ id = "b63d42970be2458d990dde266a300444"
 preview_id = "YOUR_KV_PREVIEW_NAMESPACE_ID"
 
 [vars]
-WEBSITE_URL = "https://free-config.pages.dev/"
+WEBSITE_URL = "https://rootleaker.pages.dev/"
 ADMIN_ID = "7240662021"
 BOT_TOKEN = "8460423026:AAEWBzpT3UmyXtDG-XW6xbvoORnk5ssawqM"
 # IMPORTANT: Move BOT_TOKEN to Cloudflare dashboard secrets before production deployment
