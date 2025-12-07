@@ -71,19 +71,7 @@ const Dashboard = {
             `;
         }
 
-        return `
-            <div class="card animate-slideInUp stagger-1">
-                <h3 class="card-title mb-12">👑 اشتراک پرو</h3>
-                <p class="text-secondary mb-16" style="font-size: 14px;">با فعال‌سازی اشتراک پرو، محدودیت روزانه را حذف کنید</p>
-                <div class="input-group">
-                    <label class="input-label">کد پرو</label>
-                    <input type="text" class="input" id="pro-code-input" placeholder="XXXX-XXXX-XXXX-XXXX" style="text-transform: uppercase;">
-                </div>
-                <button class="btn btn-primary" onclick="Dashboard.activateProCode()">
-                    فعال‌سازی اشتراک پرو
-                </button>
-            </div>
-        `;
+        return '';
     },
 
     async activateProCode() {
