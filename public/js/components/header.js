@@ -38,15 +38,15 @@ const Header = {
             const remaining = user.proExpiresAt - Date.now();
             const days = Math.ceil(remaining / (1000 * 60 * 60 * 24));
             proSection = `
-                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; padding: 16px; margin-top: 16px;">
+                <div style="background: linear-gradient(135deg, #B794F6 0%, #9F7AEA 50%, #805AD5 100%); border-radius: 12px; padding: 16px; margin-top: 16px; box-shadow: 0 8px 32px rgba(128, 90, 213, 0.25);">
                     <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
                         <span style="font-size: 24px;">👑</span>
                         <div>
                             <div style="color: white; font-weight: 600; font-size: 15px;">اشتراک پرو فعال</div>
-                            <div style="color: rgba(255,255,255,0.8); font-size: 12px;">دسترسی نامحدود</div>
+                            <div style="color: rgba(255,255,255,0.9); font-size: 12px;">دسترسی روزانه ۱۵ تا</div>
                         </div>
                     </div>
-                    <div style="background: rgba(255,255,255,0.2); border-radius: 8px; padding: 10px; text-align: center;">
+                    <div style="background: rgba(255,255,255,0.2); border-radius: 8px; padding: 10px; text-align: center; backdrop-filter: blur(10px);">
                         <div style="color: white; font-size: 12px; margin-bottom: 4px;">زمان باقی‌مانده:</div>
                         <div style="color: white; font-size: 18px; font-weight: 700;">${Utils.toPersianNumber(days)} روز</div>
                     </div>
