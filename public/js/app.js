@@ -30,7 +30,7 @@ const App = {
             this.currentPage = 'auth';
         }
         this.hideLoading();
-        this.render();
+        await this.render();
     },
 
     hideLoading() {
@@ -98,7 +98,7 @@ const App = {
                 await Admin.init();
                 break;
             default:
-                this.render();
+                await this.render();
         }
     },
 
