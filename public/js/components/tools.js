@@ -35,8 +35,8 @@ const Tools = {
         },
         {
             id: 'storage',
-            title: 'ذخیره‌سازی',
-            description: 'راهکارهای مختلف برای ذخیره‌سازی کانفیگ‌های شما',
+            title: 'منبع پنل',
+            description: 'دانلود پنل های مختلف برای استفاده شخصی',
             icon: '/images/storage.webp',
             color: 'white'
         }
@@ -49,9 +49,9 @@ const Tools = {
         App.render();
     },
 
-    render() {
+    async render() {
         if (this.state.currentTool) {
-            return this.renderToolPage(this.state.currentTool);
+            return await this.renderToolPage(this.state.currentTool);
         }
         return this.renderToolsList();
     },
@@ -89,7 +89,7 @@ const Tools = {
         `;
     },
 
-    openTool(toolId) {
+    async openTool(toolId) {
         if (toolId === 'mtu-tester') {
             window.location.href = '/mtu.html';
             return;
@@ -104,7 +104,7 @@ const Tools = {
             this.state.ipInfo = null;
             this.state.isLoadingIpInfo = false;
         }
-        App.render();
+        await App.render();
     },
 
     goBack() {
@@ -112,7 +112,7 @@ const Tools = {
         App.render();
     },
 
-    renderToolPage(toolId) {
+    async renderToolPage(toolId) {
         switch (toolId) {
             case 'ping':
                 return this.renderPingPage();
@@ -125,7 +125,7 @@ const Tools = {
             case 'speed-test':
                 return this.renderSpeedTestPage();
             case 'storage':
-                return this.renderStoragePage();
+                return await this.renderStoragePage();
             default:
                 return this.renderToolsList();
         }
