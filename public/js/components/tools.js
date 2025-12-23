@@ -561,13 +561,13 @@ const Tools = {
     async renderStoragePage() {
         const panels = await this.loadStoragePanels();
         return `
-            ${Header.render('ذخیره‌سازی', true, false)}
+            ${Header.render('منبع پنل', true, false)}
             <div class="page" style="padding-bottom: 100px;">
                 <div class="container">
                     <button class="btn btn-secondary mb-16" onclick="Tools.goBack()">
                         → بازگشت به ابزارها
                     </button>
-                    <div style="display: grid; grid-template-columns: 1fr; gap: 12px;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
                         ${panels.map(panel => `
                             <div class="card" style="cursor: pointer;">
                                 <div class="card-header">
