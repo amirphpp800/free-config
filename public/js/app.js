@@ -59,7 +59,7 @@ const App = {
                 content = Generator.render();
                 break;
             case 'tools':
-                content = Tools.render();
+                content = await Tools.render();
                 break;
             case 'history':
                 content = History.render();
