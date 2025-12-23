@@ -32,6 +32,13 @@ const Tools = {
             description: 'آزمایش اندازه بهینه بسته‌های شبکه',
             icon: '/images/tool-icon/mtu-tool.webp',
             color: 'white'
+        },
+        {
+            id: 'storage',
+            title: 'ذخیره‌سازی',
+            description: 'راهکارهای مختلف برای ذخیره‌سازی کانفیگ‌های شما',
+            icon: '/images/storage.webp',
+            color: 'white'
         }
     ],
 
@@ -117,6 +124,8 @@ const Tools = {
                 return this.renderMtuTesterPage();
             case 'speed-test':
                 return this.renderSpeedTestPage();
+            case 'storage':
+                return this.renderStoragePage();
             default:
                 return this.renderToolsList();
         }
@@ -546,6 +555,51 @@ const Tools = {
             return response;
         } catch (error) {
             throw error;
+        }
+    },
+
+    async renderStoragePage() {
+        const panels = await this.loadStoragePanels();
+        return `
+            ${Header.render('ذخیره‌سازی', true, false)}
+            <div class="page" style="padding-bottom: 100px;">
+                <div class="container">
+                    <button class="btn btn-secondary mb-16" onclick="Tools.goBack()">
+                        → بازگشت به ابزارها
+                    </button>
+                    <div style="display: grid; grid-template-columns: 1fr; gap: 12px;">
+                        ${panels.map(panel => `
+                            <div class="card" style="cursor: pointer;">
+                                <div class="card-header">
+                                    <div>
+                                        <div style="font-size: 24px; margin-bottom: 8px;">${panel.icon}</div>
+                                        <h3 class="card-title">${panel.name}</h3>
+                                    </div>
+                                </div>
+                                <p class="text-secondary" style="font-size: 14px; margin-bottom: 12px;">${panel.description}</p>
+                                <p style="font-size: 13px; color: var(--accent-blue); margin-bottom: 16px;">
+                                    📌 ${panel.usage}
+                                </p>
+                                <a href="${panel.downloadUrl}" class="btn btn-primary" style="text-decoration: none; color: white;" download>
+                                    ⬇️ دانلود
+                                </a>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            </div>
+            ${Dashboard.renderBottomNav('tools')}
+        `;
+    },
+
+    async loadStoragePanels() {
+        try {
+            const response = await fetch('/data/storage-panels.json');
+            const data = await response.json();
+            return data.panels || [];
+        } catch (error) {
+            console.error('Error loading storage panels:', error);
+            return [];
         }
     }
 };
