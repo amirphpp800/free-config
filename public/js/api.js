@@ -148,5 +148,16 @@ const API = {
 
     async adminGetProUsers() {
         return this.request('/admin/pro-users');
+    },
+
+    async adminGetMaintenance() {
+        return this.request('/admin/maintenance');
+    },
+
+    async adminSetMaintenance(maintenance) {
+        return this.request('/admin/maintenance', {
+            method: 'POST',
+            body: JSON.stringify({ maintenance })
+        });
     }
 };

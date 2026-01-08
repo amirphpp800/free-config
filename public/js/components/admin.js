@@ -7,6 +7,7 @@ const Admin = {
         announcements: [],
         proCodes: [],
         proUsers: [],
+        maintenance: false,
         loading: true,
         newAnnouncement: '',
         selectedCountry: null,
@@ -16,18 +17,20 @@ const Admin = {
     async init() {
         this.state.loading = true;
         try {
-            const [statsRes, countriesRes, announcementsRes, proCodesRes, proUsersRes] = await Promise.all([
+            const [statsRes, countriesRes, announcementsRes, proCodesRes, proUsersRes, maintenanceRes] = await Promise.all([
                 API.adminGetStats().catch(() => ({})),
                 API.getCountries().catch(() => ({ countries: [] })),
                 API.getAnnouncements().catch(() => ({ announcements: [] })),
                 API.adminGetProCodes().catch(() => ({ codes: [] })),
-                API.adminGetProUsers().catch(() => ({ users: [] }))
+                API.adminGetProUsers().catch(() => ({ users: [] })),
+                API.adminGetMaintenance().catch(() => ({ maintenance: false }))
             ]);
             this.state.stats = statsRes;
             this.state.countries = countriesRes.countries || [];
             this.state.announcements = announcementsRes.announcements || [];
             this.state.proCodes = proCodesRes.codes || [];
             this.state.proUsers = proUsersRes.users || [];
+            this.state.maintenance = maintenanceRes.maintenance;
         } catch (error) {
             console.error('Admin init error:', error);
         } finally {
@@ -104,6 +107,18 @@ const Admin = {
     renderStats() {
         const stats = this.state.stats || {};
         return `
+            <div class="card animate-fadeIn" style="margin-bottom: 20px; border: 2px solid ${this.state.maintenance ? 'var(--accent-red)' : 'var(--accent-green)'}">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h3 class="card-title" style="margin-bottom: 4px;">وضعیت سایت</h3>
+                        <p class="text-secondary" style="font-size: 14px;">سایت در حال حاضر ${this.state.maintenance ? 'خارج از دسترس (بروزرسانی)' : 'در دسترس'} است</p>
+                    </div>
+                    <button class="btn ${this.state.maintenance ? 'btn-primary' : 'btn-danger'}" onclick="Admin.toggleMaintenance()">
+                        ${this.state.maintenance ? '✅ فعال‌سازی سایت' : '⚠️ غیرفعال‌سازی (بروزرسانی)'}
+                    </button>
+                </div>
+            </div>
+
             <div class="stat-grid animate-fadeIn">
                 <div class="stat-card">
                     <div class="stat-value">${Utils.toPersianNumber(stats.totalUsers || 0)}</div>
@@ -392,6 +407,24 @@ const Admin = {
                 </button>
             </div>
         `;
+    },
+
+    async toggleMaintenance() {
+        const newState = !this.state.maintenance;
+        const message = newState 
+            ? 'آیا از غیرفعال‌سازی سایت و نمایش پیام بروزرسانی اطمینان دارید؟' 
+            : 'آیا از فعال‌سازی مجدد سایت اطمینan دارید؟';
+        
+        if (!confirm(message)) return;
+
+        try {
+            await API.adminSetMaintenance(newState);
+            this.state.maintenance = newState;
+            Toast.show(newState ? 'حالت بروزرسانی فعال شد' : 'سایت فعال شد', 'success');
+            App.render();
+        } catch (error) {
+            Toast.show(error.message, 'error');
+        }
     },
 
     setTab(tab) {
